@@ -1562,29 +1562,119 @@ function PricingSection({ product }: { product: Product }) {
 function PriceAnalysisCard({
   label,
   pa,
+  featured,
+  compact,
 }: {
   label: string;
   pa: PriceAnalysis;
+  featured?: boolean;
+  compact?: boolean;
 }) {
-  const toneByStatus: Record<PriceStatus, { ring: string; dot: string; text: string }> = {
-    healthy: { ring: "border-success/40", dot: "bg-success", text: "Saudável" },
-    attention: { ring: "border-warning/40", dot: "bg-warning", text: "Atenção" },
-    risk: { ring: "border-warning/50", dot: "bg-warning", text: "Risco" },
-    loss: { ring: "border-destructive/50", dot: "bg-destructive", text: "Prejuízo" },
+  const toneByStatus: Record<
+    PriceStatus,
+    { ring: string; dot: string; text: string; soft: string }
+  > = {
+    healthy: {
+      ring: "border-success/40",
+      dot: "bg-success",
+      text: "Saudável",
+      soft: "bg-success/10",
+    },
+    attention: {
+      ring: "border-warning/40",
+      dot: "bg-warning",
+      text: "Atenção",
+      soft: "bg-warning/10",
+    },
+    risk: {
+      ring: "border-warning/50",
+      dot: "bg-warning",
+      text: "Risco",
+      soft: "bg-warning/10",
+    },
+    loss: {
+      ring: "border-destructive/50",
+      dot: "bg-destructive",
+      text: "Prejuízo",
+      soft: "bg-destructive/10",
+    },
   };
   const tone = toneByStatus[pa.status];
+
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "rounded-xl border bg-background/40 p-3 flex items-center gap-3",
+          tone.ring,
+        )}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className={cn("w-1.5 h-1.5 rounded-full", tone.dot)} />
+            {label}
+          </div>
+          <div className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight leading-tight">
+            {brl(pa.price)}
+          </div>
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+            {pa.reason}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <div
+            className={cn(
+              "text-sm font-semibold tabular-nums",
+              pa.netProfit >= 0 ? "text-success" : "text-destructive",
+            )}
+          >
+            {brl(pa.netProfit)}
+          </div>
+          <div
+            className={cn(
+              "text-[11px] tabular-nums",
+              pa.marginPct >= 0 ? "text-success/80" : "text-destructive/80",
+            )}
+          >
+            {pa.marginPct.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn("rounded-2xl border bg-surface p-5", tone.ring)}>
+    <div
+      className={cn(
+        "rounded-2xl border p-5",
+        tone.ring,
+        featured
+          ? "bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent ring-1 ring-primary/30"
+          : "bg-surface",
+      )}
+    >
       <div className="flex items-center justify-between mb-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          {label}
+        <div className="flex items-center gap-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {label}
+          </div>
+          {featured && (
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary">
+              Recomendado
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           <span className={cn("w-1.5 h-1.5 rounded-full", tone.dot)} />
           {tone.text}
         </div>
       </div>
-      <div className="text-3xl font-semibold tabular-nums tracking-tight leading-none">
+      <div
+        className={cn(
+          "font-semibold tabular-nums tracking-tight leading-none",
+          featured ? "text-4xl" : "text-3xl",
+        )}
+      >
         {brl(pa.price)}
       </div>
       <div className="mt-3 flex items-baseline gap-4 text-xs">
