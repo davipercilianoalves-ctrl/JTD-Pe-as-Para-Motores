@@ -973,78 +973,115 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
     setTimeout(() => setCopied(null), 1500);
   };
 
+  const shortChars = (data.shortDescription || "").length;
+  const fullChars = (data.description || "").length;
+  const totalChars = composed.length;
+  const totalWords = composed.trim() ? composed.trim().split(/\s+/).length : 0;
+
   return (
     <section>
-      <SectionTitle hint="Resumo com palavras-chave + descrição completa. A cópia final inclui as duas partes.">
+      <SectionTitle hint="Resumo com palavras-chave + descrição completa. A cópia final junta as duas partes.">
         Descrição
       </SectionTitle>
 
-      {/* SHORT */}
-      <div className="rounded-2xl bg-surface px-7 py-6">
-        <div className="flex items-center gap-3 mb-3">
-          <SubLabel>Descrição breve (resumo + palavras-chave)</SubLabel>
-          <button
-            onClick={() => copy((data.shortDescription || "").trim(), "short")}
-            disabled={!data.shortDescription}
-            className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-          >
-            {copied === "short" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-            {copied === "short" ? "Copiado" : "Copiar resumo"}
-          </button>
-        </div>
-        <AutoTextArea
-          value={data.shortDescription}
-          onChange={(e) => set("shortDescription", e.target.value)}
-          placeholder="Frase ou duas que resumem o produto incluindo as palavras-chave principais..."
-          className="text-base leading-relaxed"
-          minRows={3}
-        />
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <Btn variant="soft" size="sm" onClick={() => insertKeywords("all")} disabled={!product.keywords.length}>
-            <Plus className="h-3.5 w-3.5" /> Inserir todas as palavras-chave
-          </Btn>
-          <Btn
-            variant="ghost"
-            size="sm"
-            onClick={() => insertKeywords("fav")}
-            disabled={!product.keywords.some((k) => k.favorite)}
-          >
-            <Star className="h-3.5 w-3.5" /> Inserir favoritas
-          </Btn>
-        </div>
-      </div>
-
-      {/* FULL */}
-      <div className="mt-5 rounded-2xl bg-surface px-7 py-6">
-        <div className="flex items-center gap-3 mb-3">
-          <SubLabel>Descrição completa</SubLabel>
+      {/* Unified document card: short summary + full body in one visual flow */}
+      <div className="rounded-2xl bg-surface overflow-hidden">
+        {/* Header bar */}
+        <div className="flex items-center gap-3 px-7 pt-5 pb-3 border-b border-border/30">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/70" />
+            Documento de descrição
+          </div>
+          <span className="ml-auto text-[11px] text-muted-foreground/60 tabular-nums">
+            {totalWords} palavras · {totalChars} caracteres
+          </span>
           <button
             onClick={() => copy(composed, "full")}
             disabled={!composed}
-            className="ml-auto inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-30"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-30"
           >
             {copied === "full" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-            {copied === "full" ? "Copiado" : "Copiar tudo (resumo + descrição)"}
+            {copied === "full" ? "Copiado" : "Copiar tudo"}
           </button>
         </div>
 
-        {data.shortDescription && (
-          <div className="mb-4 rounded-lg bg-background/40 border-l-2 border-primary/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-            {data.shortDescription}
-            <div className="mt-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/60">
-              — Resumo acima · continue abaixo —
-            </div>
+        {/* SHORT zone */}
+        <div className="px-7 pt-5 pb-5">
+          <div className="flex items-center gap-3 mb-2">
+            <SubLabel>Resumo · breve descrição com palavras-chave</SubLabel>
+            <span className="text-[10px] text-muted-foreground/55 tabular-nums">{shortChars}</span>
+            <button
+              onClick={() => copy((data.shortDescription || "").trim(), "short")}
+              disabled={!data.shortDescription}
+              className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-30"
+            >
+              {copied === "short" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              só o resumo
+            </button>
           </div>
-        )}
+          <div className="rounded-xl bg-background/50 border border-border/40 focus-within:border-primary/40 focus-within:bg-background/70 transition-colors px-5 py-4">
+            <AutoTextArea
+              value={data.shortDescription}
+              onChange={(e) => set("shortDescription", e.target.value)}
+              placeholder="Uma ou duas frases que resumem o produto incluindo as palavras-chave principais..."
+              className="text-[15px] leading-relaxed"
+              minRows={2}
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Btn variant="soft" size="sm" onClick={() => insertKeywords("all")} disabled={!product.keywords.length}>
+              <Plus className="h-3.5 w-3.5" /> Inserir todas as palavras-chave
+            </Btn>
+            <Btn
+              variant="ghost"
+              size="sm"
+              onClick={() => insertKeywords("fav")}
+              disabled={!product.keywords.some((k) => k.favorite)}
+            >
+              <Star className="h-3.5 w-3.5" /> Inserir favoritas
+            </Btn>
+          </div>
+        </div>
 
-        <AutoTextArea
-          value={data.description}
-          onChange={(e) => set("description", e.target.value)}
-          placeholder="Escreva o restante da descrição..."
-          className="text-base leading-loose"
-          minRows={8}
-        />
+        {/* Divider between resumo and corpo */}
+        <div className="relative px-7">
+          <div className="border-t border-dashed border-border/40" />
+          <span className="absolute left-1/2 -translate-x-1/2 -top-[9px] bg-surface px-3 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">
+            corpo da descrição
+          </span>
+        </div>
+
+        {/* FULL zone */}
+        <div className="px-7 pt-6 pb-7">
+          <div className="flex items-center gap-3 mb-2">
+            <SubLabel>Descrição completa</SubLabel>
+            <span className="text-[10px] text-muted-foreground/55 tabular-nums">{fullChars}</span>
+            <span className="ml-auto text-[10px] text-muted-foreground/50 italic">
+              O resumo é incluído automaticamente ao copiar tudo
+            </span>
+          </div>
+          <div className="rounded-xl bg-background/50 border border-border/40 focus-within:border-primary/40 focus-within:bg-background/70 transition-colors px-6 py-5">
+            {data.shortDescription && (
+              <div className="mb-4 pb-4 border-b border-border/30">
+                <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/50 mb-1.5">
+                  Resumo (preview)
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground/85 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                  {data.shortDescription}
+                </p>
+              </div>
+            )}
+            <AutoTextArea
+              value={data.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder="Continue a descrição a partir do resumo..."
+              className="text-[15px] leading-loose"
+              minRows={8}
+            />
+          </div>
+        </div>
       </div>
+
 
       <div className="mt-6 grid lg:grid-cols-2 gap-5">
         <SoftBlock label="Bullet points / ficha técnica">
