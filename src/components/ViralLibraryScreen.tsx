@@ -1,9 +1,11 @@
 import { Plus, Trash2, ExternalLink } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { Field, TextInput, TextArea, Btn } from "@/components/ui-kit";
 
 export function ViralLibraryScreen() {
   const { viralLibrary, addViral, updateViral, deleteViral } = useStore();
+  const confirm = useConfirm();
 
   return (
     <div className="flex-1 overflow-auto">
@@ -45,8 +47,16 @@ export function ViralLibraryScreen() {
                     <option>Kwai</option>
                   </select>
                   <button
-                    onClick={() => {
-                      if (confirm("Excluir este clip?")) deleteViral(c.id);
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: "Excluir este clip?",
+                          message: "O hook, estratégia e notas serão removidos.",
+                          confirmLabel: "Excluir clip",
+                          tone: "danger",
+                        })
+                      )
+                        deleteViral(c.id);
                     }}
                     className="text-destructive opacity-70 hover:opacity-100"
                   >

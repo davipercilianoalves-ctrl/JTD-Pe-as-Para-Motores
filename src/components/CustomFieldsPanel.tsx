@@ -23,6 +23,7 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import { AutoTextArea, TextInput } from "@/components/ui-kit";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { cn } from "@/lib/utils";
 import {
   MARKETPLACE_LABELS,
@@ -288,6 +289,7 @@ function FieldCard({
 }) {
   const [editingLabel, setEditingLabel] = useState(false);
   const [widthMenu, setWidthMenu] = useState(false);
+  const confirm = useConfirm();
 
   return (
     <div
@@ -355,8 +357,16 @@ function FieldCard({
           <Copy className="h-3.5 w-3.5" />
         </button>
         <button
-          onClick={() => {
-            if (confirm(`Remover "${field.label}"?`)) onRemove();
+          onClick={async () => {
+            if (
+              await confirm({
+                title: `Remover "${field.label}"?`,
+                message: "O campo e seu conteúdo serão removidos do produto.",
+                confirmLabel: "Remover",
+                tone: "warning",
+              })
+            )
+              onRemove();
           }}
           className="p-1 text-muted-foreground hover:text-destructive"
           title="Remover"
