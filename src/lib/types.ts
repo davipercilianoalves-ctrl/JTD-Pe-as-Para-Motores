@@ -226,6 +226,8 @@ export const newProduct = (name = "Novo produto"): Product => ({
   pricing: emptyPricing(),
   images: [],
   videos: [],
+  customFields: [],
+
 });
 
 /** Canonicalize a raw token to its lowercase trimmed form. */
