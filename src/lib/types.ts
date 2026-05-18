@@ -77,6 +77,8 @@ export interface CustomField {
   options?: string[];           // for select
   value: unknown;                // string | number | boolean | string[] | {k,v}[]
   note?: string;
+  /** Which marketplaces this field applies to. Empty / undefined = global (visible in every mode). */
+  marketplaces?: MarketplaceId[];
 }
 
 
