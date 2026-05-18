@@ -502,6 +502,7 @@ function KeywordsSection({ product }: { product: Product }) {
 ============================================================ */
 function CompetitorsSection({ product }: { product: Product }) {
   const { updateProduct, addKeywordTokens } = useStore();
+  const confirm = useConfirm();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const add = () => {
@@ -573,9 +574,17 @@ function CompetitorsSection({ product }: { product: Product }) {
                     </div>
                   </div>
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      if (confirm("Excluir este concorrente?")) rm(c.id);
+                      if (
+                        await confirm({
+                          title: "Excluir este concorrente?",
+                          message: "A análise e as keywords extraídas dele serão removidas.",
+                          confirmLabel: "Excluir",
+                          tone: "danger",
+                        })
+                      )
+                        rm(c.id);
                     }}
                     className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-60 hover:opacity-100"
                   >
@@ -2102,6 +2111,7 @@ function IconChip({
 ============================================================ */
 function VideosSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
+  const confirm = useConfirm();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const add = () => {
