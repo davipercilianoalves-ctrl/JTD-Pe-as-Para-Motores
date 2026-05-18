@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import logoUrl from "@/assets/jtd-logo.png";
 
 type Filter = "all" | "favorites" | "categories";
 
