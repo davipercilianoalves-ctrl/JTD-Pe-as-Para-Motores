@@ -4,6 +4,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ProductWorkspace } from "@/components/ProductWorkspace";
 import { HomeScreen } from "@/components/HomeScreen";
 import { ViralLibraryScreen } from "@/components/ViralLibraryScreen";
+import { ConfirmProvider } from "@/components/ConfirmProvider";
+import { CommandPaletteProvider } from "@/components/CommandPalette";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,10 +24,14 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <StoreProvider>
-      <div className="dark flex h-screen w-full overflow-hidden bg-background text-foreground">
-        <AppSidebar />
-        <Main />
-      </div>
+      <ConfirmProvider>
+        <CommandPaletteProvider>
+          <div className="dark flex h-screen w-full overflow-hidden bg-background text-foreground">
+            <AppSidebar />
+            <Main />
+          </div>
+        </CommandPaletteProvider>
+      </ConfirmProvider>
     </StoreProvider>
   );
 }
@@ -36,3 +42,4 @@ function Main() {
   if (ui.view === "viral") return <ViralLibraryScreen />;
   return <ProductWorkspace />;
 }
+
