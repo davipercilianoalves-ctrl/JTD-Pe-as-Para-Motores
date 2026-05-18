@@ -5,7 +5,7 @@ import { Copy, Plus, Trash2 } from "lucide-react";
 
 type MarketplaceKey = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
 
-export function MarketplaceFields({
+function useMarketplaceFields({
   product,
   mkKey,
 }: {
@@ -31,7 +31,7 @@ export function MarketplaceFields({
 
 export function MercadoLivreTab({ product }: { product: Product }) {
   const { updateProduct } = useStore();
-  const { data, setField } = MarketplaceFields({ product, mkKey: "mercadoLivre" });
+  const { data, setField } = useMarketplaceFields({ product, mkKey: "mercadoLivre" });
 
   const addTitle = (variant: TitleVariant) => {
     const entry: TitleEntry = { id: crypto.randomUUID(), variant, text: "" };
@@ -172,7 +172,7 @@ export function MercadoLivreTab({ product }: { product: Product }) {
 }
 
 export function ShopeeTab({ product }: { product: Product }) {
-  const { data, setField, setExtra } = MarketplaceFields({ product, mkKey: "shopee" });
+  const { data, setField, setExtra } = useMarketplaceFields({ product, mkKey: "shopee" });
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="panel p-5 flex flex-col gap-4">
@@ -221,7 +221,7 @@ export function ShopeeTab({ product }: { product: Product }) {
 }
 
 export function AmazonTab({ product }: { product: Product }) {
-  const { data, setField, setExtra } = MarketplaceFields({ product, mkKey: "amazon" });
+  const { data, setField, setExtra } = useMarketplaceFields({ product, mkKey: "amazon" });
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="panel p-5 flex flex-col gap-4">
@@ -271,7 +271,7 @@ export function AmazonTab({ product }: { product: Product }) {
 }
 
 export function TikTokTab({ product }: { product: Product }) {
-  const { data, setField, setExtra } = MarketplaceFields({ product, mkKey: "tiktok" });
+  const { data, setField, setExtra } = useMarketplaceFields({ product, mkKey: "tiktok" });
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="panel p-5 flex flex-col gap-4">
