@@ -24,11 +24,21 @@ import {
 } from "lucide-react";
 import { AutoTextArea, TextInput } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
-import type {
-  CustomField,
-  CustomFieldKind,
-  CustomFieldWidth,
+import {
+  MARKETPLACE_LABELS,
+  type CustomField,
+  type CustomFieldKind,
+  type CustomFieldWidth,
+  type MarketplaceId,
 } from "@/lib/types";
+
+const MK_KEYS: MarketplaceId[] = ["mercadoLivre", "shopee", "amazon", "tiktok"];
+const MK_SHORT: Record<MarketplaceId, string> = {
+  mercadoLivre: "ML",
+  shopee: "SH",
+  amazon: "AMZ",
+  tiktok: "TT",
+};
 
 const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
