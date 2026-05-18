@@ -2214,8 +2214,16 @@ function VideosSection({ product }: { product: Product }) {
                     </span>
                   )}
                   <button
-                    onClick={() => {
-                      if (confirm("Excluir este vídeo?")) rm(v.id);
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: "Excluir este vídeo?",
+                          message: "O roteiro, mídia e notas vinculadas serão removidos.",
+                          confirmLabel: "Excluir",
+                          tone: "danger",
+                        })
+                      )
+                        rm(v.id);
                     }}
                     className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
