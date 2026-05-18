@@ -214,7 +214,7 @@ export function migrateProduct(raw: any): Product {
   const p: Product = {
     ...base,
     ...raw,
-    pricing: { ...base.pricing, ...(raw?.pricing ?? {}) },
+    pricing: migratePricing(raw?.pricing),
     mercadoLivre: { ...base.mercadoLivre, ...(raw?.mercadoLivre ?? {}) },
     shopee: { ...base.shopee, ...(raw?.shopee ?? {}) },
     amazon: { ...base.amazon, ...(raw?.amazon ?? {}) },
