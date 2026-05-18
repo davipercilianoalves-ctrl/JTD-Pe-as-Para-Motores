@@ -14,6 +14,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { useStore, useSelectedProduct } from "@/lib/store";
+import { useConfirm } from "@/components/ConfirmProvider";
 import {
   parseSingleWords,
   parseKeywordTokens,
@@ -63,6 +64,7 @@ const TITLE_VARIANTS: TitleVariant[] = ["SEO Forte", "Conversão", "Mobile", "Cu
 export function ProductWorkspace() {
   const product = useSelectedProduct();
   const { updateProduct, toggleFavorite, deleteProduct, goHome } = useStore();
+  const confirm = useConfirm();
   const [market, setMarket] = useState<MK>("mercadoLivre");
   const [showMeta, setShowMeta] = useState(false);
 
@@ -109,8 +111,16 @@ export function ProductWorkspace() {
                 />
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Excluir "${product.name}"?`)) deleteProduct(product.id);
+                onClick={async () => {
+                  if (
+                    await confirm({
+                      title: `Excluir "${product.name || "este produto"}"?`,
+                      message: "Esta ação remove o produto e tudo dentro dele. Não pode ser desfeita.",
+                      confirmLabel: "Excluir produto",
+                      tone: "danger",
+                    })
+                  )
+                    deleteProduct(product.id);
                 }}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 title="Excluir"
