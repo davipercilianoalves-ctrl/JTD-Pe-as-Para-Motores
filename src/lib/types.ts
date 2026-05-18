@@ -296,14 +296,19 @@ export function migratePricing(raw: any): PricingData {
 /** Migrate any legacy Product shape to the current one. Safe to call on existing products. */
 export function migrateProduct(raw: any): Product {
   const base = newProduct(raw?.name ?? "Sem nome");
+  const ensureMK = (mk: any): MarketplaceData => ({
+    ...base.mercadoLivre,
+    ...(mk ?? {}),
+    customFields: Array.isArray(mk?.customFields) ? mk.customFields : [],
+  });
   const p: Product = {
     ...base,
     ...raw,
     pricing: migratePricing(raw?.pricing),
-    mercadoLivre: { ...base.mercadoLivre, ...(raw?.mercadoLivre ?? {}) },
-    shopee: { ...base.shopee, ...(raw?.shopee ?? {}) },
-    amazon: { ...base.amazon, ...(raw?.amazon ?? {}) },
-    tiktok: { ...base.tiktok, ...(raw?.tiktok ?? {}) },
+    mercadoLivre: ensureMK(raw?.mercadoLivre),
+    shopee: ensureMK(raw?.shopee),
+    amazon: ensureMK(raw?.amazon),
+    tiktok: ensureMK(raw?.tiktok),
     images: (raw?.images ?? []).map((i: any) => ({ ...i, isMain: i.isMain ?? false })),
     videos: (raw?.videos ?? []).map((v: any) => ({
       speech: "",
@@ -319,7 +324,9 @@ export function migrateProduct(raw: any): Product {
           : [],
     })),
     keywords: Array.isArray(raw?.keywords) ? raw.keywords : [],
+    customFields: Array.isArray(raw?.customFields) ? raw.customFields : [],
   };
+
   // legacy keywordsText → keywords[]
   if ((!p.keywords || p.keywords.length === 0) && typeof raw?.keywordsText === "string") {
     const tokens = parseKeywordTokens(raw.keywordsText);
