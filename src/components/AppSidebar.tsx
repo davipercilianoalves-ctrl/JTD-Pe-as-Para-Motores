@@ -127,17 +127,20 @@ export function AppSidebar() {
       .join("") || "??";
 
   // Outer wrapper reserves layout space; inner panel can float over content when unpinned.
+  // Mouse handlers live on the <aside> itself so the floating (wider) panel still tracks
+  // hover correctly — putting them on the narrow wrapper caused the panel to close as soon
+  // as the mouse moved into the expanded overlay area.
   return (
     <div
       className="relative h-screen shrink-0 transition-[width] duration-200 ease-out"
       style={{ width: pinned ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
     >
       <aside
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
         className={cn(
-          "absolute inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,box-shadow] duration-200 ease-out",
-          floating && "shadow-2xl shadow-black/40",
+          "absolute inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,box-shadow,transform] duration-300 ease-out will-change-[width]",
+          floating && "shadow-2xl shadow-black/50",
         )}
         style={{ width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
       >
