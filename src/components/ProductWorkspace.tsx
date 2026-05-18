@@ -1184,8 +1184,136 @@ function PricingSection({ product }: { product: Product }) {
         Precificação
       </SectionTitle>
 
-      <div className="grid lg:grid-cols-[300px_minmax(0,1fr)_320px] gap-5 items-start">
-        {/* LEFT — costs editor */}
+  const priceAnalyses: { key: string; label: string; pa: PriceAnalysis }[] = useMemo(
+    () => [
+      { key: "ideal", label: "Preço ideal", pa: analyzePrice(p, result.idealPrice, "ideal") },
+      { key: "psych", label: "Psicológico", pa: analyzePrice(p, result.psychological, "psych") },
+      { key: "min", label: "Mínimo seguro", pa: analyzePrice(p, result.minSafePrice, "min") },
+      { key: "aggressive", label: "Agressivo", pa: analyzePrice(p, result.aggressivePrice, "aggressive") },
+    ],
+    [p, result.idealPrice, result.psychological, result.minSafePrice, result.aggressivePrice],
+  );
+
+  return (
+    <section className="space-y-5">
+      <SectionTitle hint="Cockpit estratégico — entenda exatamente para onde vai cada real e quanta margem você tem para jogar.">
+        Precificação
+      </SectionTitle>
+
+      {/* HERO — preço final massivo + slider de desconto */}
+      <div className="rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 p-7">
+        <div className="grid lg:grid-cols-[1.4fr_1fr_1fr] gap-8 items-end">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
+              Preço final cobrado
+            </div>
+            <div className="text-6xl font-semibold tabular-nums tracking-tight leading-none">
+              {brl(result.finalPrice)}
+            </div>
+            {p.visibleDiscount > 0 && p.compensateDiscount && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                De{" "}
+                <span className="line-through tabular-nums">
+                  {brl(result.displayedPrice)}
+                </span>{" "}
+                por{" "}
+                <span className="text-foreground font-medium tabular-nums">
+                  {brl(result.finalPrice)}
+                </span>{" "}
+                ({p.visibleDiscount}% OFF — lucro preservado)
+              </div>
+            )}
+            {p.visibleDiscount > 0 && !p.compensateDiscount && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                Desconto sai do seu lucro.
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
+              Lucro líquido
+            </div>
+            <div
+              className={cn(
+                "text-4xl font-semibold tabular-nums tracking-tight leading-none",
+                result.netProfit >= 0 ? "text-success" : "text-destructive",
+              )}
+            >
+              {brl(result.netProfit)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
+              Margem real
+            </div>
+            <div
+              className={cn(
+                "text-4xl font-semibold tabular-nums tracking-tight leading-none",
+                result.marginPct >= 0 ? "text-success" : "text-destructive",
+              )}
+            >
+              {result.marginPct.toFixed(1)}%
+            </div>
+          </div>
+        </div>
+
+        {/* Slider desconto */}
+        <div className="mt-7 pt-6 border-t border-border/50 grid md:grid-cols-[1fr_auto] gap-6 items-center">
+          <div>
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Mostrar desconto
+              </div>
+              <div className="text-lg font-semibold tabular-nums">
+                {p.visibleDiscount}% OFF
+              </div>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(50, p.maxDiscount)}
+              step={1}
+              value={p.visibleDiscount}
+              onChange={(e) =>
+                patch((prev) => ({ ...prev, visibleDiscount: +e.target.value }))
+              }
+              className="w-full accent-primary"
+            />
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1">
+              <span>0%</span>
+              <span>
+                Limite seguro:{" "}
+                <input
+                  type="number"
+                  value={p.maxDiscount}
+                  onChange={(e) =>
+                    patch((prev) => ({ ...prev, maxDiscount: +e.target.value || 0 }))
+                  }
+                  className="w-12 bg-transparent text-foreground tabular-nums outline-none border-b border-border focus:border-primary"
+                />
+                %
+              </span>
+              <span>{Math.max(50, p.maxDiscount)}%</span>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-xs cursor-pointer select-none whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={p.compensateDiscount}
+              onChange={(e) =>
+                patch((prev) => ({ ...prev, compensateDiscount: e.target.checked }))
+              }
+              className="accent-primary w-4 h-4"
+            />
+            Compensar no preço de
+            <span className="text-muted-foreground">(lucro intacto)</span>
+          </label>
+        </div>
+      </div>
+
+      {/* LINHA: custos | 4 cards de análise */}
+      <div className="grid lg:grid-cols-[320px_minmax(0,1fr)] gap-5 items-start">
+        {/* CUSTOS */}
         <div className="rounded-2xl bg-surface p-5 space-y-5">
           <div className="rounded-xl bg-primary/10 border border-primary/20 p-4">
             <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/80 mb-2">
@@ -1251,188 +1379,63 @@ function PricingSection({ product }: { product: Product }) {
           })}
         </div>
 
-        {/* CENTER — massive result */}
-        <div className="space-y-5">
-          <div className="rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 p-8">
-            <div className="flex items-baseline justify-between gap-6 flex-wrap">
-              <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
-                  Preço final cobrado
-                </div>
-                <div className="text-6xl font-semibold tabular-nums tracking-tight leading-none">
-                  {brl(result.finalPrice)}
-                </div>
-                {p.visibleDiscount > 0 && p.compensateDiscount && (
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    De{" "}
-                    <span className="line-through tabular-nums">
-                      {brl(result.displayedPrice)}
-                    </span>{" "}
-                    por{" "}
-                    <span className="text-foreground font-medium tabular-nums">
-                      {brl(result.finalPrice)}
-                    </span>{" "}
-                    ({p.visibleDiscount}% OFF — lucro preservado)
-                  </div>
-                )}
-                {p.visibleDiscount > 0 && !p.compensateDiscount && (
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    Desconto sai do seu lucro.
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-8">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
-                    Lucro líquido
-                  </div>
-                  <div
-                    className={cn(
-                      "text-4xl font-semibold tabular-nums tracking-tight leading-none",
-                      result.netProfit >= 0 ? "text-success" : "text-destructive",
-                    )}
-                  >
-                    {brl(result.netProfit)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
-                    Margem real
-                  </div>
-                  <div
-                    className={cn(
-                      "text-4xl font-semibold tabular-nums tracking-tight leading-none",
-                      result.marginPct >= 0 ? "text-success" : "text-destructive",
-                    )}
-                  >
-                    {result.marginPct.toFixed(1)}%
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-7 pt-6 border-t border-border/50">
-              <MiniStat label="Preço ideal" value={brl(result.idealPrice)} />
-              <MiniStat label="Mínimo seguro" value={brl(result.minSafePrice)} />
-              <MiniStat label="Agressivo" value={brl(result.aggressivePrice)} />
-              <MiniStat label="Psicológico" value={brl(result.psychological)} accent />
-            </div>
-          </div>
-
-          {/* discount slider */}
-          <div className="rounded-2xl bg-surface p-6">
-            <div className="flex items-center justify-between mb-3 gap-4">
-              <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Mostrar desconto
-                </div>
-                <div className="text-2xl font-semibold tabular-nums mt-1">
-                  {p.visibleDiscount}% OFF
-                </div>
-              </div>
-              <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={p.compensateDiscount}
-                  onChange={(e) =>
-                    patch((prev) => ({
-                      ...prev,
-                      compensateDiscount: e.target.checked,
-                    }))
-                  }
-                  className="accent-primary w-4 h-4"
-                />
-                Compensar no preço de
-                <span className="text-muted-foreground">(lucro intacto)</span>
-              </label>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(50, p.maxDiscount)}
-              step={1}
-              value={p.visibleDiscount}
-              onChange={(e) =>
-                patch((prev) => ({ ...prev, visibleDiscount: +e.target.value }))
-              }
-              className="w-full accent-primary"
-            />
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-2">
-              <span>0%</span>
-              <span>
-                Limite seguro:{" "}
-                <input
-                  type="number"
-                  value={p.maxDiscount}
-                  onChange={(e) =>
-                    patch((prev) => ({
-                      ...prev,
-                      maxDiscount: +e.target.value || 0,
-                    }))
-                  }
-                  className="w-12 bg-transparent text-foreground tabular-nums outline-none border-b border-border focus:border-primary"
-                />
-                %
-              </span>
-              <span>{Math.max(50, p.maxDiscount)}%</span>
-            </div>
-          </div>
+        {/* 4 CARDS DE ANÁLISE */}
+        <div className="grid sm:grid-cols-2 gap-3">
+          {priceAnalyses.map(({ key, label, pa }) => (
+            <PriceAnalysisCard key={key} label={label} pa={pa} />
+          ))}
         </div>
+      </div>
 
-        {/* RIGHT — analysis */}
-        <div className="space-y-5">
-          <div className="rounded-2xl bg-surface p-5">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-3">
-              Pra onde vai seu dinheiro
-            </div>
-            <div className="space-y-2">
-              {result.breakdown
-                .filter((b) => b.amount > 0)
-                .sort((a, b) => b.amount - a.amount)
-                .map((b) => (
-                  <div key={b.item.id}>
-                    <div className="flex items-baseline justify-between text-xs mb-1">
-                      <span className="text-muted-foreground truncate">
-                        {b.item.label}
-                      </span>
-                      <span className="tabular-nums">
-                        {brl(b.amount)}{" "}
-                        <span className="text-muted-foreground">
-                          ({b.pctOfFinal.toFixed(1)}%)
-                        </span>
-                      </span>
-                    </div>
-                    <div className="h-1 rounded-full bg-background/80 overflow-hidden">
-                      <div
-                        className="h-full bg-primary/60"
-                        style={{
-                          width: `${Math.min(100, Math.max(0, b.pctOfFinal))}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              {result.breakdown.every((b) => b.amount === 0) && (
-                <div className="text-xs text-muted-foreground/70 italic">
-                  preencha os custos para ver o fluxo do dinheiro
-                </div>
-              )}
-            </div>
+      {/* PRA ONDE VAI O DINHEIRO + ALERTAS */}
+      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5">
+        <div className="rounded-2xl bg-surface p-6">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-4">
+            Pra onde vai seu dinheiro
           </div>
-
-          <div className="rounded-2xl bg-surface p-5 space-y-2 text-sm leading-relaxed">
+          <div className="space-y-2.5">
+            {result.breakdown
+              .filter((b) => b.amount > 0)
+              .sort((a, b) => b.amount - a.amount)
+              .map((b) => (
+                <div key={b.item.id}>
+                  <div className="flex items-baseline justify-between text-xs mb-1">
+                    <span className="text-muted-foreground truncate">
+                      {b.item.label}
+                    </span>
+                    <span className="tabular-nums">
+                      {brl(b.amount)}{" "}
+                      <span className="text-muted-foreground">
+                        ({b.pctOfFinal.toFixed(1)}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-background/80 overflow-hidden">
+                    <div
+                      className="h-full bg-primary/60"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, b.pctOfFinal))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            {result.breakdown.every((b) => b.amount === 0) && (
+              <div className="text-xs text-muted-foreground/70 italic">
+                preencha os custos para ver o fluxo do dinheiro
+              </div>
+            )}
+          </div>
+          <div className="mt-5 pt-4 border-t border-border/50 space-y-1.5 text-sm leading-relaxed">
             <p className="text-muted-foreground">
-              Custo base total:{" "}
+              Custo base:{" "}
               <span className="text-foreground font-medium tabular-nums">
                 {brl(result.baseCost)}
-              </span>
-            </p>
-            <p className="text-muted-foreground">
-              Taxas % consomem{" "}
+              </span>{" "}
+              · Taxas %:{" "}
               <span className="text-foreground font-medium">
                 {(result.feesPct * 100).toFixed(1)}%
-              </span>{" "}
-              de cada venda.
+              </span>
             </p>
             <p
               className={cn(
@@ -1446,19 +1449,24 @@ function PricingSection({ product }: { product: Product }) {
               ({result.marginPct.toFixed(1)}%) depois de tudo.
             </p>
           </div>
+        </div>
 
-          {result.alerts.length > 0 && (
-            <div className="space-y-2">
-              {result.alerts.map((a) => (
-                <AlertCard key={a.id} alert={a} />
-              ))}
+        <div className="space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-1">
+            Alertas estratégicos
+          </div>
+          {result.alerts.length === 0 ? (
+            <div className="rounded-xl border border-border bg-surface px-4 py-6 text-sm text-muted-foreground text-center">
+              Nada para alertar agora.
             </div>
+          ) : (
+            result.alerts.map((a) => <AlertCard key={a.id} alert={a} />)
           )}
         </div>
       </div>
 
-      {/* SCENARIOS */}
-      <div className="mt-6 rounded-2xl bg-surface p-6">
+      {/* SIMULADOR DE CENÁRIOS */}
+      <div className="rounded-2xl bg-surface p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -1473,17 +1481,11 @@ function PricingSection({ product }: { product: Product }) {
           {p.scenarios.map((pct) => {
             const r = simulateScenario(p, pct);
             const tone =
-              r.netProfit < 0
-                ? "danger"
-                : r.marginPct < 10
-                  ? "warning"
-                  : "success";
+              r.netProfit < 0 ? "danger" : r.marginPct < 10 ? "warning" : "success";
             return (
               <button
                 key={pct}
-                onClick={() =>
-                  patch((prev) => ({ ...prev, visibleDiscount: pct }))
-                }
+                onClick={() => patch((prev) => ({ ...prev, visibleDiscount: pct }))}
                 className={cn(
                   "text-left rounded-xl border p-4 transition-colors hover:bg-accent/40",
                   tone === "danger" && "border-destructive/40",
@@ -1535,6 +1537,65 @@ function PricingSection({ product }: { product: Product }) {
         </div>
       </div>
     </section>
+  );
+}
+
+function PriceAnalysisCard({
+  label,
+  pa,
+}: {
+  label: string;
+  pa: PriceAnalysis;
+}) {
+  const toneByStatus: Record<PriceStatus, { ring: string; dot: string; text: string }> = {
+    healthy: { ring: "border-success/40", dot: "bg-success", text: "Saudável" },
+    attention: { ring: "border-warning/40", dot: "bg-warning", text: "Atenção" },
+    risk: { ring: "border-warning/50", dot: "bg-warning", text: "Risco" },
+    loss: { ring: "border-destructive/50", dot: "bg-destructive", text: "Prejuízo" },
+  };
+  const tone = toneByStatus[pa.status];
+  return (
+    <div className={cn("rounded-2xl border bg-surface p-5", tone.ring)}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          {label}
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <span className={cn("w-1.5 h-1.5 rounded-full", tone.dot)} />
+          {tone.text}
+        </div>
+      </div>
+      <div className="text-3xl font-semibold tabular-nums tracking-tight leading-none">
+        {brl(pa.price)}
+      </div>
+      <div className="mt-3 flex items-baseline gap-4 text-xs">
+        <div>
+          <span className="text-muted-foreground">Lucro </span>
+          <span
+            className={cn(
+              "tabular-nums font-medium",
+              pa.netProfit >= 0 ? "text-success" : "text-destructive",
+            )}
+          >
+            {brl(pa.netProfit)}
+          </span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">Margem </span>
+          <span
+            className={cn(
+              "tabular-nums font-medium",
+              pa.marginPct >= 0 ? "text-success" : "text-destructive",
+            )}
+          >
+            {pa.marginPct.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        {pa.reason}
+      </p>
+    </div>
   );
 }
 
