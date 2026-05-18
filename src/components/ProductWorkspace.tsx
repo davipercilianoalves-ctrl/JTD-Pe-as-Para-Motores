@@ -48,6 +48,7 @@ import {
   SectionTitle,
   TextInput,
 } from "@/components/ui-kit";
+import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
 
 type MK = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
