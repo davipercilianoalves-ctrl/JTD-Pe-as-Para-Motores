@@ -44,6 +44,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
+  --color-metal: var(--metal);
+  --color-metal-dim: var(--metal-dim);
 }
 
 :root {
