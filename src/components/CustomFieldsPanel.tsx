@@ -77,20 +77,40 @@ export function CustomFieldsPanel({
   onChange,
   title = "Campos custom",
   hint,
+  currentMarket,
 }: {
   fields: CustomField[];
   onChange: (fields: CustomField[]) => void;
   title?: string;
   hint?: string;
+  /** When provided, only fields tagged with this marketplace (or untagged/global) are shown.
+   *  When undefined or "all", every field is shown. New fields are auto-tagged with this market. */
+  currentMarket?: MarketplaceId | "all";
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const dragId = useRef<string | null>(null);
   const overId = useRef<string | null>(null);
   const [, force] = useState(0);
 
+  const effectiveMarket: MarketplaceId | "all" =
+    showAll || !currentMarket ? "all" : currentMarket;
+
+  const visibleFields = useMemo(() => {
+    if (effectiveMarket === "all") return fields;
+    return fields.filter(
+      (f) =>
+        !f.marketplaces ||
+        f.marketplaces.length === 0 ||
+        f.marketplaces.includes(effectiveMarket),
+    );
+  }, [fields, effectiveMarket]);
+
   const addField = (kind: CustomFieldKind) => {
     const meta = KIND_META[kind];
+    const autoTag: MarketplaceId[] =
+      currentMarket && currentMarket !== "all" && !showAll ? [currentMarket] : [];
     onChange([
       ...fields,
       {
@@ -98,9 +118,13 @@ export function CustomFieldsPanel({
         kind,
         label: meta.label,
         placeholder: meta.placeholder,
-        width: kind === "short" || kind === "number" || kind === "currency" || kind === "percent" || kind === "url" || kind === "checkbox" || kind === "select" ? 50 : 100,
+        width:
+          kind === "short" || kind === "number" || kind === "currency" || kind === "percent" || kind === "url" || kind === "checkbox" || kind === "select"
+            ? 50
+            : 100,
         value: meta.default,
         options: kind === "select" ? ["Opção 1", "Opção 2"] : undefined,
+        marketplaces: autoTag,
       },
     ]);
     setAddOpen(false);
