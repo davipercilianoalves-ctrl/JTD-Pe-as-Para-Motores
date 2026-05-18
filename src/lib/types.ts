@@ -36,7 +36,40 @@ export interface MarketplaceData {
   media: string;
   strategies: string;
   extras: Record<string, string>;
+  /** Optional user-defined fields scoped to this marketplace. */
+  customFields?: CustomField[];
 }
+
+// ─── Custom Field Engine ──────────────────────────────────────────────────
+export type CustomFieldKind =
+  | "short"      // single line
+  | "long"      // multi-line auto-expand
+  | "rich"       // multi-line w/ markdown-ish (plain text for now, larger)
+  | "number"
+  | "currency"
+  | "percent"
+  | "tags"       // chips
+  | "url"
+  | "checkbox"
+  | "select"
+  | "bullets"    // one-per-line bullet list
+  | "spec"       // key:value pairs
+  | "notes";     // sticky-style note
+
+export type CustomFieldWidth = 25 | 50 | 75 | 100;
+
+export interface CustomField {
+  id: string;
+  kind: CustomFieldKind;
+  label: string;
+  placeholder?: string;
+  width: CustomFieldWidth;
+  required?: boolean;
+  options?: string[];           // for select
+  value: unknown;                // string | number | boolean | string[] | {k,v}[]
+  note?: string;
+}
+
 
 export type CostKind = "currency" | "percent";
 export type PercentBase = "final" | "cost";
