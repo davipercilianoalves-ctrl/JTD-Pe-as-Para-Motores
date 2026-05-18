@@ -1,148 +1,138 @@
+## Pricing Cockpit — Reformulação completa
 
-# Plano de refatoração — JTD Motors Hub
+Transformar a aba **Precificação** num cockpit operacional estratégico, com custos editáveis, resultados massivos no centro, painel analítico humano e simulador de desconto "falso" matematicamente correto.
 
-Foco: corrigir bugs do fluxo de palavras-chave, redesenhar Títulos, Descrição e Vídeos. Pricing fica como está (você ajusta depois).
+### 1. Modelo de dados (`src/lib/types.ts`)
 
----
+Substituir o `PricingData` rígido por um modelo flexível:
 
-## 1. Palavras-chave (corrigir + redesenhar)
+```ts
+type CostKind = "currency" | "percent";        // R$ fixo ou % do preço
+type PercentBase = "final" | "cost";           // % aplicado sobre o preço final ou sobre o custo base
 
-**Problemas hoje**
-- Palavras extraídas de concorrentes não estão entrando na lista principal de forma confiável.
-- O chip flow polui visualmente quando a lista cresce e some quando você rola — sem alta visibilidade nos campos onde elas são usadas (títulos / descrição).
-- Não dá pra copiar só algumas — só "tudo".
+interface CostItem {
+  id: string;
+  label: string;          // editável, linguagem humana
+  kind: CostKind;
+  value: number;
+  base?: PercentBase;     // só p/ percent (default "final")
+  group: "produto" | "logistica" | "marketing" | "taxas" | "outros";
+  note?: string;
+}
 
-**Como vai ficar**
-
-Layout em duas colunas dentro de uma faixa contínua:
-
-```
-┌────────────────────────────────── Palavras-chave ──────────────────────────────────┐
-│  + adicionar palavra…           [Todas] [Favoritas]    12 palavras   [Copiar tudo] │
-│                                                                                    │
-│  ☐ vedação motor          ×24    │   Selecionadas (3)                              │
-│  ☐ junta cabeçote         ×18    │   • vedação motor                               │
-│  ☑ alta temperatura       ×12    │   • junta cabeçote                              │
-│  ☐ retentor virabrequim   ×9     │   • silicone vermelho                           │
-│  ☑ silicone vermelho      ×7     │                                                 │
-│  …                               │   [Copiar selecionadas]  [Limpar]               │
-└────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-- **Lista vertical** de palavras com checkbox + contador de uso + estrela favoritar + remover (hover). Cabe 8–10 visíveis sem scroll, scroll interno suave a partir daí — alta legibilidade, zero poluição.
-- **Coluna direita "Selecionadas"**: marque com checkbox e copie só essas. Resolve o "copiar tudo ou apenas algumas".
-- **Sticky mini-barra** quando você rolar para baixo (até Títulos/Descrição): mostra um resumo `[12 palavras-chave ▾]` que abre um popover com a lista completa, para usar enquanto escreve título ou descrição **sem precisar voltar para o topo**.
-- Filtro Todas / Favoritas mantido.
-- Bug fix: garantir que `addKeywordTokens` é chamado de forma estável em `CompetitorKeywords` (estado controlado pode estar perdendo o último token no blur). Vou:
-  - normalizar via `canonKeyword` antes de comparar,
-  - sempre chamar `onCommit` mesmo se a palavra já existir localmente (para incrementar `uses` na lista global),
-  - garantir commit no Enter, vírgula, espaço **e** blur com flush síncrono.
-
----
-
-## 2. Análise de concorrentes
-
-Estrutura visual fica. Apenas o bloco "Palavras-chave encontradas" passa a:
-- Confirmar visualmente que a palavra entrou na lista principal (chip pisca verde por 600ms ao adicionar).
-- Botão pequeno `Enviar todas →` no canto do bloco, que força reenvio das palavras extraídas para a lista principal — resolve qualquer dessincronização passada.
-
----
-
-## 3. Títulos (redesenho)
-
-**Hoje**: lista vertical de linhas baixinhas, sem destaque, sem ajuda das keywords.
-
-**Novo**: cada título vira um **card respirado**, focado em escrita:
-
-```
-┌─ SEO Forte ──────────────────────────────────── 47 / 60 ──[⧉ duplicar][⧉ copiar][×]┐
-│                                                                                    │
-│   Junta cabeçote vedação alta temperatura silicone vermelho                        │
-│                                                                                    │
-│   Palavras usadas:  ● vedação motor  ● alta temperatura  ● silicone vermelho       │
-│   Sugestões:        + junta cabeçote   + retentor   + vedante                      │
-└────────────────────────────────────────────────────────────────────────────────────┘
+interface PricingData {
+  items: CostItem[];                 // tudo aqui — totalmente editável
+  desiredProfit: number;             // "Quanto de lucro você quer ter?"
+  desiredProfitKind: CostKind;       // R$ ou %
+  visibleDiscount: number;           // % que aparece pro cliente ("20% OFF")
+  maxDiscount: number;               // limite de segurança
+  compensateDiscount: boolean;       // liga o "desconto falso"
+  scenarios: number[];               // % p/ simulador (default [10,15,20,25])
+}
 ```
 
-- Input grande (text-xl), contador grande à direita com cor (cinza → âmbar > 60 → vermelho > 80).
-- **Highlight automático** das keywords presentes no título (chips verdes embaixo).
-- **Sugestões clicáveis**: keywords da lista que ainda **não** estão no título — clique adiciona ao final. Isso transforma o título em algo operacional, não em campo de texto seco.
-- Botão "+ variação" sempre visível abaixo, com as 5 variantes (SEO Forte / Conversão / Mobile / Curto / Completo) em pílulas pequenas.
+`migrateProduct` converte o `PricingData` antigo (cost/shipping/.../markup) em `items[]` + `desiredProfit` (a partir do markup) preservando os valores existentes.
 
----
+### 2. Engine de cálculo (`src/lib/pricing.ts` — novo)
 
-## 4. Descrição (mudança estrutural pedida)
+Função pura `computePricing(p: PricingData)` que retorna:
 
-**Novo modelo de descrição em duas partes**, expostas explicitamente na UI:
+- `baseCost` — soma de todos custos em R$ + custos % com base `cost`
+- `feesPct` — soma de custos % com base `final` (taxas, comissão, imposto)
+- `idealPrice` — preço alvo que entrega `desiredProfit` líquido depois de `feesPct`:
+  `idealPrice = (baseCost + lucroAlvoR$) / (1 - feesPct)`
+- `minSafePrice` — preço onde lucro líquido = 0
+- `displayedPrice` — preço "de" mostrado (quando `compensateDiscount` ativo)
+- `finalPrice` — preço final cobrado depois do desconto visível
+- `aggressivePrice` — preço com `maxDiscount` aplicado
+- `netProfit`, `marginPct`, `breakdown[]` (cada item com R$ consumido e % do preço final)
+- `alerts[]` — lista de avisos estratégicos (ver §5)
 
-```
-┌─ Descrição breve (resumo + palavras-chave) ──────── [⧉ copiar] ──┐
-│  Auto-gerada a partir das suas palavras-chave + você edita.       │
-│  ────────────────────────────────────────────────────────────     │
-│  [textarea pequeno, 3–4 linhas]                                   │
-│  [+ Inserir todas as palavras-chave]  [+ Inserir favoritas]       │
-└───────────────────────────────────────────────────────────────────┘
+**Desconto falso (matematicamente correto):**
+Para mostrar `d%` OFF mantendo o lucro do `idealPrice`:
+`displayedPrice = idealPrice / (1 - d/100)`
+`finalPrice = displayedPrice * (1 - d/100) = idealPrice` ✅
+As taxas % continuam sendo aplicadas sobre `finalPrice` real, então o lucro líquido é preservado exatamente. Quando `compensateDiscount` está desligado, o desconto corrói o lucro normalmente — e o painel mostra isso de forma clara.
 
-┌─ Descrição completa ─────────────────────────────── [⧉ copiar tudo] ─┐
-│  Começa automaticamente com a "Descrição breve" acima               │
-│  e continua com o restante.                                         │
-│  ────────────────────────────────────────────────────────────────   │
-│  [textarea grande, Notion-style]                                    │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Cobertura por testes manuais com 3 cenários (sem comissão, com comissão alta, com desconto agressivo).
 
-- Tipos: adicionar `shortDescription: string` em `MarketplaceData`.
-- A **Descrição completa exibida/copiada** = `shortDescription + "\n\n" + description`. Visualmente mostro um divisor sutil "— Resumo acima —" no topo da área completa para deixar claro.
-- Botão "Copiar tudo" copia o concatenado pronto pra colar no marketplace.
-- Bullet points / SEO / Estratégia / Notas continuam abaixo como blocos auxiliares.
+### 3. Layout do cockpit (`PricingSection` em `ProductWorkspace.tsx`)
 
----
+Layout em grade responsiva (`lg:grid-cols-[280px_minmax(0,1fr)_320px]`):
 
-## 5. Vídeos (redesenho — vídeos do próprio anúncio)
-
-Fica explícito que são vídeos **do anúncio do produto** (não a biblioteca viral).
-
-Cada vídeo vira um cartão único e limpo, dividido em duas colunas:
-
-```
-┌─ Vídeo 1 — Vertical 9:16 ─────────────────────── [▶ player] [×] ┐
-│ ESQUERDA (mídia)              │ DIREITA (conteúdo)              │
-│ • upload arquivo de vídeo     │ • Roteiro    [auto-textarea]    │
-│ • link externo                │ • Falas      [auto-textarea]    │
-│ • upload áudio                │ • CTA        [input]            │
-│ • thumb preview               │ • Notas de edição               │
-└─────────────────────────────────────────────────────────────────┘
+```text
+┌─────────────┬──────────────────────────────────┬───────────────┐
+│ CUSTOS      │       RESULTADO MASSIVO          │ ANÁLISE       │
+│ (editáveis) │  Preço final · Lucro · Margem    │ "Pra onde vai │
+│ +adicionar  │  Preço ideal / mínimo / agressivo│  seu dinheiro"│
+│             │                                  │ + alertas     │
+├─────────────┴──────────────────────────────────┴───────────────┤
+│ SIMULADOR DE CENÁRIOS (10/15/20/25% + custom)                  │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-- Header com nome editável + plataforma (TikTok / Reels / Shorts / YouTube).
-- Player inline quando há arquivo.
-- Botão "+ Novo vídeo" estilo igual aos outros.
-- Tudo num bloco — sem sub-abas.
+**Coluna esquerda — Custos (compacta):**
+- Lista vertical agrupada por `group` (Produto, Logística, Marketing, Taxas, Outros) com header colapsável
+- Cada linha: ícone-handle • label editável inline • input de valor • toggle `R$ ⇄ %` • menu (renomear, nota, mover grupo, remover)
+- Botão `+ adicionar custo` no rodapé de cada grupo
+- Campo destaque no topo: **"Quanto de lucro você quer ter?"** (R$ ou %) — o coração da operação
 
----
+**Centro — Resultado massivo:**
+- Bloco hero com tipografia gigante (`text-6xl` tabular):
+  - **Preço final** (o que o cliente vê / paga)
+  - **Lucro líquido** + **Margem real %** lado a lado, coloridos
+- Linha secundária menor: Preço ideal • Mínimo seguro • Agressivo • Psicológico
+- Linha do desconto: toggle "Mostrar XX% OFF" + slider 0–`maxDiscount` + switch "Compensar no preço de" (desconto falso). Quando ligado, mostra `De ~~R$ X~~ por R$ Y` exatamente como o cliente verá.
 
-## 6. Pricing
+**Coluna direita — Análise operacional:**
+- Lista "Pra onde vai seu dinheiro" com barras horizontais por item, ordenadas pelo maior consumo, valor em R$ e %
+- Bloco "Resumo em linguagem humana" (frases prontas):
+  - "Taxas do marketplace consomem 22% da venda."
+  - "Você fica com R$ 31,24 (39%) depois de tudo."
+  - "Margem para desconto sem prejuízo: até 18%."
+- **Alertas estratégicos** (cards coloridos, ver §5)
 
-Sem alteração nesta rodada (a seu pedido).
+**Rodapé — Simulador de cenários:**
+- Grid de 4–6 cards de cenário (10%, 15%, 20%, 25% OFF + custom)
+- Cada card: preço exibido, preço final, lucro, margem, delta vs. ideal, semáforo verde/âmbar/vermelho
+- Botão "Aplicar este cenário" preenche `visibleDiscount` instantaneamente
 
----
+### 4. Inputs e UX
 
-## Detalhes técnicos
+- Tudo reage em tempo real (já é `useMemo`)
+- Label editável: click → input inline → blur/Enter salva
+- Toggle R$/% num único componente compacto sem labels técnicas
+- Sem tabelas, sem aparência de Excel — cards arejados, bordas suaves, tipografia consistente com o resto do app
+- Drag-and-drop opcional para reordenar custos (fora desta rodada; só a estrutura `items[]` já permite no futuro)
+- Botão `Resetar para o modelo padrão` (recria os custos comuns: Custo do produto, Frete, Embalagem, Ads, Imposto %, Taxa marketplace %, Comissão %)
 
-- `src/lib/types.ts`: adicionar `shortDescription: string` em `MarketplaceData` (default `""`); `migrateProduct` preenche `""` para produtos antigos.
-- `src/lib/store.tsx`: nada estrutural; `addKeywordTokens` já existe e funciona — o fix do bug está no consumidor (`CompetitorKeywords`), não na store.
-- `src/components/ProductWorkspace.tsx`: reescrever `KeywordsSection`, `CompetitorKeywords` (fix de commit), `TitlesSection` (com highlight + sugestões), `DescriptionSection` (com `shortDescription` + composição automática), `VideosSection` (layout dois-colunas).
-- Adicionar componente `KeywordsFloatingBar` (sticky) acionado por scroll, reutilizando dados da store.
-- Usar somente tokens semânticos do design system existente (`surface`, `surface-elevated`, `primary`, `warning`, etc.) — sem cores hardcoded.
+### 5. Alertas estratégicos (regras)
 
----
+Engine gera frases automáticas quando:
+- `adsValue / finalPrice > 15%` → "Seus anúncios estão consumindo lucro demais."
+- `feesValue / finalPrice > 25%` → "Taxas do marketplace acima do saudável."
+- `netProfit < 0` → "Você está vendendo no prejuízo."
+- `netProfit / finalPrice < 0.10` → "Margem muito apertada para esse desconto."
+- `visibleDiscount > maxDiscount` → "Desconto acima do seu limite seguro."
+- `shipping / finalPrice > 20%` → "Frete está pesando na competitividade."
 
-## Ordem de execução
+Cada alerta é um cartão com cor semântica (`destructive`/`warning`/`success`) e mensagem curta + recomendação.
 
-1. Tipos + migração (`shortDescription`).
-2. Keywords (lista vertical + selecionadas + sticky bar) e fix do commit em concorrentes.
-3. Títulos (cards + highlight + sugestões).
-4. Descrição (breve + completa concatenada).
-5. Vídeos (layout dois-colunas).
+### 6. Arquivos afetados
 
-Aprovando, eu executo nessa ordem.
+- `src/lib/types.ts` — novo `PricingData` + `CostItem` + migração
+- `src/lib/pricing.ts` — **novo**: engine pura `computePricing`, `formatBRL`, regras de alerta
+- `src/components/ProductWorkspace.tsx` — reescrever `PricingSection` + subcomponentes (`CostList`, `CostRow`, `ResultHero`, `DiscountSimulator`, `MoneyFlowPanel`, `AlertsPanel`, `ScenarioGrid`)
+- `src/lib/store.tsx` — helpers: `addCostItem`, `updateCostItem`, `removeCostItem`, `reorderCostItems`
+- `src/styles.css` — opcional: tokens `--warning`, `--warning-foreground` se ainda não existirem (sucesso já existe)
+
+### 7. Ordem de execução
+
+1. Tipos + migração (não quebra dados existentes)
+2. Engine `pricing.ts` + verificação manual dos cálculos
+3. Store helpers para `items[]`
+4. Reescrita visual da `PricingSection` (custos → resultado → análise → simulador)
+5. Alertas + desconto falso
+6. QA visual no preview (1025×583 e largura cheia)
+
+Sem mudanças em outras seções (Keywords, Títulos, Descrição, Vídeos, Imagens) nesta rodada.
