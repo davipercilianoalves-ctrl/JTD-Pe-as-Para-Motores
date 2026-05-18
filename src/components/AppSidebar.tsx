@@ -36,13 +36,19 @@ export function AppSidebar() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   // Pinned = always expanded; otherwise expand on hover only.
-  const [pinned, setPinned] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const v = localStorage.getItem(PIN_KEY);
-    return v === null ? true : v === "1";
-  });
+  // IMPORTANT: read localStorage ONLY after mount to avoid SSR/CSR hydration mismatch.
+  const [pinned, setPinned] = useState<boolean>(true);
   const [hovered, setHovered] = useState(false);
   const closeTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(PIN_KEY);
+      if (v !== null) setPinned(v === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     try {

@@ -1,255 +1,601 @@
-import { Plus, Search, Film, FolderOpen, Clock, Star, Package2, FileText } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
+import {
+  Plus,
+  Search,
+  Star,
+  Package2,
+  Rows3,
+  LayoutGrid,
+  List,
+  AlertTriangle,
+  TrendingUp,
+  Sparkles,
+  Film,
+} from "lucide-react";
 import { useStore } from "@/lib/store";
+import { computePricing } from "@/lib/pricing";
+import { brl } from "@/lib/pricing";
 import logoUrl from "@/assets/jtd-logo.png";
+import { cn } from "@/lib/utils";
+import type { Product } from "@/lib/types";
+
+type ViewMode = "comfortable" | "compact" | "cards";
+
+interface ProductSignal {
+  status: "healthy" | "attention" | "risk" | "incomplete";
+  margin: number;
+  finalPrice: number;
+  netProfit: number;
+  completeness: number; // 0..1
+  missing: string[];
+}
+
+function evaluateProduct(p: Product): ProductSignal {
+  const pricing = computePricing(p.pricing);
+  const missing: string[] = [];
+  if (!p.name?.trim()) missing.push("Nome");
+  if (!p.sku?.trim()) missing.push("SKU");
+  if (!p.images?.length) missing.push("Imagens");
+  if (!p.keywords?.length) missing.push("Keywords");
+  if (!p.competitors?.length) missing.push("Concorrentes");
+  if (!pricing.baseCost) missing.push("Custos");
+  const completeness = 1 - missing.length / 6;
+
+  let status: ProductSignal["status"] = "healthy";
+  if (missing.length >= 3) status = "incomplete";
+  else if (pricing.baseCost > 0 && pricing.netProfit < 0) status = "risk";
+  else if (pricing.baseCost > 0 && pricing.marginPct < 15) status = "attention";
+
+  return {
+    status,
+    margin: pricing.marginPct,
+    finalPrice: pricing.finalPrice,
+    netProfit: pricing.netProfit,
+    completeness,
+    missing,
+  };
+}
+
+const STATUS_META: Record<
+  ProductSignal["status"],
+  { label: string; dot: string; ring: string; text: string }
+> = {
+  healthy: {
+    label: "Saudável",
+    dot: "bg-success",
+    ring: "ring-success/30",
+    text: "text-success",
+  },
+  attention: {
+    label: "Atenção",
+    dot: "bg-warning",
+    ring: "ring-warning/40",
+    text: "text-warning",
+  },
+  risk: {
+    label: "Risco",
+    dot: "bg-primary",
+    ring: "ring-primary/40",
+    text: "text-primary",
+  },
+  incomplete: {
+    label: "Incompleto",
+    dot: "bg-muted-foreground",
+    ring: "ring-border",
+    text: "text-muted-foreground",
+  },
+};
+
+const VIEW_KEY = "jtd:home-view";
 
 export function HomeScreen() {
-  const { products, viralLibrary, createProduct, openProduct, openViral } = useStore();
+  const { products, createProduct, openProduct, openViral, toggleFavorite } =
+    useStore();
+  const [query, setQuery] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("comfortable");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "favorites" | ProductSignal["status"]
+  >("all");
 
-  const recent = useMemo(
-    () => [...products].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6),
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(VIEW_KEY) as ViewMode | null;
+      if (v === "comfortable" || v === "compact" || v === "cards") setViewMode(v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_KEY, viewMode);
+    } catch {
+      /* ignore */
+    }
+  }, [viewMode]);
+
+  const decorated = useMemo(
+    () =>
+      products
+        .map((p) => ({ p, signal: evaluateProduct(p) }))
+        .sort((a, b) => b.p.updatedAt - a.p.updatedAt),
     [products],
   );
 
-  const continueWorking = recent[0] ?? null;
+  const filtered = useMemo(() => {
+    let list = decorated;
+    if (statusFilter === "favorites") list = list.filter((d) => d.p.favorite);
+    else if (statusFilter !== "all")
+      list = list.filter((d) => d.signal.status === statusFilter);
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      list = list.filter(
+        ({ p }) =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q) ||
+          p.brand.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.keywords.some((k) => k.text.includes(q)) ||
+          p.competitors.some(
+            (c) =>
+              c.title.toLowerCase().includes(q) ||
+              c.notes.toLowerCase().includes(q),
+          ),
+      );
+    }
+    return list;
+  }, [decorated, statusFilter, query]);
 
-  const recentAnalyses = useMemo(() => {
-    const all = products.flatMap((p) =>
-      p.competitors.map((c) => ({ product: p, comp: c })),
-    );
-    return all.sort((a, b) => b.comp.updatedAt - a.comp.updatedAt).slice(0, 5);
-  }, [products]);
-
-  const recentVideos = useMemo(() => {
-    const all = products.flatMap((p) => p.videos.map((v) => ({ product: p, v })));
-    return all.slice(0, 5);
-  }, [products]);
+  const stats = useMemo(() => {
+    const total = decorated.length;
+    const risk = decorated.filter((d) => d.signal.status === "risk").length;
+    const attention = decorated.filter(
+      (d) => d.signal.status === "attention",
+    ).length;
+    const incomplete = decorated.filter(
+      (d) => d.signal.status === "incomplete",
+    ).length;
+    const healthy = decorated.filter((d) => d.signal.status === "healthy")
+      .length;
+    return { total, risk, attention, incomplete, healthy };
+  }, [decorated]);
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="mx-auto max-w-6xl px-10 py-14">
-        {/* Header */}
-        <div className="mb-14 flex items-end justify-between gap-8 border-b border-border/60 pb-10">
+      <div className="mx-auto max-w-[1280px] px-10 py-12">
+        {/* Brand strip */}
+        <header className="flex items-end justify-between gap-8 border-b border-border/60 pb-8 mb-8">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-4">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-3">
               <span className="h-px w-8 bg-primary" />
               JTD · Peças para motores
             </div>
-            <h1 className="text-5xl font-semibold tracking-tight leading-[1.05]">
-              Centro de <span className="text-primary">operações</span>.
+            <h1 className="text-[44px] font-semibold tracking-tight leading-[1.02]">
+              Centro de <span className="text-primary">operações</span>
             </h1>
-            <p className="text-base text-muted-foreground mt-3 max-w-xl">
-              Produtos, análise, mídia e precificação — em um único workspace contínuo.
-            </p>
           </div>
-          <div className="hidden md:block shrink-0 h-24 w-24 rounded-xl overflow-hidden bg-black ring-1 ring-white/5 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.6)]">
+          <div className="hidden md:block shrink-0 h-20 w-20 rounded-xl overflow-hidden bg-black ring-1 ring-white/5">
             <img src={logoUrl} alt="JTD" className="h-full w-full object-cover" />
+          </div>
+        </header>
+
+        {/* Search + quick actions row */}
+        <div className="flex items-stretch gap-3 mb-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar em tudo — produtos, SKUs, keywords, concorrentes…"
+              className="w-full h-12 rounded-xl bg-surface border border-border pl-11 pr-4 text-[15px] outline-none placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition"
+            />
+          </div>
+          <button
+            onClick={() => createProduct()}
+            className="h-12 px-5 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition shadow-[var(--shadow-red)]"
+          >
+            <Plus className="h-4 w-4" /> Novo produto
+          </button>
+          <button
+            onClick={openViral}
+            className="h-12 px-4 inline-flex items-center gap-2 rounded-xl bg-surface border border-border text-sm font-medium hover:bg-surface-elevated transition"
+          >
+            <Film className="h-4 w-4" /> Biblioteca
+          </button>
+        </div>
+
+        {/* Operational pulse */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-px rounded-xl overflow-hidden border border-border bg-border mb-10">
+          <PulseCell label="Total" value={stats.total} tone="metal" />
+          <PulseCell
+            label="Saudáveis"
+            value={stats.healthy}
+            tone="success"
+            icon={<TrendingUp className="h-3.5 w-3.5" />}
+          />
+          <PulseCell
+            label="Atenção"
+            value={stats.attention}
+            tone="warning"
+            icon={<AlertTriangle className="h-3.5 w-3.5" />}
+          />
+          <PulseCell
+            label="Risco"
+            value={stats.risk}
+            tone="primary"
+            icon={<AlertTriangle className="h-3.5 w-3.5" />}
+          />
+          <PulseCell
+            label="Incompletos"
+            value={stats.incomplete}
+            tone="muted"
+            icon={<Sparkles className="h-3.5 w-3.5" />}
+          />
+        </div>
+
+        {/* Filter chips + view mode */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { key: "all", label: "Todos" },
+              { key: "favorites", label: "Favoritos" },
+              { key: "healthy", label: "Saudáveis" },
+              { key: "attention", label: "Atenção" },
+              { key: "risk", label: "Risco" },
+              { key: "incomplete", label: "Incompletos" },
+            ].map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setStatusFilter(t.key as typeof statusFilter)}
+                className={cn(
+                  "h-8 px-3 rounded-lg text-xs font-medium border transition",
+                  statusFilter === t.key
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/30",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1 rounded-lg bg-surface border border-border p-1">
+            {[
+              { key: "comfortable" as const, icon: Rows3, title: "Confortável" },
+              { key: "compact" as const, icon: List, title: "Compacto" },
+              { key: "cards" as const, icon: LayoutGrid, title: "Cards" },
+            ].map((v) => {
+              const Icon = v.icon;
+              return (
+                <button
+                  key={v.key}
+                  onClick={() => setViewMode(v.key)}
+                  title={v.title}
+                  className={cn(
+                    "h-7 w-7 inline-flex items-center justify-center rounded-md transition",
+                    viewMode === v.key
+                      ? "bg-foreground/10 text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Continue working */}
-        {continueWorking && (
-          <section className="mb-12">
-            <SectionLabel icon={Clock}>Continuar trabalhando</SectionLabel>
-            <button
-              onClick={() => openProduct(continueWorking.id)}
-              className="group block w-full text-left rounded-2xl border border-border bg-surface hover:bg-surface-elevated transition-colors p-8"
-            >
-              <div className="flex items-center justify-between gap-6">
-                <div className="min-w-0">
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                    Último produto editado
-                  </div>
-                  <div className="text-2xl font-semibold truncate">
-                    {continueWorking.name || "Sem nome"}
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1.5">
-                    {continueWorking.brand || "Sem marca"} ·{" "}
-                    {new Date(continueWorking.updatedAt).toLocaleString("pt-BR")}
-                  </div>
-                </div>
-                <div className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground opacity-90 group-hover:opacity-100">
-                  Abrir workspace →
-                </div>
-              </div>
-            </button>
-          </section>
-        )}
-
-        {/* Quick actions */}
-        <section className="mb-12">
-          <SectionLabel>Ações rápidas</SectionLabel>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <QuickAction icon={Plus} label="Novo Produto" onClick={() => createProduct()} />
-            <QuickAction
-              icon={Search}
-              label="Nova Análise"
-              onClick={() => {
-                const id = createProduct();
-                // analysis lives inside product, just opens product
-                openProduct(id);
-              }}
-            />
-            <QuickAction icon={Film} label="Biblioteca Viral" onClick={openViral} />
-            <QuickAction
-              icon={FolderOpen}
-              label="Abrir Workspace"
-              onClick={() => continueWorking && openProduct(continueWorking.id)}
-              disabled={!continueWorking}
-            />
+        {/* Product list — the centerpiece */}
+        {filtered.length === 0 ? (
+          <EmptyState
+            hasProducts={products.length > 0}
+            onCreate={() => createProduct()}
+          />
+        ) : viewMode === "cards" ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(({ p, signal }) => (
+              <ProductCard
+                key={p.id}
+                p={p}
+                signal={signal}
+                onOpen={() => openProduct(p.id)}
+                onFav={() => toggleFavorite(p.id)}
+              />
+            ))}
           </div>
-        </section>
-
-        {/* Recent products */}
-        <section className="mb-12">
-          <SectionLabel icon={Package2}>Produtos recentes</SectionLabel>
-          {recent.length === 0 ? (
-            <EmptyHint>Crie seu primeiro produto para começar.</EmptyHint>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {recent.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => openProduct(p.id)}
-                  className="group text-left rounded-xl border border-border bg-surface hover:bg-surface-elevated transition-colors p-5"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-                      <Package2 className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    {p.favorite && <Star className="h-4 w-4 fill-warning text-warning" />}
-                  </div>
-                  <div className="font-medium truncate">{p.name || "Sem nome"}</div>
-                  <div className="text-xs text-muted-foreground mt-1 truncate">
-                    {p.brand || "Sem marca"} · {p.competitors.length} análises
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Recent analyses */}
-        <section className="mb-12">
-          <SectionLabel icon={FileText}>Análises recentes</SectionLabel>
-          {recentAnalyses.length === 0 ? (
-            <EmptyHint>Suas análises de concorrentes aparecerão aqui.</EmptyHint>
-          ) : (
-            <div className="rounded-xl border border-border bg-surface divide-y divide-border">
-              {recentAnalyses.map(({ product, comp }) => (
-                <button
-                  key={comp.id}
-                  onClick={() => openProduct(product.id)}
-                  className="flex w-full items-center justify-between gap-4 px-6 py-4 hover:bg-surface-elevated text-left transition-colors"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">
-                      {comp.title || "Análise sem título"}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {product.name} · {comp.marketplace}
-                    </div>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {new Date(comp.updatedAt).toLocaleDateString("pt-BR")}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Recent videos */}
-        <section className="mb-12">
-          <SectionLabel icon={Film}>Vídeos recentes</SectionLabel>
-          {recentVideos.length === 0 && viralLibrary.length === 0 ? (
-            <EmptyHint>Adicione vídeos ou clipes virais para reutilizar.</EmptyHint>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {recentVideos.map(({ product, v }) => (
-                <button
-                  key={v.id}
-                  onClick={() => openProduct(product.id)}
-                  className="text-left rounded-xl border border-border bg-surface hover:bg-surface-elevated transition-colors p-5"
-                >
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                    {v.platform || "Vídeo"}
-                  </div>
-                  <div className="font-medium truncate">
-                    {v.cta || v.description.slice(0, 40) || "Sem título"}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1 truncate">
-                    {product.name}
-                  </div>
-                </button>
-              ))}
-              {viralLibrary.slice(0, 3).map((c) => (
-                <button
-                  key={c.id}
-                  onClick={openViral}
-                  className="text-left rounded-xl border border-border bg-surface hover:bg-surface-elevated transition-colors p-5"
-                >
-                  <div className="text-xs uppercase tracking-wider text-primary mb-1">
-                    Viral · {c.platform}
-                  </div>
-                  <div className="font-medium truncate">{c.hook || "Sem hook"}</div>
-                  <div className="text-xs text-muted-foreground mt-1 truncate">
-                    {c.views || "—"} views
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+        ) : (
+          <div
+            className={cn(
+              "rounded-xl border border-border bg-surface divide-y divide-border overflow-hidden",
+            )}
+          >
+            {filtered.map(({ p, signal }) => (
+              <ProductRow
+                key={p.id}
+                p={p}
+                signal={signal}
+                compact={viewMode === "compact"}
+                onOpen={() => openProduct(p.id)}
+                onFav={() => toggleFavorite(p.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function SectionLabel({
-  children,
-  icon: Icon,
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PulseCell({
+  label,
+  value,
+  tone,
+  icon,
 }: {
-  children: React.ReactNode;
-  icon?: typeof Clock;
+  label: string;
+  value: number;
+  tone: "metal" | "success" | "warning" | "primary" | "muted";
+  icon?: React.ReactNode;
 }) {
+  const toneClass = {
+    metal: "text-foreground",
+    success: "text-success",
+    warning: "text-warning",
+    primary: "text-primary",
+    muted: "text-muted-foreground",
+  }[tone];
   return (
-    <div className="flex items-center gap-2 mb-4 text-sm font-medium text-muted-foreground uppercase tracking-wider">
-      {Icon && <Icon className="h-4 w-4" />}
-      {children}
+    <div className="bg-surface px-5 py-4">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1.5">
+        {icon}
+        {label}
+      </div>
+      <div className={cn("text-2xl font-semibold tabular-nums", toneClass)}>
+        {value}
+      </div>
     </div>
   );
 }
 
-function QuickAction({
-  icon: Icon,
-  label,
-  onClick,
-  disabled,
+function ProductRow({
+  p,
+  signal,
+  compact,
+  onOpen,
+  onFav,
 }: {
-  icon: typeof Plus;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
+  p: Product;
+  signal: ProductSignal;
+  compact: boolean;
+  onOpen: () => void;
+  onFav: () => void;
 }) {
+  const meta = STATUS_META[signal.status];
+  const mainImg = p.images.find((i) => i.isMain) ?? p.images[0];
+  return (
+    <div
+      onClick={onOpen}
+      className={cn(
+        "group flex items-center gap-4 px-5 cursor-pointer transition-colors hover:bg-surface-elevated",
+        compact ? "py-2.5" : "py-4",
+      )}
+    >
+      {/* Status rail */}
+      <div className={cn("h-10 w-0.5 rounded-full", meta.dot)} />
+
+      {/* Thumb */}
+      <div
+        className={cn(
+          "shrink-0 rounded-lg overflow-hidden bg-accent flex items-center justify-center",
+          compact ? "h-9 w-9" : "h-12 w-12",
+        )}
+      >
+        {mainImg ? (
+          <img
+            src={mainImg.dataUrl}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Package2 className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+
+      {/* Title + meta */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              "truncate font-medium",
+              compact ? "text-sm" : "text-[15px]",
+            )}
+          >
+            {p.name || "Sem nome"}
+          </div>
+          {p.favorite && (
+            <Star className="h-3.5 w-3.5 fill-warning text-warning shrink-0" />
+          )}
+        </div>
+        {!compact && (
+          <div className="text-xs text-muted-foreground mt-0.5 truncate">
+            {[p.sku, p.brand, p.category].filter(Boolean).join(" · ") ||
+              "Sem identificação"}
+          </div>
+        )}
+      </div>
+
+      {/* Status pill */}
+      <div
+        className={cn(
+          "hidden md:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1",
+          meta.ring,
+          meta.text,
+        )}
+      >
+        <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
+        {meta.label}
+      </div>
+
+      {/* Price + margin */}
+      <div className="hidden lg:block text-right tabular-nums">
+        <div className="text-sm font-semibold">
+          {signal.finalPrice > 0 ? brl(signal.finalPrice) : "—"}
+        </div>
+        <div
+          className={cn(
+            "text-[11px]",
+            signal.margin >= 25
+              ? "text-success"
+              : signal.margin >= 10
+                ? "text-warning"
+                : signal.margin > 0
+                  ? "text-primary"
+                  : "text-muted-foreground",
+          )}
+        >
+          {signal.finalPrice > 0
+            ? `${signal.margin.toFixed(1)}% margem`
+            : "—"}
+        </div>
+      </div>
+
+      {/* Fav */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onFav();
+        }}
+        className="opacity-40 group-hover:opacity-100 transition-opacity"
+        title="Favoritar"
+      >
+        <Star
+          className={cn(
+            "h-4 w-4",
+            p.favorite && "fill-warning text-warning opacity-100",
+          )}
+        />
+      </button>
+    </div>
+  );
+}
+
+function ProductCard({
+  p,
+  signal,
+  onOpen,
+  onFav,
+}: {
+  p: Product;
+  signal: ProductSignal;
+  onOpen: () => void;
+  onFav: () => void;
+}) {
+  const meta = STATUS_META[signal.status];
+  const mainImg = p.images.find((i) => i.isMain) ?? p.images[0];
   return (
     <button
-      onClick={onClick}
-      disabled={disabled}
-      className="group flex flex-col items-start gap-4 rounded-xl border border-border bg-surface hover:bg-surface-elevated hover:border-primary/40 transition-all p-6 disabled:opacity-40 disabled:cursor-not-allowed text-left"
+      onClick={onOpen}
+      className="group text-left rounded-xl border border-border bg-surface hover:border-foreground/20 hover:bg-surface-elevated transition-all overflow-hidden"
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-        <Icon className="h-5 w-5" />
+      <div className="relative aspect-[16/10] bg-accent overflow-hidden">
+        {mainImg ? (
+          <img
+            src={mainImg.dataUrl}
+            alt=""
+            className="h-full w-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Package2 className="h-8 w-8 text-muted-foreground/40" />
+          </div>
+        )}
+        {/* Status corner */}
+        <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white ring-1 ring-white/10">
+          <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
+          {meta.label}
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFav();
+          }}
+          className="absolute top-3 right-3 h-7 w-7 inline-flex items-center justify-center rounded-full bg-black/60 backdrop-blur ring-1 ring-white/10 text-white/80 hover:text-white"
+        >
+          <Star
+            className={cn(
+              "h-3.5 w-3.5",
+              p.favorite && "fill-warning text-warning",
+            )}
+          />
+        </button>
       </div>
-      <div className="font-semibold">{label}</div>
+      <div className="p-4">
+        <div className="font-medium truncate">{p.name || "Sem nome"}</div>
+        <div className="text-xs text-muted-foreground mt-0.5 truncate">
+          {[p.sku, p.brand].filter(Boolean).join(" · ") || "Sem identificação"}
+        </div>
+        <div className="mt-3 flex items-end justify-between">
+          <div className="tabular-nums">
+            <div className="text-base font-semibold">
+              {signal.finalPrice > 0 ? brl(signal.finalPrice) : "—"}
+            </div>
+            <div
+              className={cn(
+                "text-[11px]",
+                signal.margin >= 25
+                  ? "text-success"
+                  : signal.margin >= 10
+                    ? "text-warning"
+                    : signal.margin > 0
+                      ? "text-primary"
+                      : "text-muted-foreground",
+              )}
+            >
+              {signal.finalPrice > 0
+                ? `${signal.margin.toFixed(1)}% margem`
+                : "sem preço"}
+            </div>
+          </div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {Math.round(signal.completeness * 100)}% pronto
+          </div>
+        </div>
+      </div>
     </button>
   );
 }
 
-function EmptyHint({ children }: { children: React.ReactNode }) {
+function EmptyState({
+  hasProducts,
+  onCreate,
+}: {
+  hasProducts: boolean;
+  onCreate: () => void;
+}) {
   return (
-    <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
-      {children}
+    <div className="rounded-2xl border border-dashed border-border px-8 py-16 text-center">
+      <div className="mx-auto h-12 w-12 rounded-xl bg-surface border border-border flex items-center justify-center mb-4">
+        <Package2 className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <div className="text-base font-medium">
+        {hasProducts ? "Nenhum produto bate com este filtro" : "Nenhum produto ainda"}
+      </div>
+      <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+        {hasProducts
+          ? "Ajuste os filtros ou limpe a busca para ver tudo."
+          : "Crie seu primeiro produto e comece a operar."}
+      </p>
+      {!hasProducts && (
+        <button
+          onClick={onCreate}
+          className="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90"
+        >
+          <Plus className="h-4 w-4" /> Criar produto
+        </button>
+      )}
     </div>
   );
 }
