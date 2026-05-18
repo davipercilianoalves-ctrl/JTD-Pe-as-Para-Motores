@@ -38,18 +38,28 @@ export interface MarketplaceData {
   extras: Record<string, string>;
 }
 
+export type CostKind = "currency" | "percent";
+export type PercentBase = "final" | "cost";
+export type CostGroup = "produto" | "logistica" | "marketing" | "taxas" | "outros";
+
+export interface CostItem {
+  id: string;
+  label: string;
+  kind: CostKind;
+  value: number;
+  base?: PercentBase;
+  group: CostGroup;
+  note?: string;
+}
+
 export interface PricingData {
-  cost: number;
-  shipping: number;
-  packaging: number;
-  transportation: number;
-  ads: number;
-  taxes: number;
-  marketplaceFee: number;
-  commission: number;
-  markup: number;
-  discount: number;
+  items: CostItem[];
+  desiredProfit: number;
+  desiredProfitKind: CostKind;
+  visibleDiscount: number;
   maxDiscount: number;
+  compensateDiscount: boolean;
+  scenarios: number[];
 }
 
 export interface ProductImage {
