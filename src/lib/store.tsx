@@ -6,18 +6,23 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { newProduct, type Product, type ViralClip } from "./types";
+import {
+  newProduct,
+  migrateProduct,
+  canonKeyword,
+  type Product,
+  type Keyword,
+  type ViralClip,
+} from "./types";
 
-const STORAGE_KEY = "jtd-motors-hub:v2";
+const STORAGE_KEY = "jtd-motors-hub:v3";
+const LEGACY_KEY = "jtd-motors-hub:v2";
 
 export type View = "home" | "product" | "viral";
 
 interface UIState {
   view: View;
   selectedId: string | null;
-  focusedModule: string | null; // key of fullscreen module
-  expandedModules: string[]; // keys currently expanded (not fullscreen)
-  openCompetitorId: string | null;
 }
 
 interface StoreState {
@@ -27,20 +32,21 @@ interface StoreState {
 }
 
 interface StoreContextValue extends StoreState {
-  // navigation
   goHome: () => void;
   openProduct: (id: string) => void;
   openViral: () => void;
-  // modules
-  toggleModule: (key: string) => void;
-  focusModule: (key: string | null) => void;
-  openCompetitor: (id: string | null) => void;
-  // products
+
   createProduct: () => string;
   updateProduct: (id: string, patch: Partial<Product> | ((p: Product) => Product)) => void;
   deleteProduct: (id: string) => void;
   toggleFavorite: (id: string) => void;
-  // viral lib
+
+  // keywords (per product)
+  addKeywordTokens: (productId: string, tokens: string[]) => void;
+  removeKeyword: (productId: string, keywordId: string) => void;
+  toggleKeywordFavorite: (productId: string, keywordId: string) => void;
+
+  // viral library
   addViral: (clip?: Partial<ViralClip>) => string;
   updateViral: (id: string, patch: Partial<ViralClip>) => void;
   deleteViral: (id: string) => void;
@@ -48,23 +54,18 @@ interface StoreContextValue extends StoreState {
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
-const initialUI: UIState = {
-  view: "home",
-  selectedId: null,
-  focusedModule: null,
-  expandedModules: [],
-  openCompetitorId: null,
-};
+const initialUI: UIState = { view: "home", selectedId: null };
 
 function loadState(): StoreState {
   if (typeof window === "undefined")
     return { products: [], viralLibrary: [], ui: initialUI };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw =
+      localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY);
     if (!raw) return { products: [], viralLibrary: [], ui: initialUI };
     const parsed = JSON.parse(raw) as Partial<StoreState>;
     return {
-      products: parsed.products ?? [],
+      products: (parsed.products ?? []).map(migrateProduct),
       viralLibrary: parsed.viralLibrary ?? [],
       ui: { ...initialUI, ...(parsed.ui ?? {}) },
     };
@@ -99,51 +100,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, ui: { ...s.ui, ...patch } }));
   }, []);
 
-  const goHome = useCallback(
-    () => setUI({ view: "home", focusedModule: null, openCompetitorId: null }),
-    [setUI],
-  );
+  const goHome = useCallback(() => setUI({ view: "home" }), [setUI]);
   const openProduct = useCallback(
-    (id: string) =>
-      setUI({ view: "product", selectedId: id, focusedModule: null, openCompetitorId: null }),
+    (id: string) => setUI({ view: "product", selectedId: id }),
     [setUI],
   );
-  const openViral = useCallback(
-    () => setUI({ view: "viral", focusedModule: null }),
-    [setUI],
-  );
-
-  const toggleModule = useCallback((key: string) => {
-    setState((s) => {
-      const has = s.ui.expandedModules.includes(key);
-      return {
-        ...s,
-        ui: {
-          ...s.ui,
-          expandedModules: has
-            ? s.ui.expandedModules.filter((k) => k !== key)
-            : [...s.ui.expandedModules, key],
-        },
-      };
-    });
-  }, []);
-
-  const focusModule = useCallback(
-    (key: string | null) => setUI({ focusedModule: key }),
-    [setUI],
-  );
-
-  const openCompetitor = useCallback(
-    (id: string | null) => setUI({ openCompetitorId: id }),
-    [setUI],
-  );
+  const openViral = useCallback(() => setUI({ view: "viral" }), [setUI]);
 
   const createProduct = useCallback(() => {
     const p = newProduct();
     setState((s) => ({
       ...s,
       products: [p, ...s.products],
-      ui: { ...s.ui, view: "product", selectedId: p.id, focusedModule: null },
+      ui: { ...s.ui, view: "product", selectedId: p.id },
     }));
     return p.id;
   }, []);
@@ -182,6 +151,62 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ),
     }));
   }, []);
+
+  const addKeywordTokens = useCallback((productId: string, tokens: string[]) => {
+    if (!tokens.length) return;
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) => {
+        if (p.id !== productId) return p;
+        const next = [...p.keywords];
+        for (const raw of tokens) {
+          const text = canonKeyword(raw);
+          if (!text) continue;
+          const existing = next.find((k) => k.text === text);
+          if (existing) existing.uses += 1;
+          else
+            next.push({
+              id: crypto.randomUUID(),
+              text,
+              display: raw.trim(),
+              favorite: false,
+              uses: 1,
+            });
+        }
+        return { ...p, keywords: next, updatedAt: Date.now() };
+      }),
+    }));
+  }, []);
+
+  const removeKeyword = useCallback((productId: string, keywordId: string) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) =>
+        p.id === productId
+          ? { ...p, keywords: p.keywords.filter((k) => k.id !== keywordId) }
+          : p,
+      ),
+    }));
+  }, []);
+
+  const toggleKeywordFavorite = useCallback(
+    (productId: string, keywordId: string) => {
+      setState((s) => ({
+        ...s,
+        products: s.products.map((p) =>
+          p.id === productId
+            ? {
+                ...p,
+                keywords: p.keywords.map((k) =>
+                  k.id === keywordId ? { ...k, favorite: !k.favorite } : k,
+                ),
+              }
+            : p,
+        ),
+      }));
+    },
+    [],
+  );
 
   const addViral = useCallback((clip?: Partial<ViralClip>) => {
     const c: ViralClip = {
@@ -223,13 +248,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         goHome,
         openProduct,
         openViral,
-        toggleModule,
-        focusModule,
-        openCompetitor,
         createProduct,
         updateProduct,
         deleteProduct,
         toggleFavorite,
+        addKeywordTokens,
+        removeKeyword,
+        toggleKeywordFavorite,
         addViral,
         updateViral,
         deleteViral,
@@ -250,3 +275,5 @@ export function useSelectedProduct() {
   const { products, ui } = useStore();
   return products.find((p) => p.id === ui.selectedId) ?? null;
 }
+
+export type { Keyword };
