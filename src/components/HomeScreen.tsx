@@ -1,6 +1,7 @@
 import { Plus, Search, Film, FolderOpen, Clock, Star, Package2, FileText } from "lucide-react";
 import { useMemo } from "react";
 import { useStore } from "@/lib/store";
+import logoUrl from "@/assets/jtd-logo.png";
 
 export function HomeScreen() {
   const { products, viralLibrary, createProduct, openProduct, openViral } = useStore();
