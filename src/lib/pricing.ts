@@ -194,6 +194,73 @@ export function simulateScenario(p: PricingData, discountPct: number): PricingRe
   return computePricing({ ...p, visibleDiscount: discountPct });
 }
 
+export type PriceStatus = "healthy" | "attention" | "risk" | "loss";
+
+export interface PriceAnalysis {
+  price: number;
+  netProfit: number;
+  marginPct: number;
+  status: PriceStatus;
+  reason: string;
+}
+
+/** Evaluate any arbitrary price against the current cost structure. */
+export function analyzePrice(
+  p: PricingData,
+  price: number,
+  kind: "ideal" | "min" | "psych" | "aggressive",
+): PriceAnalysis {
+  // base cost recompute (same as computePricing first pass)
+  let baseCost = 0;
+  let feesPct = 0;
+  for (const it of p.items) {
+    if (it.kind === "currency") baseCost += Number(it.value) || 0;
+    else if (it.base === "cost") baseCost += baseCost * ((Number(it.value) || 0) / 100);
+    else feesPct += (Number(it.value) || 0) / 100;
+  }
+  feesPct = Math.min(Math.max(feesPct, 0), 0.95);
+  const fees = price * feesPct;
+  const netProfit = price - baseCost - fees;
+  const marginPct = price > 0 ? (netProfit / price) * 100 : 0;
+
+  let status: PriceStatus = "healthy";
+  if (netProfit < 0) status = "loss";
+  else if (marginPct < 5) status = "risk";
+  else if (marginPct < 15) status = "attention";
+
+  const profitTxt = `${brl(netProfit)} (${marginPct.toFixed(1)}%)`;
+  let reason = "";
+  switch (kind) {
+    case "ideal":
+      reason =
+        netProfit > 0
+          ? `Preço alvo. Entrega ${profitTxt} de lucro líquido sem desconto.`
+          : `Preço alvo definido, mas seus custos consomem tudo. Revise.`;
+      break;
+    case "min":
+      reason =
+        marginPct <= 1
+          ? "Empate. Aqui você não ganha nem perde — use só para queima de estoque."
+          : `Limite absoluto. Abaixo disso é prejuízo. Sobra apenas ${profitTxt}.`;
+      break;
+    case "psych":
+      reason =
+        netProfit > 0
+          ? `Termina em .99/.90 — converte mais. Lucro real: ${profitTxt}.`
+          : `Psicológico abaixo do custo. Não use.`;
+      break;
+    case "aggressive":
+      reason =
+        netProfit > 0
+          ? `Limite agressivo (${p.maxDiscount}% OFF). Ainda lucra ${profitTxt}.`
+          : `Desconto agressivo derruba o lucro. Não recomendado.`;
+      break;
+  }
+
+  return { price, netProfit, marginPct, status, reason };
+}
+
+
 export const GROUP_LABELS: Record<string, string> = {
   produto: "Produto",
   logistica: "Logística",
