@@ -1131,15 +1131,7 @@ function SoftBlock({ label, children }: { label: string; children: React.ReactNo
 /* ============================================================
    4. PRICING — strategic cockpit
 ============================================================ */
-import {
-  computePricing,
-  simulateScenario,
-  brl,
-  GROUP_LABELS,
-  GROUP_ORDER,
-  type Alert as PricingAlert,
-} from "@/lib/pricing";
-import type { CostItem, CostGroup, CostKind, PercentBase } from "@/lib/types";
+
 
 function PricingSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
