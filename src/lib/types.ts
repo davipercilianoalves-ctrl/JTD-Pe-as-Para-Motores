@@ -29,6 +29,7 @@ export interface TitleEntry {
 
 export interface MarketplaceData {
   titles: TitleEntry[];
+  shortDescription: string;
   description: string;
   seo: string;
   notes: string;
@@ -121,6 +122,7 @@ export interface Product {
 
 export const emptyMarketplace = (): MarketplaceData => ({
   titles: [],
+  shortDescription: "",
   description: "",
   seo: "",
   notes: "",

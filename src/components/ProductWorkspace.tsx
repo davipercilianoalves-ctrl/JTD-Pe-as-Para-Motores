@@ -220,13 +220,15 @@ export function ProductWorkspace() {
 }
 
 /* ============================================================
-   1. KEYWORDS — horizontal chip flow, manual + populated by competitors
+   1. KEYWORDS — vertical list + selected column for partial copy
 ============================================================ */
 function KeywordsSection({ product }: { product: Product }) {
   const { addKeywordTokens, removeKeyword, toggleKeywordFavorite } = useStore();
   const [draft, setDraft] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"all" | "sel" | null>(null);
   const [filter, setFilter] = useState<"all" | "fav">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
 
   const commit = () => {
     const toks = parseKeywordTokens(draft);
@@ -243,47 +245,77 @@ function KeywordsSection({ product }: { product: Product }) {
   };
 
   const sorted = useMemo(() => {
-    const list = filter === "fav" ? product.keywords.filter((k) => k.favorite) : product.keywords;
+    let list = filter === "fav" ? product.keywords.filter((k) => k.favorite) : product.keywords;
+    if (query.trim()) {
+      const q = query.toLowerCase().trim();
+      list = list.filter((k) => k.text.includes(q));
+    }
     return [...list].sort((a, b) => {
       if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
       return b.uses - a.uses;
     });
-  }, [product.keywords, filter]);
+  }, [product.keywords, filter, query]);
+
+  useEffect(() => {
+    setSelected((prev) => {
+      const valid = new Set(product.keywords.map((k) => k.id));
+      const next = new Set<string>();
+      prev.forEach((id) => valid.has(id) && next.add(id));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [product.keywords]);
+
+  const selectedKws = product.keywords.filter((k) => selected.has(k.id));
+
+  const toggleSel = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const copyAll = () => {
     navigator.clipboard.writeText(sorted.map((k) => k.display).join(", "));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setCopied("all");
+    setTimeout(() => setCopied(null), 1500);
+  };
+  const copySel = () => {
+    if (!selectedKws.length) return;
+    navigator.clipboard.writeText(selectedKws.map((k) => k.display).join(", "));
+    setCopied("sel");
+    setTimeout(() => setCopied(null), 1500);
   };
 
   return (
     <section>
       <SectionTitle
-        hint="Extraídas automaticamente da análise de concorrentes ou digitadas aqui."
+        hint="Lista mestre do produto. Use os checkboxes para copiar só o que importa."
         action={
-          <div className="flex items-center gap-3">
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {product.keywords.length} palavras
-            </span>
-            <Btn variant="soft" size="sm" onClick={copyAll} disabled={!sorted.length}>
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? "Copiado" : "Copiar tudo"}
-            </Btn>
-          </div>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {product.keywords.length} palavras
+          </span>
         }
       >
         Palavras-chave
       </SectionTitle>
 
-      <div className="rounded-2xl bg-surface px-6 py-5">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="rounded-2xl bg-surface overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border/60">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKey}
             onBlur={commit}
-            placeholder="Adicionar palavra-chave (Enter ou vírgula)"
+            placeholder="+ adicionar palavra (Enter ou vírgula)"
             className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/40"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filtrar..."
+            className="w-32 bg-background/60 rounded-md px-2.5 py-1 text-xs outline-none placeholder:text-muted-foreground/40"
           />
           <div className="flex items-center gap-1 rounded-lg bg-background/60 p-0.5 text-xs">
             <button
@@ -302,76 +334,132 @@ function KeywordsSection({ product }: { product: Product }) {
                 filter === "fav" ? "bg-accent text-foreground" : "text-muted-foreground",
               )}
             >
-              <Star className="inline h-3 w-3 mr-1" /> Favoritas
+              <Star className="inline h-3 w-3 mr-1" /> Fav
             </button>
           </div>
         </div>
 
-        {sorted.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground/70">
-            Nenhuma palavra ainda. Analise concorrentes para popular automaticamente.
+        <div className="grid lg:grid-cols-[1fr_320px]">
+          <div className="max-h-[480px] overflow-auto py-2">
+            {sorted.length === 0 ? (
+              <div className="py-16 text-center text-sm text-muted-foreground/70">
+                Nenhuma palavra ainda. Adicione acima ou extraia da análise de concorrentes.
+              </div>
+            ) : (
+              sorted.map((k) => {
+                const isSel = selected.has(k.id);
+                return (
+                  <div
+                    key={k.id}
+                    className={cn(
+                      "group flex items-center gap-3 pl-6 pr-4 py-2 hover:bg-surface-elevated transition-colors",
+                      isSel && "bg-primary/5",
+                    )}
+                  >
+                    <button
+                      onClick={() => toggleSel(k.id)}
+                      className={cn(
+                        "shrink-0 h-4 w-4 rounded-[5px] border flex items-center justify-center transition-colors",
+                        isSel
+                          ? "bg-primary border-primary"
+                          : "border-muted-foreground/40 hover:border-foreground",
+                      )}
+                      title={isSel ? "Desmarcar" : "Selecionar"}
+                    >
+                      {isSel && <Check className="h-3 w-3 text-primary-foreground" />}
+                    </button>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(k.display)}
+                      className="flex-1 text-left text-[15px] leading-relaxed cursor-copy truncate"
+                      title="Copiar"
+                    >
+                      {k.display}
+                    </button>
+                    <span className="tabular-nums text-xs text-muted-foreground/70 shrink-0 w-10 text-right">
+                      ×{k.uses}
+                    </span>
+                    <button
+                      onClick={() => toggleKeywordFavorite(product.id, k.id)}
+                      className="shrink-0 p-1 opacity-50 hover:opacity-100"
+                      title="Favoritar"
+                    >
+                      <Star
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          k.favorite && "fill-warning text-warning opacity-100",
+                        )}
+                      />
+                    </button>
+                    <button
+                      onClick={() => removeKeyword(product.id, k.id)}
+                      className="shrink-0 p-1 opacity-0 group-hover:opacity-60 hover:!opacity-100 text-muted-foreground hover:text-destructive"
+                      title="Remover"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })
+            )}
           </div>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {sorted.map((k) => (
-              <KeywordChip
-                key={k.id}
-                kw={k}
-                onCopy={() => navigator.clipboard.writeText(k.display)}
-                onFav={() => toggleKeywordFavorite(product.id, k.id)}
-                onRemove={() => removeKeyword(product.id, k.id)}
-              />
-            ))}
+
+          <div className="border-t lg:border-t-0 lg:border-l border-border/60 bg-background/30 p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Selecionadas
+              </span>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {selectedKws.length}
+              </span>
+            </div>
+
+            <div className="flex-1 min-h-[120px]">
+              {selectedKws.length === 0 ? (
+                <p className="text-xs text-muted-foreground/60 leading-relaxed">
+                  Marque os checkboxes para montar uma seleção e copiar só essas palavras.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {selectedKws.map((k) => (
+                    <div key={k.id} className="flex items-center gap-2 text-sm py-0.5 group/sel">
+                      <span className="h-1 w-1 rounded-full bg-primary shrink-0" />
+                      <span className="truncate flex-1">{k.display}</span>
+                      <button
+                        onClick={() => toggleSel(k.id)}
+                        className="opacity-0 group-hover/sel:opacity-60 hover:!opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex flex-col gap-1.5">
+              <Btn variant="primary" size="sm" onClick={copySel} disabled={!selectedKws.length}>
+                {copied === "sel" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied === "sel" ? "Copiado" : "Copiar selecionadas"}
+              </Btn>
+              <div className="flex gap-1.5">
+                <Btn variant="soft" size="sm" onClick={copyAll} disabled={!sorted.length} className="flex-1">
+                  {copied === "all" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied === "all" ? "Copiado" : "Copiar tudo"}
+                </Btn>
+                {selectedKws.length > 0 && (
+                  <Btn variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+                    Limpar
+                  </Btn>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
 }
 
-function KeywordChip({
-  kw,
-  onCopy,
-  onFav,
-  onRemove,
-}: {
-  kw: Keyword;
-  onCopy: () => void;
-  onFav: () => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div
-      className={cn(
-        "group inline-flex items-center gap-1.5 rounded-full pl-3 pr-1 py-1 text-sm transition-colors",
-        kw.favorite
-          ? "bg-warning/15 text-warning ring-1 ring-warning/30"
-          : "bg-background/70 hover:bg-background",
-      )}
-    >
-      <button onClick={onCopy} className="cursor-copy" title="Copiar">
-        {kw.display}
-      </button>
-      {kw.uses > 1 && (
-        <span className="text-[10px] tabular-nums text-muted-foreground">({kw.uses})</span>
-      )}
-      <button
-        onClick={onFav}
-        className="opacity-0 group-hover:opacity-70 hover:!opacity-100 p-0.5"
-        title="Favoritar"
-      >
-        <Star className={cn("h-3 w-3", kw.favorite && "fill-warning text-warning opacity-100")} />
-      </button>
-      <button
-        onClick={onRemove}
-        className="opacity-0 group-hover:opacity-70 hover:!opacity-100 p-0.5"
-        title="Remover"
-      >
-        <X className="h-3 w-3" />
-      </button>
-    </div>
-  );
-}
 
 /* ============================================================
    2. COMPETITORS — fast inline blocks; keywords feed back into main list
@@ -543,6 +631,12 @@ function CompetitorKeywords({
   onCommit: (words: string[]) => void;
 }) {
   const [draft, setDraft] = useState("");
+  const [flash, setFlash] = useState(false);
+
+  const flashOk = () => {
+    setFlash(true);
+    setTimeout(() => setFlash(false), 700);
+  };
 
   const commitTokens = (raw: string) => {
     const toks = parseSingleWords(raw);
@@ -552,21 +646,22 @@ function CompetitorKeywords({
     const added: string[] = [];
     for (const t of toks) {
       const key = canonKeyword(t);
-      if (existing.has(key)) {
-        added.push(t); // still count usage globally
-        continue;
+      if (!key) continue;
+      if (!existing.has(key)) {
+        existing.add(key);
+        fresh.push(t);
       }
-      existing.add(key);
-      fresh.push(t);
       added.push(t);
     }
     if (fresh.length) onChange([...block.keywordsFound, ...fresh]);
-    if (added.length) onCommit(added);
+    if (added.length) {
+      onCommit(added);
+      flashOk();
+    }
   };
 
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === " " || e.key === ",") {
-      // for Enter/comma: split everything; for Space: split when at least 2 chars typed
       if (e.key === " " && draft.trim().length === 0) return;
       e.preventDefault();
       commitTokens(draft);
@@ -578,15 +673,41 @@ function CompetitorKeywords({
     onChange(block.keywordsFound.filter((_, i) => i !== idx));
   };
 
+  const resendAll = () => {
+    if (!block.keywordsFound.length) return;
+    onCommit(block.keywordsFound);
+    flashOk();
+  };
+
   return (
     <div>
       <SubLabel>
-        Palavras-chave encontradas
-        <span className="ml-2 normal-case tracking-normal text-muted-foreground/70 text-[11px]">
-          Espaço ou Enter para adicionar — entram na lista principal automaticamente
+        <span className="inline-flex items-center gap-2">
+          Palavras-chave encontradas
+          <span className="normal-case tracking-normal text-muted-foreground/70 text-[11px]">
+            Espaço, vírgula ou Enter — entram na lista principal automaticamente
+          </span>
+          {flash && (
+            <span className="normal-case tracking-normal text-success text-[11px] inline-flex items-center gap-1">
+              <Check className="h-3 w-3" /> enviado
+            </span>
+          )}
+          <button
+            onClick={resendAll}
+            disabled={!block.keywordsFound.length}
+            className="ml-auto normal-case tracking-normal text-[11px] text-primary hover:underline disabled:opacity-30"
+            title="Reenviar todas para a lista principal"
+          >
+            Enviar todas →
+          </button>
         </span>
       </SubLabel>
-      <div className="rounded-lg bg-input/40 px-3 py-2.5 flex flex-wrap items-center gap-1.5 focus-within:bg-input/70 transition-colors">
+      <div
+        className={cn(
+          "rounded-lg bg-input/40 px-3 py-2.5 flex flex-wrap items-center gap-1.5 transition-colors",
+          flash ? "ring-2 ring-success/50 bg-success/5" : "focus-within:bg-input/70",
+        )}
+      >
         {block.keywordsFound.map((w, i) => (
           <span
             key={i}
@@ -620,6 +741,8 @@ function CompetitorKeywords({
   );
 }
 
+
+
 function SubLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground mb-2">
@@ -629,7 +752,7 @@ function SubLabel({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================================================
-   3a. TITLES
+   3a. TITLES — focused card per title, with keyword highlight & suggestions
 ============================================================ */
 function TitlesSection({ product, market }: { product: Product; market: MK }) {
   const { updateProduct } = useStore();
@@ -659,105 +782,265 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
 
   return (
     <section>
-      <SectionTitle
-        hint={`Para ${MARKETS.find((m) => m.key === market)?.label}. Mantenha as palavras-chave em mente.`}
-        action={
-          <div className="flex flex-wrap gap-1.5">
-            {TITLE_VARIANTS.map((v) => (
-              <button
-                key={v}
-                onClick={() => add(v)}
-                className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-xs hover:bg-surface-elevated"
-              >
-                <Plus className="h-3 w-3" /> {v}
-              </button>
-            ))}
-          </div>
-        }
-      >
+      <SectionTitle hint={`Para ${MARKETS.find((m) => m.key === market)?.label}. Clique nas sugestões para inserir.`}>
         Títulos
       </SectionTitle>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         {data.titles.length === 0 && (
-          <div className="rounded-2xl bg-surface/60 py-10 text-center text-sm text-muted-foreground">
-            Crie sua primeira variação acima.
+          <div className="rounded-2xl bg-surface/60 py-12 text-center text-sm text-muted-foreground">
+            Crie sua primeira variação abaixo.
           </div>
         )}
-        {data.titles.map((t) => {
-          const over = t.text.length > 60;
-          return (
-            <div
-              key={t.id}
-              className="group flex items-center gap-4 rounded-xl bg-surface px-5 py-3.5 hover:bg-surface-elevated transition-colors"
+        {data.titles.map((t) => (
+          <TitleCard
+            key={t.id}
+            entry={t}
+            keywords={product.keywords}
+            onChange={(text) => upd(t.id, text)}
+            onDuplicate={() => duplicate(t)}
+            onRemove={() => rm(t.id)}
+          />
+        ))}
+
+        <div className="rounded-2xl bg-surface/40 border border-dashed border-border/60 px-5 py-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground mr-2">
+            + Nova variação
+          </span>
+          {TITLE_VARIANTS.map((v) => (
+            <button
+              key={v}
+              onClick={() => add(v)}
+              className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-xs hover:bg-surface-elevated"
             >
-              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/80 w-20">
-                {t.variant}
-              </span>
-              <input
-                value={t.text}
-                onChange={(e) => upd(t.id, e.target.value)}
-                placeholder="Digite o título..."
-                className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/40"
-              />
-              <span
-                className={cn(
-                  "tabular-nums text-xs shrink-0",
-                  over ? "text-warning" : "text-muted-foreground",
-                )}
-              >
-                {t.text.length}/60
-              </span>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => navigator.clipboard.writeText(t.text)}
-                  className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
-                  title="Copiar"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => duplicate(t)}
-                  className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
-                  title="Duplicar"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => rm(t.id)}
-                  className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"
-                  title="Excluir"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
+              <Plus className="h-3 w-3" /> {v}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
+function TitleCard({
+  entry,
+  keywords,
+  onChange,
+  onDuplicate,
+  onRemove,
+}: {
+  entry: TitleEntry;
+  keywords: Keyword[];
+  onChange: (text: string) => void;
+  onDuplicate: () => void;
+  onRemove: () => void;
+}) {
+  const lower = entry.text.toLowerCase();
+  const used = useMemo(
+    () => keywords.filter((k) => k.text && lower.includes(k.text)),
+    [keywords, lower],
+  );
+  const usedIds = new Set(used.map((k) => k.id));
+  const suggestions = useMemo(
+    () =>
+      [...keywords]
+        .filter((k) => !usedIds.has(k.id))
+        .sort((a, b) => {
+          if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
+          return b.uses - a.uses;
+        })
+        .slice(0, 8),
+    [keywords, entry.text],
+  );
+
+  const len = entry.text.length;
+  const tone =
+    len > 80 ? "text-destructive" : len > 60 ? "text-warning" : "text-muted-foreground";
+
+  const insert = (word: string) => {
+    const next = entry.text ? `${entry.text.trim()} ${word}` : word;
+    onChange(next);
+  };
+
+  return (
+    <div className="group rounded-2xl bg-surface px-6 py-5 transition-colors hover:bg-surface-elevated">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/90">
+          {entry.variant}
+        </span>
+        <span className={cn("ml-auto tabular-nums text-xs", tone)}>{len}/60</span>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => navigator.clipboard.writeText(entry.text)}
+            className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
+            title="Copiar"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onDuplicate}
+            className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
+            title="Duplicar"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onRemove}
+            className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"
+            title="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <input
+        value={entry.text}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Digite o título..."
+        className="w-full bg-transparent text-xl font-medium tracking-tight outline-none placeholder:text-muted-foreground/30"
+      />
+
+      {(used.length > 0 || suggestions.length > 0) && (
+        <div className="mt-4 space-y-2.5">
+          {used.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-[0.12em] text-success/80 mr-1">
+                Usadas
+              </span>
+              {used.map((k) => (
+                <span
+                  key={k.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-success/15 text-success px-2 py-0.5 text-[11px]"
+                >
+                  <Check className="h-3 w-3" /> {k.display}
+                </span>
+              ))}
+            </div>
+          )}
+          {suggestions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mr-1">
+                Sugestões
+              </span>
+              {suggestions.map((k) => (
+                <button
+                  key={k.id}
+                  onClick={() => insert(k.display)}
+                  className="inline-flex items-center gap-1 rounded-full bg-background/70 hover:bg-primary/15 hover:text-primary px-2 py-0.5 text-[11px] transition-colors"
+                >
+                  <Plus className="h-3 w-3" /> {k.display}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ============================================================
-   3b. DESCRIPTION — large, Notion-like
+   3b. DESCRIPTION — short summary + full (auto-composed)
 ============================================================ */
 function DescriptionSection({ product, market }: { product: Product; market: MK }) {
   const { updateProduct } = useStore();
   const data = product[market];
+  const [copied, setCopied] = useState<"short" | "full" | null>(null);
 
   const set = <K extends keyof MarketplaceData>(key: K, value: MarketplaceData[K]) =>
     updateProduct(product.id, (p) => ({ ...p, [market]: { ...p[market], [key]: value } }));
 
+  const composed = useMemo(() => {
+    const s = (data.shortDescription || "").trim();
+    const d = (data.description || "").trim();
+    if (s && d) return `${s}\n\n${d}`;
+    return s || d;
+  }, [data.shortDescription, data.description]);
+
+  const insertKeywords = (only: "all" | "fav") => {
+    const list =
+      only === "fav" ? product.keywords.filter((k) => k.favorite) : product.keywords;
+    if (!list.length) return;
+    const words = list.map((k) => k.display).join(", ");
+    const base = (data.shortDescription || "").trim();
+    set("shortDescription", base ? `${base} ${words}` : words);
+  };
+
+  const copy = (text: string, kind: "short" | "full") => {
+    navigator.clipboard.writeText(text);
+    setCopied(kind);
+    setTimeout(() => setCopied(null), 1500);
+  };
+
   return (
     <section>
-      <SectionTitle hint={`Espaço amplo. Pense como um documento.`}>Descrição</SectionTitle>
+      <SectionTitle hint="Resumo com palavras-chave + descrição completa. A cópia final inclui as duas partes.">
+        Descrição
+      </SectionTitle>
 
+      {/* SHORT */}
       <div className="rounded-2xl bg-surface px-7 py-6">
+        <div className="flex items-center gap-3 mb-3">
+          <SubLabel>Descrição breve (resumo + palavras-chave)</SubLabel>
+          <button
+            onClick={() => copy((data.shortDescription || "").trim(), "short")}
+            disabled={!data.shortDescription}
+            className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
+          >
+            {copied === "short" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied === "short" ? "Copiado" : "Copiar resumo"}
+          </button>
+        </div>
+        <AutoTextArea
+          value={data.shortDescription}
+          onChange={(e) => set("shortDescription", e.target.value)}
+          placeholder="Frase ou duas que resumem o produto incluindo as palavras-chave principais..."
+          className="text-base leading-relaxed"
+          minRows={3}
+        />
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <Btn variant="soft" size="sm" onClick={() => insertKeywords("all")} disabled={!product.keywords.length}>
+            <Plus className="h-3.5 w-3.5" /> Inserir todas as palavras-chave
+          </Btn>
+          <Btn
+            variant="ghost"
+            size="sm"
+            onClick={() => insertKeywords("fav")}
+            disabled={!product.keywords.some((k) => k.favorite)}
+          >
+            <Star className="h-3.5 w-3.5" /> Inserir favoritas
+          </Btn>
+        </div>
+      </div>
+
+      {/* FULL */}
+      <div className="mt-5 rounded-2xl bg-surface px-7 py-6">
+        <div className="flex items-center gap-3 mb-3">
+          <SubLabel>Descrição completa</SubLabel>
+          <button
+            onClick={() => copy(composed, "full")}
+            disabled={!composed}
+            className="ml-auto inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-30"
+          >
+            {copied === "full" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied === "full" ? "Copiado" : "Copiar tudo (resumo + descrição)"}
+          </button>
+        </div>
+
+        {data.shortDescription && (
+          <div className="mb-4 rounded-lg bg-background/40 border-l-2 border-primary/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+            {data.shortDescription}
+            <div className="mt-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/60">
+              — Resumo acima · continue abaixo —
+            </div>
+          </div>
+        )}
+
         <AutoTextArea
           value={data.description}
           onChange={(e) => set("description", e.target.value)}
-          placeholder="Escreva a descrição do anúncio..."
+          placeholder="Escreva o restante da descrição..."
           className="text-base leading-loose"
           minRows={8}
         />
@@ -806,6 +1089,7 @@ function SoftBlock({ label, children }: { label: string; children: React.ReactNo
     </div>
   );
 }
+
 
 /* ============================================================
    4. PRICING — strategic simulator
@@ -1314,7 +1598,7 @@ function IconChip({
 }
 
 /* ============================================================
-   6. VIDEOS — one clean block per video
+   6. VIDEOS — two-column card per video (media | content)
 ============================================================ */
 function VideosSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
@@ -1329,7 +1613,7 @@ function VideosSection({ product }: { product: Product }) {
       audio: "",
       description: "",
       cta: "",
-      platform: "",
+      platform: "TikTok",
       editingNotes: "",
       notes: "",
     };
@@ -1363,7 +1647,7 @@ function VideosSection({ product }: { product: Product }) {
   return (
     <section>
       <SectionTitle
-        hint="Roteiro, falas, áudio e arquivo — tudo junto."
+        hint="Vídeos do anúncio do produto. Mídia à esquerda, roteiro à direita."
         action={
           <Btn variant="soft" size="sm" onClick={add}>
             <Plus className="h-3.5 w-3.5" /> Novo vídeo
@@ -1375,78 +1659,75 @@ function VideosSection({ product }: { product: Product }) {
 
       {product.videos.length === 0 ? (
         <div className="rounded-2xl bg-surface/60 py-12 text-center text-sm text-muted-foreground">
-          Sem vídeos ainda.
+          Nenhum vídeo ainda. Crie o primeiro para começar.
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {product.videos.map((v, i) => {
             const open = openId === v.id;
+            const title = v.cta || v.videoName || `Vídeo #${product.videos.length - i}`;
             return (
-              <div key={v.id} className="rounded-xl bg-surface overflow-hidden">
-                <div
-                  className="flex items-center gap-4 px-5 py-3.5 cursor-pointer hover:bg-surface-elevated"
-                  onClick={() => setOpenId(open ? null : v.id)}
-                >
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 text-muted-foreground transition-transform",
-                      open && "rotate-180",
-                    )}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">
-                      {v.cta || v.platform || v.videoName || `Vídeo #${product.videos.length - i}`}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {v.platform || "Sem plataforma"}
-                      {v.videoDataUrl && " · arquivo carregado"}
-                    </div>
-                  </div>
+              <div key={v.id} className="rounded-2xl bg-surface overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={() => setOpenId(open ? null : v.id)}
+                    className="rounded-md p-1 hover:bg-accent"
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 text-muted-foreground transition-transform",
+                        open && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  <input
+                    value={v.cta}
+                    onChange={(e) => upd(v.id, { cta: e.target.value })}
+                    placeholder={title}
+                    className="flex-1 bg-transparent text-base font-medium outline-none placeholder:text-muted-foreground/50"
+                  />
+                  <select
+                    value={v.platform}
+                    onChange={(e) => upd(v.id, { platform: e.target.value })}
+                    className="rounded-md bg-background/60 px-2 py-1 text-xs outline-none"
+                  >
+                    <option>TikTok</option>
+                    <option>Reels</option>
+                    <option>Shorts</option>
+                    <option>YouTube</option>
+                    <option>Mercado Livre</option>
+                    <option>Outro</option>
+                  </select>
+                  {v.videoDataUrl && (
+                    <span className="text-[10px] uppercase tracking-wider text-success">
+                      ● arquivo
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
                       if (confirm("Excluir este vídeo?")) rm(v.id);
                     }}
-                    className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-60 hover:opacity-100"
+                    className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
 
                 {open && (
-                  <div className="px-6 pb-6 pt-2 flex flex-col gap-5">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="flex gap-2">
-                        <input
-                          value={v.link}
-                          onChange={(e) => upd(v.id, { link: e.target.value })}
-                          placeholder="Link externo"
-                          className="flex-1 bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
+                  <div className="grid lg:grid-cols-[340px_1fr] gap-6 px-6 pb-6 pt-2 border-t border-border/50">
+                    <div className="flex flex-col gap-3">
+                      <SubLabel>Mídia</SubLabel>
+                      {v.videoDataUrl ? (
+                        <video
+                          src={v.videoDataUrl}
+                          controls
+                          className="w-full rounded-xl bg-black aspect-[9/16] object-contain"
                         />
-                        {v.link && (
-                          <a
-                            href={v.link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center justify-center rounded-lg bg-accent px-3 hover:bg-accent/70"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        )}
-                      </div>
-                      <input
-                        value={v.platform}
-                        onChange={(e) => upd(v.id, { platform: e.target.value })}
-                        placeholder="Plataforma (TikTok, Reels...)"
-                        className="bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
-                      />
-                    </div>
-
-                    {v.videoDataUrl ? (
-                      <video src={v.videoDataUrl} controls className="w-full rounded-xl bg-black max-h-[420px]" />
-                    ) : null}
-
-                    <div className="grid md:grid-cols-2 gap-3">
+                      ) : (
+                        <div className="w-full rounded-xl bg-background/50 aspect-[9/16] flex items-center justify-center text-xs text-muted-foreground/60">
+                          sem vídeo
+                        </div>
+                      )}
                       <FileSlot
                         label={v.videoName || "Carregar vídeo"}
                         accept="video/*"
@@ -1461,52 +1742,81 @@ function VideosSection({ product }: { product: Product }) {
                         onClear={() => upd(v.id, { audioDataUrl: undefined, audioName: undefined })}
                         hasFile={!!v.audioDataUrl}
                       />
+                      {v.audioDataUrl && <audio src={v.audioDataUrl} controls className="w-full" />}
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          value={v.link}
+                          onChange={(e) => upd(v.id, { link: e.target.value })}
+                          placeholder="Link externo"
+                          className="flex-1 bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
+                        />
+                        {v.link && (
+                          <a
+                            href={v.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center justify-center rounded-lg bg-accent px-3 hover:bg-accent/70"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
                     </div>
 
-                    {v.audioDataUrl && <audio src={v.audioDataUrl} controls className="w-full" />}
-
-                    <div>
-                      <SubLabel>Roteiro</SubLabel>
-                      <AutoTextArea
-                        value={v.script}
-                        onChange={(e) => upd(v.id, { script: e.target.value })}
-                        placeholder="Estrutura do vídeo cena a cena..."
-                        minRows={5}
-                      />
-                    </div>
-                    <div>
-                      <SubLabel>Falas</SubLabel>
-                      <AutoTextArea
-                        value={v.speech}
-                        onChange={(e) => upd(v.id, { speech: e.target.value })}
-                        placeholder="Texto exato a ser falado..."
-                        minRows={4}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-3">
-                      <input
-                        value={v.cta}
-                        onChange={(e) => upd(v.id, { cta: e.target.value })}
-                        placeholder="CTA"
-                        className="bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
-                      />
-                      <input
-                        value={v.audio}
-                        onChange={(e) => upd(v.id, { audio: e.target.value })}
-                        placeholder="Referência de áudio / música"
-                        className="bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
-                      />
-                    </div>
-
-                    <div>
-                      <SubLabel>Notas</SubLabel>
-                      <AutoTextArea
-                        value={v.notes}
-                        onChange={(e) => upd(v.id, { notes: e.target.value })}
-                        placeholder="Edição, ganchos, observações..."
-                        minRows={3}
-                      />
+                    <div className="flex flex-col gap-5">
+                      <div>
+                        <SubLabel>Roteiro</SubLabel>
+                        <div className="rounded-lg bg-background/40 px-4 py-3">
+                          <AutoTextArea
+                            value={v.script}
+                            onChange={(e) => upd(v.id, { script: e.target.value })}
+                            placeholder="Estrutura do vídeo cena a cena..."
+                            minRows={5}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <SubLabel>Falas</SubLabel>
+                        <div className="rounded-lg bg-background/40 px-4 py-3">
+                          <AutoTextArea
+                            value={v.speech}
+                            onChange={(e) => upd(v.id, { speech: e.target.value })}
+                            placeholder="Texto exato a ser falado..."
+                            minRows={4}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div>
+                          <SubLabel>Referência de áudio / música</SubLabel>
+                          <input
+                            value={v.audio}
+                            onChange={(e) => upd(v.id, { audio: e.target.value })}
+                            placeholder="Nome / link da trilha"
+                            className="w-full bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
+                          />
+                        </div>
+                        <div>
+                          <SubLabel>Notas de edição</SubLabel>
+                          <input
+                            value={v.editingNotes}
+                            onChange={(e) => upd(v.id, { editingNotes: e.target.value })}
+                            placeholder="Cortes, transições, ritmo..."
+                            className="w-full bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <SubLabel>Notas gerais</SubLabel>
+                        <div className="rounded-lg bg-background/40 px-4 py-3">
+                          <AutoTextArea
+                            value={v.notes}
+                            onChange={(e) => upd(v.id, { notes: e.target.value })}
+                            placeholder="Ganchos, observações, ideias..."
+                            minRows={3}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1518,6 +1828,8 @@ function VideosSection({ product }: { product: Product }) {
     </section>
   );
 }
+
+
 
 function FileSlot({
   label,
