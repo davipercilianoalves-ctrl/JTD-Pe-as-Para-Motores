@@ -173,51 +173,67 @@ export function CustomFieldsPanel({
           <h3 className="text-2xl font-semibold tracking-tight">{title}</h3>
           {hint && <p className="text-sm text-muted-foreground mt-1 max-w-xl">{hint}</p>}
         </div>
-        <div className="relative">
-          <button
-            onClick={() => setAddOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            <Plus className="h-4 w-4" /> Adicionar campo
-          </button>
-          {addOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-30"
-                onClick={() => setAddOpen(false)}
-              />
-              <div className="absolute right-0 top-full mt-2 z-40 w-72 rounded-xl border bg-popover shadow-2xl p-2 grid grid-cols-2 gap-1">
-                {(Object.keys(KIND_META) as CustomFieldKind[]).map((k) => {
-                  const m = KIND_META[k];
-                  const Icon = m.icon;
-                  return (
-                    <button
-                      key={k}
-                      onClick={() => addField(k)}
-                      className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-accent transition-colors"
-                    >
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="truncate">{m.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+        <div className="flex items-center gap-2">
+          {currentMarket && currentMarket !== "all" && (
+            <button
+              onClick={() => setShowAll((v) => !v)}
+              className={cn(
+                "rounded-md border px-2.5 py-1.5 text-xs transition-colors",
+                showAll
+                  ? "border-primary/60 bg-primary/10 text-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+              title={showAll ? "Filtrando: todos" : `Filtrando: ${MARKETPLACE_LABELS[currentMarket]} + globais`}
+            >
+              {showAll ? "Ver todos" : `Só ${MK_SHORT[currentMarket]} + globais`}
+            </button>
           )}
+          <div className="relative">
+            <button
+              onClick={() => setAddOpen((v) => !v)}
+              className="flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              <Plus className="h-4 w-4" /> Adicionar campo
+            </button>
+            {addOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setAddOpen(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 z-40 w-72 rounded-xl border bg-popover shadow-2xl p-2 grid grid-cols-2 gap-1">
+                  {(Object.keys(KIND_META) as CustomFieldKind[]).map((k) => {
+                    const m = KIND_META[k];
+                    const Icon = m.icon;
+                    return (
+                      <button
+                        key={k}
+                        onClick={() => addField(k)}
+                        className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-accent transition-colors"
+                      >
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="truncate">{m.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {fields.length === 0 ? (
+      {visibleFields.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/60 p-10 text-center">
           <p className="text-sm text-muted-foreground">
-            Nenhum campo ainda. Crie um campo do tipo que você precisar — texto, número,
-            tags, link, bullets, etc. Arraste pelo punho{" "}
-            <GripVertical className="inline h-3 w-3" /> para reorganizar.
+            {fields.length === 0
+              ? "Nenhum campo ainda. Crie um campo do tipo que você precisar — texto, número, tags, link, bullets, etc."
+              : "Nenhum campo deste marketplace ainda. Crie um — ele já entra marcado para o modo atual."}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          {fields.map((f) => (
+          {visibleFields.map((f) => (
             <FieldCard
               key={f.id}
               field={f}
