@@ -1,14 +1,23 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Star, Package, FolderTree, Trash2 } from "lucide-react";
+import { Plus, Search, Star, Package, FolderTree, Home, Film } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | "favorites" | "categories";
 
 export function AppSidebar() {
-  const { products, selectedId, selectProduct, createProduct, deleteProduct, toggleFavorite } = useStore();
+  const {
+    products,
+    ui,
+    openProduct,
+    createProduct,
+    goHome,
+    openViral,
+    toggleFavorite,
+  } = useStore();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const categories = useMemo(() => {
     const map = new Map<string, number>();
@@ -18,8 +27,6 @@ export function AppSidebar() {
     });
     return Array.from(map.entries());
   }, [products]);
-
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     let list = products;
@@ -33,56 +40,74 @@ export function AppSidebar() {
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.sku.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.originalCode.toLowerCase().includes(q),
+          p.brand.toLowerCase().includes(q),
       );
     }
     return list;
   }, [products, filter, activeCategory, query]);
 
   return (
-    <aside className="flex h-screen w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       {/* Brand */}
-      <div className="flex items-center gap-2 px-4 py-4 border-b border-sidebar-border">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
+      <button
+        onClick={goHome}
+        className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border hover:bg-sidebar-accent/40 transition-colors"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-base">
           J
         </div>
-        <div className="leading-tight">
+        <div className="leading-tight text-left">
           <div className="text-sm font-semibold">JTD Motors Hub</div>
-          <div className="text-[11px] text-muted-foreground">Workspace de produtos</div>
+          <div className="text-xs text-muted-foreground">Workspace</div>
         </div>
+      </button>
+
+      {/* Primary nav */}
+      <div className="px-3 pt-3 flex flex-col gap-0.5">
+        <NavItem
+          icon={Home}
+          label="Início"
+          active={ui.view === "home"}
+          onClick={goHome}
+        />
+        <NavItem
+          icon={Film}
+          label="Biblioteca Viral"
+          active={ui.view === "viral"}
+          onClick={openViral}
+        />
       </div>
 
       {/* Create */}
-      <div className="px-3 pt-3">
+      <div className="px-3 pt-4">
         <button
           onClick={() => createProduct()}
-          className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
         >
-          <Plus className="h-4 w-4" /> Criar novo produto
+          <Plus className="h-4 w-4" /> Novo produto
         </button>
       </div>
 
       {/* Search */}
       <div className="px-3 pt-3">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Busca rápida..."
-            className="w-full rounded-md bg-sidebar-accent px-8 py-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
+            placeholder="Buscar..."
+            className="w-full rounded-lg bg-sidebar-accent px-9 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
           />
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filter chips */}
       <div className="px-3 pt-3">
-        <div className="flex gap-1 rounded-md bg-sidebar-accent p-1 text-xs">
+        <div className="flex gap-1 rounded-lg bg-sidebar-accent/60 p-1 text-xs">
           {[
             { key: "all", label: "Todos", icon: Package },
-            { key: "favorites", label: "Favoritos", icon: Star },
-            { key: "categories", label: "Categorias", icon: FolderTree },
+            { key: "favorites", label: "Favs", icon: Star },
+            { key: "categories", label: "Cat.", icon: FolderTree },
           ].map((t) => {
             const Icon = t.icon;
             return (
@@ -90,9 +115,9 @@ export function AppSidebar() {
                 key={t.key}
                 onClick={() => setFilter(t.key as Filter)}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1 rounded px-2 py-1.5 transition-colors",
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 transition-colors",
                   filter === t.key
-                    ? "bg-background text-foreground shadow-sm"
+                    ? "bg-background text-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -103,62 +128,53 @@ export function AppSidebar() {
         </div>
       </div>
 
-      {/* Category list */}
+      {/* Categories */}
       {filter === "categories" && (
-        <div className="px-3 pt-3">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1 px-1">
-            Categorias
-          </div>
-          <div className="flex flex-col gap-0.5 max-h-40 overflow-auto">
+        <div className="px-3 pt-3 max-h-44 overflow-auto">
+          <button
+            onClick={() => setActiveCategory(null)}
+            className={cn(
+              "w-full text-left text-xs rounded-md px-2.5 py-1.5 hover:bg-sidebar-accent",
+              !activeCategory && "bg-sidebar-accent",
+            )}
+          >
+            Todas
+          </button>
+          {categories.map(([cat, count]) => (
             <button
-              onClick={() => setActiveCategory(null)}
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
               className={cn(
-                "text-left text-xs rounded px-2 py-1.5 hover:bg-sidebar-accent",
-                !activeCategory && "bg-sidebar-accent",
+                "flex w-full items-center justify-between text-left text-xs rounded-md px-2.5 py-1.5 hover:bg-sidebar-accent",
+                activeCategory === cat && "bg-sidebar-accent",
               )}
             >
-              Todas
+              <span className="truncate">{cat}</span>
+              <span className="text-muted-foreground">{count}</span>
             </button>
-            {categories.map(([cat, count]) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={cn(
-                  "flex items-center justify-between text-left text-xs rounded px-2 py-1.5 hover:bg-sidebar-accent",
-                  activeCategory === cat && "bg-sidebar-accent",
-                )}
-              >
-                <span className="truncate">{cat}</span>
-                <span className="text-muted-foreground">{count}</span>
-              </button>
-            ))}
-            {categories.length === 0 && (
-              <div className="text-xs text-muted-foreground px-2 py-2">Nenhuma categoria ainda</div>
-            )}
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Product list */}
-      <div className="mt-3 flex-1 overflow-auto px-2 pb-3">
-        <div className="px-2 pb-1 text-[11px] uppercase tracking-wider text-muted-foreground">
-          Lista de produtos ({filtered.length})
+      {/* Products */}
+      <div className="mt-4 flex-1 overflow-auto px-2 pb-3">
+        <div className="px-3 pb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+          Produtos · {filtered.length}
         </div>
         <div className="flex flex-col gap-0.5">
           {filtered.map((p) => (
             <div
               key={p.id}
+              onClick={() => openProduct(p.id)}
               className={cn(
-                "group flex items-center gap-2 rounded-md px-2 py-2 cursor-pointer transition-colors",
-                selectedId === p.id
+                "group flex items-center gap-2 rounded-md px-2.5 py-2 cursor-pointer transition-colors",
+                ui.selectedId === p.id && ui.view === "product"
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "hover:bg-sidebar-accent/60",
               )}
-              onClick={() => selectProduct(p.id)}
             >
-              <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm">{p.name || "Sem nome"}</div>
+                <div className="truncate text-sm font-medium">{p.name || "Sem nome"}</div>
                 <div className="truncate text-[11px] text-muted-foreground">
                   {p.sku || "—"} · {p.brand || "Sem marca"}
                 </div>
@@ -169,31 +185,47 @@ export function AppSidebar() {
                   toggleFavorite(p.id);
                 }}
                 className="opacity-60 hover:opacity-100"
-                aria-label="Favoritar"
               >
                 <Star
                   className={cn("h-3.5 w-3.5", p.favorite && "fill-warning text-warning")}
                 />
               </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirm(`Excluir "${p.name}"?`)) deleteProduct(p.id);
-                }}
-                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-destructive"
-                aria-label="Excluir"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
             </div>
           ))}
           {filtered.length === 0 && (
-            <div className="px-2 py-6 text-center text-xs text-muted-foreground">
-              Nenhum produto encontrado
+            <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+              Nenhum produto
             </div>
           )}
         </div>
       </div>
     </aside>
+  );
+}
+
+function NavItem({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: typeof Home;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        active
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
   );
 }

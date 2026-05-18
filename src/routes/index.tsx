@@ -1,16 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StoreProvider } from "@/lib/store";
+import { StoreProvider, useStore } from "@/lib/store";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProductWorkspace } from "@/components/ProductWorkspace";
+import { HomeScreen } from "@/components/HomeScreen";
+import { ViralLibraryScreen } from "@/components/ViralLibraryScreen";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "JTD Motors Hub — Workspace de produtos" },
+      { title: "JTD Motors Hub — Workspace operacional" },
       {
         name: "description",
         content:
-          "Sistema completo de criação e gestão de produtos para marketplaces de autopeças e motores.",
+          "Workspace operacional para criação de produtos, análise de concorrentes, SEO, mídia e precificação.",
       },
     ],
   }),
@@ -22,8 +24,15 @@ function Index() {
     <StoreProvider>
       <div className="dark flex h-screen w-full overflow-hidden bg-background text-foreground">
         <AppSidebar />
-        <ProductWorkspace />
+        <Main />
       </div>
     </StoreProvider>
   );
+}
+
+function Main() {
+  const { ui } = useStore();
+  if (ui.view === "home") return <HomeScreen />;
+  if (ui.view === "viral") return <ViralLibraryScreen />;
+  return <ProductWorkspace />;
 }
