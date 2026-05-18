@@ -1,88 +1,79 @@
-## Unified Product Workspace — Structural Rework
+## 1. Sistema de confirmação único (substitui todos os `confirm()`)
 
-Rebuild the product creation flow around ONE central product with marketplace "modes" that adapt the same workspace, plus a custom-field engine where each field is tagged with the marketplaces it belongs to.
+Hoje o app usa o `window.confirm()` nativo do navegador em 5 lugares — visual quebra a estética premium. Vou criar um sistema central:
 
-### 1. Data model (`src/lib/types.ts`)
+**Novo: `src/components/ConfirmProvider.tsx`**
+- Provider montado uma vez em `src/routes/index.tsx`, expõe hook `useConfirm()`.
+- Hook devolve uma função assíncrona: `await confirm({ title, message, confirmLabel, tone })`.
+- `tone`: `"danger"` (vermelho JTD, ação irreversível) | `"warning"` | `"neutral"`.
+- Modal renderizado com Radix Dialog já existente no projeto — overlay escuro, surface elevada, anel metálico, botão de confirmação na cor do tom, atalhos: `Enter` confirma, `Esc` cancela, foco automático.
 
-Move from per-marketplace silos to a single core product:
+**Substituições (mesmo texto, agora premium):**
+- `ProductWorkspace.tsx:113` — excluir produto (danger)
+- `ProductWorkspace.tsx:568` — excluir concorrente (danger)
+- `ProductWorkspace.tsx:2198` — excluir vídeo (danger)
+- `CustomFieldsPanel.tsx:359` — remover campo customizado (warning)
+- `ViralLibraryScreen.tsx:49` — excluir clip viral (danger)
 
+**Ações novas que ganham confirmação (hoje passam direto, mas são destrutivas):**
+- Remover keyword (`ProductWorkspace.tsx:420`) — confirmação leve (warning) só se a keyword tiver `uses > 1` ou for favorita; caso contrário remove direto para não atrapalhar o fluxo rápido.
+- Limpar imagem principal / deletar imagem (se hoje delete sem confirmar — vou checar e cobrir).
+- Apagar todos os custos do pricing — confirm danger.
+
+**Permissões de navegador** (clipboard / file pickers):
+- Clipboard hoje é silencioso e funciona — não precisa de modal próprio. Vou adicionar um toast discreto de "copiado" usando o `sonner` que já está no projeto (não interrompe fluxo).
+- O app ainda não usa câmera/mic/notificações. Quando essas permissões forem adicionadas no futuro, o `useConfirm()` já estará pronto para envolver o pedido com a caixa premium antes de chamar a API do navegador.
+
+## 2. Sidebar — reconstrução completa
+
+A sidebar atual é funcional mas mistura muita coisa numa coluna só (busca, filtros, lista de produtos, categorias). Em telas estreitas como 1029px ela rouba espaço da workspace. Vou refazer em torno de 3 ideias:
+
+**a) Estrutura em 3 zonas claras**
 ```
-Product
-├── core (shared, single source of truth)
-│   ├── name, sku, brand, model, category, supplier
-│   ├── compatibility, techSpecs
-│   ├── baseShortDescription, baseDescription
-│   ├── keywords, competitors
-│   ├── pricing, images, videos
-│   └── customFields: CustomField[]   ← each field has `marketplaces: MarketplaceId[]`
-└── marketplaceOverrides: { [id]: { titleOverride?, descriptionOverride?, hashtags?, extras? } }
+┌─────────────────────┐
+│  [logo JTD]   📌    │  ← marca + pin (mesma altura do header da Home)
+├─────────────────────┤
+│  ⌘ Buscar...        │  ← atalho global (Ctrl+K abre busca grande)
+├─────────────────────┤
+│  ⌂  Início          │  ← navegação (ícone + label)
+│  ▣  Produtos    12  │     contador ao lado
+│  🎬  Biblioteca      │
+│  ─────────────────  │
+│  + Novo produto     │  ← CTA primário vermelho
+├─────────────────────┤
+│  RECENTES           │  ← lista compacta, só os 8 mais recentes
+│  • Pistão CB 300    │     ponto de status colorido
+│  • Bico Injetor     │     (verde/amarelo/vermelho/cinza)
+│  • ...              │
+└─────────────────────┘
+   ⚙ Configurações       ← rodapé fixo
 ```
 
-`CustomField` gains:
-- `marketplaces: MarketplaceId[]` — empty = global; otherwise visible only when active mode is in the list
-- `scope: "core" | "marketplace"` — core fields sync everywhere; marketplace fields are overrides
+**b) Comportamento refinado**
+- Largura recolhida 56px (era 64), expandida 248px (era 264) — mais respiro para a workspace.
+- Hover-to-expand mantém-se, mas com transição mais curta (180ms) e shadow lateral em camada metálica em vez de preto puro.
+- Modo recolhido mostra ícones + iniciais dos produtos recentes alinhados verticalmente, com tooltip nativo no hover.
+- Filtros (Todos / Favoritos / Categorias) **saem da sidebar** — eles já vivem na Home agora. A sidebar fica enxuta.
+- Busca da sidebar abre uma busca global modal (Ctrl+K / ⌘K) — overlay centralizado, mesmo motor de busca da Home (produtos, SKUs, keywords, concorrentes). Resultado clicável.
 
-Migration converts existing per-marketplace `MarketplaceData` into:
-- shared title/description → core
-- marketplace-specific titles/notes → overrides
-- existing customFields are merged into the global list and tagged with their origin marketplace
+**c) Visual premium JTD**
+- Fundo `--sidebar` mais escuro (já está), separadores de hairline metálica (1px com gradiente prata muito sutil).
+- Item ativo: barra vertical de 2px vermelha à esquerda + fundo `surface-elevated`.
+- Tipografia: labels em uppercase `[10px] tracking-[0.18em]` para seções, itens em 13px medium.
+- Status dot ao lado de cada produto recente (cor do `evaluateProduct` da Home — saudável/atenção/risco/incompleto).
 
-### 2. Workspace mode switcher
+## 3. Arquivos tocados
 
-One top bar inside `ProductWorkspace`:
-```
-[ Geral ] [ Mercado Livre ] [ Shopee ] [ Amazon ] [ TikTok ]
-```
-Switching is local state — no route change, no remount. The same sections render; only:
-- which custom fields are visible (filtered by tag)
-- live character-limit chips (60 ML, 120 Shopee, 200 Amazon, 100 TikTok)
-- which override fields appear (title override, hashtags, bullets)
-- subtle accent color per mode
+- `src/components/ConfirmProvider.tsx` — novo (provider + modal + hook)
+- `src/components/CommandPalette.tsx` — novo (busca global Ctrl+K)
+- `src/routes/index.tsx` — montar `ConfirmProvider` e `CommandPalette` dentro do `StoreProvider`
+- `src/components/AppSidebar.tsx` — reescrita estrutural conforme acima
+- `src/components/ProductWorkspace.tsx` — trocar `confirm()` por `useConfirm()` em 3 pontos + adicionar confirmação leve em remoção de keyword favorita
+- `src/components/CustomFieldsPanel.tsx` — trocar `confirm()` por `useConfirm()`
+- `src/components/ViralLibraryScreen.tsx` — trocar `confirm()` por `useConfirm()`
+- `src/lib/product-signal.ts` — pequena extração da função `evaluateProduct` (hoje em `HomeScreen`) para reuso na sidebar
 
-### 3. Field engine update (`CustomFieldsPanel`)
+## Fora de escopo nesta iteração
 
-- Single panel at end of page (no more per-marketplace duplicates).
-- Each field card gets a marketplace-tag selector (chips: ML / Shopee / Amazon / TikTok / Global).
-- Filter respects current mode: in "Mercado Livre" mode you only see Global + ML-tagged fields.
-- "Global" tag = visible in every mode; sets `marketplaces: []`.
-- Drag/drop, widths, focus mode, duplication remain.
-
-### 4. Central sections (rendered once, mode-aware)
-
-- **Identidade** — name, sku, brand, category (always core)
-- **Concorrentes / Keywords** — already shared, stays as-is
-- **Título & Descrição** — base fields with live counter that swaps limit per mode; "Override para [mode]" toggle reveals a marketplace-specific variant
-- **Pricing / Imagens / Vídeos** — unchanged, shared
-- **Campos personalizados** — single panel, filtered by mode tag
-
-### 5. Sync rules
-
-- Editing a core field updates that single value → all modes reflect it instantly (they read the same source).
-- Override toggle stores `marketplaceOverrides[mode].titleOverride` etc.; clearing it falls back to core.
-- No automatic content rewriting (per user's "not aggressive AI" rule).
-
-### 6. Files touched
-
-- `src/lib/types.ts` — new shape + migration of legacy `mercadoLivre/shopee/amazon/tiktok` blocks into core + overrides + tagged customFields
-- `src/components/ProductWorkspace.tsx` — remove per-marketplace tabs; add mode switcher; single set of sections; mode-aware limit chips and override toggles
-- `src/components/CustomFieldsPanel.tsx` — add marketplace tag selector on each field; filter by active mode
-- `src/lib/store.tsx` — only ensure `migrateProduct` covers the new shape (no API changes for callers)
-
-### 7. Migration safety
-
-`migrateProduct` is idempotent and handles three shapes:
-1. New shape (core + overrides) — pass through
-2. Current shape (per-marketplace blocks + customFields) — fold non-empty titles/descriptions into core (longest wins), tag existing customFields with their origin marketplace
-3. Legacy v1 (already covered)
-
-Nothing is deleted destructively; data lost only if user clears overrides explicitly.
-
-### Out of scope (later phases)
-
-- AI-driven cross-marketplace rewriting
-- Saveable marketplace profile templates
-- Per-mode visual theme beyond accent color
-
----
-
-Approve and I implement the rework end-to-end in one pass.
+- Kit Builder, Purchase Pricing Center, Media Center, Template Center (são features novas, ficam para iterações dedicadas).
+- Mudanças na workspace de produto além das 4 trocas de `confirm()` — fluxo operacional intocado.
