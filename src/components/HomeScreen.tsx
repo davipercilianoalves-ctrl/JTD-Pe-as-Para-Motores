@@ -29,14 +29,22 @@ export function HomeScreen() {
     <div className="flex-1 overflow-auto">
       <div className="mx-auto max-w-6xl px-10 py-14">
         {/* Header */}
-        <div className="mb-12">
-          <div className="text-sm text-muted-foreground mb-2">JTD Motors Hub</div>
-          <h1 className="text-4xl font-semibold tracking-tight">
-            Bem-vindo de volta.
-          </h1>
-          <p className="text-lg text-muted-foreground mt-2">
-            Seu centro de operações de ecommerce — produtos, análise, mídias e estratégia.
-          </p>
+        <div className="mb-14 flex items-end justify-between gap-8 border-b border-border/60 pb-10">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-4">
+              <span className="h-px w-8 bg-primary" />
+              JTD · Peças para motores
+            </div>
+            <h1 className="text-5xl font-semibold tracking-tight leading-[1.05]">
+              Centro de <span className="text-primary">operações</span>.
+            </h1>
+            <p className="text-base text-muted-foreground mt-3 max-w-xl">
+              Produtos, análise, mídia e precificação — em um único workspace contínuo.
+            </p>
+          </div>
+          <div className="hidden md:block shrink-0 h-24 w-24 rounded-xl overflow-hidden bg-black ring-1 ring-white/5 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.6)]">
+            <img src={logoUrl} alt="JTD" className="h-full w-full object-cover" />
+          </div>
         </div>
 
         {/* Continue working */}
