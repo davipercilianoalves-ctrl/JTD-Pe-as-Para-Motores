@@ -1178,11 +1178,6 @@ function PricingSection({ product }: { product: Product }) {
 
   const result = useMemo(() => computePricing(p), [p]);
 
-  return (
-    <section>
-      <SectionTitle hint="Cockpit estratégico — entenda exatamente para onde vai cada real e quanta margem você tem para jogar.">
-        Precificação
-      </SectionTitle>
 
   const priceAnalyses: { key: string; label: string; pa: PriceAnalysis }[] = useMemo(
     () => [
