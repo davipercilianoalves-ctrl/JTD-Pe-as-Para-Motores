@@ -752,7 +752,7 @@ function SubLabel({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================================================
-   3a. TITLES
+   3a. TITLES — focused card per title, with keyword highlight & suggestions
 ============================================================ */
 function TitlesSection({ product, market }: { product: Product; market: MK }) {
   const { updateProduct } = useStore();
@@ -782,105 +782,265 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
 
   return (
     <section>
-      <SectionTitle
-        hint={`Para ${MARKETS.find((m) => m.key === market)?.label}. Mantenha as palavras-chave em mente.`}
-        action={
-          <div className="flex flex-wrap gap-1.5">
-            {TITLE_VARIANTS.map((v) => (
-              <button
-                key={v}
-                onClick={() => add(v)}
-                className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-xs hover:bg-surface-elevated"
-              >
-                <Plus className="h-3 w-3" /> {v}
-              </button>
-            ))}
-          </div>
-        }
-      >
+      <SectionTitle hint={`Para ${MARKETS.find((m) => m.key === market)?.label}. Clique nas sugestões para inserir.`}>
         Títulos
       </SectionTitle>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         {data.titles.length === 0 && (
-          <div className="rounded-2xl bg-surface/60 py-10 text-center text-sm text-muted-foreground">
-            Crie sua primeira variação acima.
+          <div className="rounded-2xl bg-surface/60 py-12 text-center text-sm text-muted-foreground">
+            Crie sua primeira variação abaixo.
           </div>
         )}
-        {data.titles.map((t) => {
-          const over = t.text.length > 60;
-          return (
-            <div
-              key={t.id}
-              className="group flex items-center gap-4 rounded-xl bg-surface px-5 py-3.5 hover:bg-surface-elevated transition-colors"
+        {data.titles.map((t) => (
+          <TitleCard
+            key={t.id}
+            entry={t}
+            keywords={product.keywords}
+            onChange={(text) => upd(t.id, text)}
+            onDuplicate={() => duplicate(t)}
+            onRemove={() => rm(t.id)}
+          />
+        ))}
+
+        <div className="rounded-2xl bg-surface/40 border border-dashed border-border/60 px-5 py-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground mr-2">
+            + Nova variação
+          </span>
+          {TITLE_VARIANTS.map((v) => (
+            <button
+              key={v}
+              onClick={() => add(v)}
+              className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-xs hover:bg-surface-elevated"
             >
-              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/80 w-20">
-                {t.variant}
-              </span>
-              <input
-                value={t.text}
-                onChange={(e) => upd(t.id, e.target.value)}
-                placeholder="Digite o título..."
-                className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/40"
-              />
-              <span
-                className={cn(
-                  "tabular-nums text-xs shrink-0",
-                  over ? "text-warning" : "text-muted-foreground",
-                )}
-              >
-                {t.text.length}/60
-              </span>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => navigator.clipboard.writeText(t.text)}
-                  className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
-                  title="Copiar"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => duplicate(t)}
-                  className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
-                  title="Duplicar"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => rm(t.id)}
-                  className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"
-                  title="Excluir"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
+              <Plus className="h-3 w-3" /> {v}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
+function TitleCard({
+  entry,
+  keywords,
+  onChange,
+  onDuplicate,
+  onRemove,
+}: {
+  entry: TitleEntry;
+  keywords: Keyword[];
+  onChange: (text: string) => void;
+  onDuplicate: () => void;
+  onRemove: () => void;
+}) {
+  const lower = entry.text.toLowerCase();
+  const used = useMemo(
+    () => keywords.filter((k) => k.text && lower.includes(k.text)),
+    [keywords, lower],
+  );
+  const usedIds = new Set(used.map((k) => k.id));
+  const suggestions = useMemo(
+    () =>
+      [...keywords]
+        .filter((k) => !usedIds.has(k.id))
+        .sort((a, b) => {
+          if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
+          return b.uses - a.uses;
+        })
+        .slice(0, 8),
+    [keywords, entry.text],
+  );
+
+  const len = entry.text.length;
+  const tone =
+    len > 80 ? "text-destructive" : len > 60 ? "text-warning" : "text-muted-foreground";
+
+  const insert = (word: string) => {
+    const next = entry.text ? `${entry.text.trim()} ${word}` : word;
+    onChange(next);
+  };
+
+  return (
+    <div className="group rounded-2xl bg-surface px-6 py-5 transition-colors hover:bg-surface-elevated">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/90">
+          {entry.variant}
+        </span>
+        <span className={cn("ml-auto tabular-nums text-xs", tone)}>{len}/60</span>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => navigator.clipboard.writeText(entry.text)}
+            className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
+            title="Copiar"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onDuplicate}
+            className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
+            title="Duplicar"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onRemove}
+            className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"
+            title="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <input
+        value={entry.text}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Digite o título..."
+        className="w-full bg-transparent text-xl font-medium tracking-tight outline-none placeholder:text-muted-foreground/30"
+      />
+
+      {(used.length > 0 || suggestions.length > 0) && (
+        <div className="mt-4 space-y-2.5">
+          {used.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-[0.12em] text-success/80 mr-1">
+                Usadas
+              </span>
+              {used.map((k) => (
+                <span
+                  key={k.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-success/15 text-success px-2 py-0.5 text-[11px]"
+                >
+                  <Check className="h-3 w-3" /> {k.display}
+                </span>
+              ))}
+            </div>
+          )}
+          {suggestions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mr-1">
+                Sugestões
+              </span>
+              {suggestions.map((k) => (
+                <button
+                  key={k.id}
+                  onClick={() => insert(k.display)}
+                  className="inline-flex items-center gap-1 rounded-full bg-background/70 hover:bg-primary/15 hover:text-primary px-2 py-0.5 text-[11px] transition-colors"
+                >
+                  <Plus className="h-3 w-3" /> {k.display}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ============================================================
-   3b. DESCRIPTION — large, Notion-like
+   3b. DESCRIPTION — short summary + full (auto-composed)
 ============================================================ */
 function DescriptionSection({ product, market }: { product: Product; market: MK }) {
   const { updateProduct } = useStore();
   const data = product[market];
+  const [copied, setCopied] = useState<"short" | "full" | null>(null);
 
   const set = <K extends keyof MarketplaceData>(key: K, value: MarketplaceData[K]) =>
     updateProduct(product.id, (p) => ({ ...p, [market]: { ...p[market], [key]: value } }));
 
+  const composed = useMemo(() => {
+    const s = (data.shortDescription || "").trim();
+    const d = (data.description || "").trim();
+    if (s && d) return `${s}\n\n${d}`;
+    return s || d;
+  }, [data.shortDescription, data.description]);
+
+  const insertKeywords = (only: "all" | "fav") => {
+    const list =
+      only === "fav" ? product.keywords.filter((k) => k.favorite) : product.keywords;
+    if (!list.length) return;
+    const words = list.map((k) => k.display).join(", ");
+    const base = (data.shortDescription || "").trim();
+    set("shortDescription", base ? `${base} ${words}` : words);
+  };
+
+  const copy = (text: string, kind: "short" | "full") => {
+    navigator.clipboard.writeText(text);
+    setCopied(kind);
+    setTimeout(() => setCopied(null), 1500);
+  };
+
   return (
     <section>
-      <SectionTitle hint={`Espaço amplo. Pense como um documento.`}>Descrição</SectionTitle>
+      <SectionTitle hint="Resumo com palavras-chave + descrição completa. A cópia final inclui as duas partes.">
+        Descrição
+      </SectionTitle>
 
+      {/* SHORT */}
       <div className="rounded-2xl bg-surface px-7 py-6">
+        <div className="flex items-center gap-3 mb-3">
+          <SubLabel>Descrição breve (resumo + palavras-chave)</SubLabel>
+          <button
+            onClick={() => copy((data.shortDescription || "").trim(), "short")}
+            disabled={!data.shortDescription}
+            className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
+          >
+            {copied === "short" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied === "short" ? "Copiado" : "Copiar resumo"}
+          </button>
+        </div>
+        <AutoTextArea
+          value={data.shortDescription}
+          onChange={(e) => set("shortDescription", e.target.value)}
+          placeholder="Frase ou duas que resumem o produto incluindo as palavras-chave principais..."
+          className="text-base leading-relaxed"
+          minRows={3}
+        />
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <Btn variant="soft" size="sm" onClick={() => insertKeywords("all")} disabled={!product.keywords.length}>
+            <Plus className="h-3.5 w-3.5" /> Inserir todas as palavras-chave
+          </Btn>
+          <Btn
+            variant="ghost"
+            size="sm"
+            onClick={() => insertKeywords("fav")}
+            disabled={!product.keywords.some((k) => k.favorite)}
+          >
+            <Star className="h-3.5 w-3.5" /> Inserir favoritas
+          </Btn>
+        </div>
+      </div>
+
+      {/* FULL */}
+      <div className="mt-5 rounded-2xl bg-surface px-7 py-6">
+        <div className="flex items-center gap-3 mb-3">
+          <SubLabel>Descrição completa</SubLabel>
+          <button
+            onClick={() => copy(composed, "full")}
+            disabled={!composed}
+            className="ml-auto inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-30"
+          >
+            {copied === "full" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied === "full" ? "Copiado" : "Copiar tudo (resumo + descrição)"}
+          </button>
+        </div>
+
+        {data.shortDescription && (
+          <div className="mb-4 rounded-lg bg-background/40 border-l-2 border-primary/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+            {data.shortDescription}
+            <div className="mt-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/60">
+              — Resumo acima · continue abaixo —
+            </div>
+          </div>
+        )}
+
         <AutoTextArea
           value={data.description}
           onChange={(e) => set("description", e.target.value)}
-          placeholder="Escreva a descrição do anúncio..."
+          placeholder="Escreva o restante da descrição..."
           className="text-base leading-loose"
           minRows={8}
         />
@@ -929,6 +1089,7 @@ function SoftBlock({ label, children }: { label: string; children: React.ReactNo
     </div>
   );
 }
+
 
 /* ============================================================
    4. PRICING — strategic simulator
