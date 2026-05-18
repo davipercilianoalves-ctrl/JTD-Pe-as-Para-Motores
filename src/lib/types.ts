@@ -36,7 +36,40 @@ export interface MarketplaceData {
   media: string;
   strategies: string;
   extras: Record<string, string>;
+  /** Optional user-defined fields scoped to this marketplace. */
+  customFields?: CustomField[];
 }
+
+// ─── Custom Field Engine ──────────────────────────────────────────────────
+export type CustomFieldKind =
+  | "short"      // single line
+  | "long"      // multi-line auto-expand
+  | "rich"       // multi-line w/ markdown-ish (plain text for now, larger)
+  | "number"
+  | "currency"
+  | "percent"
+  | "tags"       // chips
+  | "url"
+  | "checkbox"
+  | "select"
+  | "bullets"    // one-per-line bullet list
+  | "spec"       // key:value pairs
+  | "notes";     // sticky-style note
+
+export type CustomFieldWidth = 25 | 50 | 75 | 100;
+
+export interface CustomField {
+  id: string;
+  kind: CustomFieldKind;
+  label: string;
+  placeholder?: string;
+  width: CustomFieldWidth;
+  required?: boolean;
+  options?: string[];           // for select
+  value: unknown;                // string | number | boolean | string[] | {k,v}[]
+  note?: string;
+}
+
 
 export type CostKind = "currency" | "percent";
 export type PercentBase = "final" | "cost";
@@ -128,6 +161,9 @@ export interface Product {
   pricing: PricingData;
   images: ProductImage[];
   videos: ProductVideo[];
+
+  /** User-defined fields global to the product (independent of marketplace). */
+  customFields: CustomField[];
 }
 
 export const emptyMarketplace = (): MarketplaceData => ({
@@ -139,7 +175,9 @@ export const emptyMarketplace = (): MarketplaceData => ({
   media: "",
   strategies: "",
   extras: {},
+  customFields: [],
 });
+
 
 const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -188,6 +226,8 @@ export const newProduct = (name = "Novo produto"): Product => ({
   pricing: emptyPricing(),
   images: [],
   videos: [],
+  customFields: [],
+
 });
 
 /** Canonicalize a raw token to its lowercase trimmed form. */
@@ -256,14 +296,19 @@ export function migratePricing(raw: any): PricingData {
 /** Migrate any legacy Product shape to the current one. Safe to call on existing products. */
 export function migrateProduct(raw: any): Product {
   const base = newProduct(raw?.name ?? "Sem nome");
+  const ensureMK = (mk: any): MarketplaceData => ({
+    ...base.mercadoLivre,
+    ...(mk ?? {}),
+    customFields: Array.isArray(mk?.customFields) ? mk.customFields : [],
+  });
   const p: Product = {
     ...base,
     ...raw,
     pricing: migratePricing(raw?.pricing),
-    mercadoLivre: { ...base.mercadoLivre, ...(raw?.mercadoLivre ?? {}) },
-    shopee: { ...base.shopee, ...(raw?.shopee ?? {}) },
-    amazon: { ...base.amazon, ...(raw?.amazon ?? {}) },
-    tiktok: { ...base.tiktok, ...(raw?.tiktok ?? {}) },
+    mercadoLivre: ensureMK(raw?.mercadoLivre),
+    shopee: ensureMK(raw?.shopee),
+    amazon: ensureMK(raw?.amazon),
+    tiktok: ensureMK(raw?.tiktok),
     images: (raw?.images ?? []).map((i: any) => ({ ...i, isMain: i.isMain ?? false })),
     videos: (raw?.videos ?? []).map((v: any) => ({
       speech: "",
@@ -279,7 +324,9 @@ export function migrateProduct(raw: any): Product {
           : [],
     })),
     keywords: Array.isArray(raw?.keywords) ? raw.keywords : [],
+    customFields: Array.isArray(raw?.customFields) ? raw.customFields : [],
   };
+
   // legacy keywordsText → keywords[]
   if ((!p.keywords || p.keywords.length === 0) && typeof raw?.keywordsText === "string") {
     const tokens = parseKeywordTokens(raw.keywordsText);
