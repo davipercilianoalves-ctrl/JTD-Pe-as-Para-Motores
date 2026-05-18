@@ -26,7 +26,18 @@ import {
   type CompetitorBlock,
   type MarketplaceData,
   type ProductVideo,
+  type CostItem,
+  type CostGroup,
+  type CostKind,
 } from "@/lib/types";
+import {
+  computePricing,
+  simulateScenario,
+  brl,
+  GROUP_LABELS,
+  GROUP_ORDER,
+  type Alert as PricingAlert,
+} from "@/lib/pricing";
 import {
   AutoTextArea,
   Btn,
