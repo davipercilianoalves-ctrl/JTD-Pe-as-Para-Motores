@@ -33,10 +33,13 @@ import {
 import {
   computePricing,
   simulateScenario,
+  analyzePrice,
   brl,
   GROUP_LABELS,
   GROUP_ORDER,
   type Alert as PricingAlert,
+  type PriceAnalysis,
+  type PriceStatus,
 } from "@/lib/pricing";
 import {
   AutoTextArea,
