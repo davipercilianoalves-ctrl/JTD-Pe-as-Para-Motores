@@ -29,6 +29,7 @@ export interface TitleEntry {
 
 export interface MarketplaceData {
   titles: TitleEntry[];
+  shortDescription: string;
   description: string;
   seo: string;
   notes: string;
