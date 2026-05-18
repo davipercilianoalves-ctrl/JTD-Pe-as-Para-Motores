@@ -1374,11 +1374,35 @@ function PricingSection({ product }: { product: Product }) {
           })}
         </div>
 
-        {/* 4 CARDS DE ANÁLISE */}
-        <div className="grid sm:grid-cols-2 gap-3">
-          {priceAnalyses.map(({ key, label, pa }) => (
-            <PriceAnalysisCard key={key} label={label} pa={pa} />
-          ))}
+        {/* PREÇOS RECOMENDADOS — hierarquia: ideal em destaque + 3 alternativas */}
+        <div className="rounded-2xl bg-surface p-5 space-y-4">
+          <div className="flex items-baseline justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Preços recomendados
+              </div>
+              <div className="text-sm text-muted-foreground mt-0.5">
+                Compare quatro estratégias antes de decidir. O destaque é o seu alvo; os demais mostram seus limites.
+              </div>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-[1.25fr_minmax(0,1fr)] gap-4">
+            {(() => {
+              const ideal = priceAnalyses.find((x) => x.key === "ideal")!;
+              const others = priceAnalyses.filter((x) => x.key !== "ideal");
+              return (
+                <>
+                  <PriceAnalysisCard label={ideal.label} pa={ideal.pa} featured />
+                  <div className="grid gap-2.5">
+                    {others.map(({ key, label, pa }) => (
+                      <PriceAnalysisCard key={key} label={label} pa={pa} compact />
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
       </div>
 
