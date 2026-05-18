@@ -631,6 +631,12 @@ function CompetitorKeywords({
   onCommit: (words: string[]) => void;
 }) {
   const [draft, setDraft] = useState("");
+  const [flash, setFlash] = useState(false);
+
+  const flashOk = () => {
+    setFlash(true);
+    setTimeout(() => setFlash(false), 700);
+  };
 
   const commitTokens = (raw: string) => {
     const toks = parseSingleWords(raw);
@@ -640,21 +646,22 @@ function CompetitorKeywords({
     const added: string[] = [];
     for (const t of toks) {
       const key = canonKeyword(t);
-      if (existing.has(key)) {
-        added.push(t); // still count usage globally
-        continue;
+      if (!key) continue;
+      if (!existing.has(key)) {
+        existing.add(key);
+        fresh.push(t);
       }
-      existing.add(key);
-      fresh.push(t);
       added.push(t);
     }
     if (fresh.length) onChange([...block.keywordsFound, ...fresh]);
-    if (added.length) onCommit(added);
+    if (added.length) {
+      onCommit(added);
+      flashOk();
+    }
   };
 
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === " " || e.key === ",") {
-      // for Enter/comma: split everything; for Space: split when at least 2 chars typed
       if (e.key === " " && draft.trim().length === 0) return;
       e.preventDefault();
       commitTokens(draft);
@@ -666,15 +673,41 @@ function CompetitorKeywords({
     onChange(block.keywordsFound.filter((_, i) => i !== idx));
   };
 
+  const resendAll = () => {
+    if (!block.keywordsFound.length) return;
+    onCommit(block.keywordsFound);
+    flashOk();
+  };
+
   return (
     <div>
       <SubLabel>
-        Palavras-chave encontradas
-        <span className="ml-2 normal-case tracking-normal text-muted-foreground/70 text-[11px]">
-          Espaço ou Enter para adicionar — entram na lista principal automaticamente
+        <span className="inline-flex items-center gap-2">
+          Palavras-chave encontradas
+          <span className="normal-case tracking-normal text-muted-foreground/70 text-[11px]">
+            Espaço, vírgula ou Enter — entram na lista principal automaticamente
+          </span>
+          {flash && (
+            <span className="normal-case tracking-normal text-success text-[11px] inline-flex items-center gap-1">
+              <Check className="h-3 w-3" /> enviado
+            </span>
+          )}
+          <button
+            onClick={resendAll}
+            disabled={!block.keywordsFound.length}
+            className="ml-auto normal-case tracking-normal text-[11px] text-primary hover:underline disabled:opacity-30"
+            title="Reenviar todas para a lista principal"
+          >
+            Enviar todas →
+          </button>
         </span>
       </SubLabel>
-      <div className="rounded-lg bg-input/40 px-3 py-2.5 flex flex-wrap items-center gap-1.5 focus-within:bg-input/70 transition-colors">
+      <div
+        className={cn(
+          "rounded-lg bg-input/40 px-3 py-2.5 flex flex-wrap items-center gap-1.5 transition-colors",
+          flash ? "ring-2 ring-success/50 bg-success/5" : "focus-within:bg-input/70",
+        )}
+      >
         {block.keywordsFound.map((w, i) => (
           <span
             key={i}
@@ -707,6 +740,8 @@ function CompetitorKeywords({
     </div>
   );
 }
+
+
 
 function SubLabel({ children }: { children: React.ReactNode }) {
   return (
