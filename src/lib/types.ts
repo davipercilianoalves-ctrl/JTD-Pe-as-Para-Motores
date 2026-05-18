@@ -1,5 +1,14 @@
 export type TitleVariant = "SEO Forte" | "Conversão" | "Mobile" | "Curto" | "Completo";
 
+export type MarketplaceId = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
+
+export const MARKETPLACE_LABELS: Record<MarketplaceId, string> = {
+  mercadoLivre: "Mercado Livre",
+  shopee: "Shopee",
+  amazon: "Amazon",
+  tiktok: "TikTok",
+};
+
 export interface Keyword {
   id: string;
   text: string; // canonical lowercased
@@ -68,6 +77,8 @@ export interface CustomField {
   options?: string[];           // for select
   value: unknown;                // string | number | boolean | string[] | {k,v}[]
   note?: string;
+  /** Which marketplaces this field applies to. Empty / undefined = global (visible in every mode). */
+  marketplaces?: MarketplaceId[];
 }
 
 
@@ -326,6 +337,23 @@ export function migrateProduct(raw: any): Product {
     keywords: Array.isArray(raw?.keywords) ? raw.keywords : [],
     customFields: Array.isArray(raw?.customFields) ? raw.customFields : [],
   };
+
+  // Fold legacy per-marketplace customFields into the central product.customFields,
+  // tagging each with the marketplace it came from. Idempotent: only runs when the
+  // marketplace block still carries a non-empty customFields array.
+  const mkKeys: MarketplaceId[] = ["mercadoLivre", "shopee", "amazon", "tiktok"];
+  for (const mk of mkKeys) {
+    const block = p[mk] as MarketplaceData;
+    const legacy = block?.customFields;
+    if (Array.isArray(legacy) && legacy.length) {
+      const tagged: CustomField[] = legacy.map((f) => ({
+        ...f,
+        marketplaces: Array.from(new Set([...(f.marketplaces ?? []), mk])),
+      }));
+      p.customFields = [...p.customFields, ...tagged];
+      p[mk] = { ...block, customFields: [] };
+    }
+  }
 
   // legacy keywordsText → keywords[]
   if ((!p.keywords || p.keywords.length === 0) && typeof raw?.keywordsText === "string") {
