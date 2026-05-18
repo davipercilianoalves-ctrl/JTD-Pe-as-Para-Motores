@@ -338,6 +338,23 @@ export function migrateProduct(raw: any): Product {
     customFields: Array.isArray(raw?.customFields) ? raw.customFields : [],
   };
 
+  // Fold legacy per-marketplace customFields into the central product.customFields,
+  // tagging each with the marketplace it came from. Idempotent: only runs when the
+  // marketplace block still carries a non-empty customFields array.
+  const mkKeys: MarketplaceId[] = ["mercadoLivre", "shopee", "amazon", "tiktok"];
+  for (const mk of mkKeys) {
+    const block = p[mk] as MarketplaceData;
+    const legacy = block?.customFields;
+    if (Array.isArray(legacy) && legacy.length) {
+      const tagged: CustomField[] = legacy.map((f) => ({
+        ...f,
+        marketplaces: Array.from(new Set([...(f.marketplaces ?? []), mk])),
+      }));
+      p.customFields = [...p.customFields, ...tagged];
+      p[mk] = { ...block, customFields: [] };
+    }
+  }
+
   // legacy keywordsText → keywords[]
   if ((!p.keywords || p.keywords.length === 0) && typeof raw?.keywordsText === "string") {
     const tokens = parseKeywordTokens(raw.keywordsText);
