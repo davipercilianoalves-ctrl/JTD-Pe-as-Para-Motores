@@ -208,6 +208,51 @@ export const parseSingleWords = (raw: string): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+export function migratePricing(raw: any): PricingData {
+  const base = emptyPricing();
+  if (!raw || typeof raw !== "object") return base;
+  // Already new shape
+  if (Array.isArray(raw.items)) {
+    return {
+      ...base,
+      ...raw,
+      items: raw.items,
+      scenarios: Array.isArray(raw.scenarios) && raw.scenarios.length ? raw.scenarios : base.scenarios,
+    };
+  }
+  // Legacy → items[]
+  const items: CostItem[] = [];
+  const push = (
+    label: string,
+    value: any,
+    kind: CostKind,
+    group: CostGroup,
+    base?: PercentBase,
+  ) => {
+    const n = Number(value) || 0;
+    if (n === 0 && !["Custo do produto"].includes(label)) {
+      // Still keep zero items so user sees the field — but only the standard ones
+    }
+    items.push({ id: uid(), label, kind, value: n, group, ...(kind === "percent" ? { base } : {}) });
+  };
+  push("Custo do produto", raw.cost, "currency", "produto");
+  push("Frete", raw.shipping, "currency", "logistica");
+  push("Embalagem", raw.packaging, "currency", "logistica");
+  push("Transporte", raw.transportation, "currency", "logistica");
+  push("Anúncios", raw.ads, "currency", "marketing");
+  push("Imposto", raw.taxes, "percent", "taxas", "final");
+  push("Taxa do marketplace", raw.marketplaceFee, "percent", "taxas", "final");
+  push("Comissão", raw.commission, "percent", "taxas", "final");
+  return {
+    ...base,
+    items,
+    desiredProfit: Number(raw.markup) || base.desiredProfit,
+    desiredProfitKind: "percent",
+    visibleDiscount: Number(raw.discount) || 0,
+    maxDiscount: Number(raw.maxDiscount) || base.maxDiscount,
+  };
+}
+
 /** Migrate any legacy Product shape to the current one. Safe to call on existing products. */
 export function migrateProduct(raw: any): Product {
   const base = newProduct(raw?.name ?? "Sem nome");
