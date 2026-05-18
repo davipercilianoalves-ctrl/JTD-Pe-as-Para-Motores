@@ -161,6 +161,9 @@ export interface Product {
   pricing: PricingData;
   images: ProductImage[];
   videos: ProductVideo[];
+
+  /** User-defined fields global to the product (independent of marketplace). */
+  customFields: CustomField[];
 }
 
 export const emptyMarketplace = (): MarketplaceData => ({
@@ -172,7 +175,9 @@ export const emptyMarketplace = (): MarketplaceData => ({
   media: "",
   strategies: "",
   extras: {},
+  customFields: [],
 });
+
 
 const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
