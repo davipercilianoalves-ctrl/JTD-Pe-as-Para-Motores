@@ -155,15 +155,17 @@ export function AppSidebar() {
             )}
             title="JTD Motors Hub"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-base">
-              J
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black ring-1 ring-white/5">
+              <img src={logoUrl} alt="JTD" className="h-full w-full object-cover" />
             </div>
             {expanded && (
               <div className="leading-tight text-left min-w-0">
-                <div className="text-sm font-semibold truncate">
-                  JTD Motors Hub
+                <div className="text-[13px] font-semibold tracking-[0.14em] uppercase truncate">
+                  JTD<span className="text-primary"> · </span>Motors
                 </div>
-                <div className="text-xs text-muted-foreground">Workspace</div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Peças para motores
+                </div>
               </div>
             )}
           </button>
