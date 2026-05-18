@@ -1,26 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { StoreProvider } from "@/lib/store";
+import { AppSidebar } from "@/components/AppSidebar";
+import { ProductWorkspace } from "@/components/ProductWorkspace";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "JTD Motors Hub — Workspace de produtos" },
+      {
+        name: "description",
+        content:
+          "Sistema completo de criação e gestão de produtos para marketplaces de autopeças e motores.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
-
 function Index() {
-  return <PlaceholderIndex />;
+  return (
+    <StoreProvider>
+      <div className="dark flex h-screen w-full overflow-hidden bg-background text-foreground">
+        <AppSidebar />
+        <ProductWorkspace />
+      </div>
+    </StoreProvider>
+  );
 }
