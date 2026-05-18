@@ -389,7 +389,60 @@ function FieldCard({
         )}
       </div>
 
+      <MarketplaceTagRow
+        value={field.marketplaces ?? []}
+        onChange={(next) => onChange({ marketplaces: next })}
+      />
+
       <FieldEditor field={field} onChange={onChange} />
+    </div>
+  );
+}
+
+function MarketplaceTagRow({
+  value,
+  onChange,
+}: {
+  value: MarketplaceId[];
+  onChange: (next: MarketplaceId[]) => void;
+}) {
+  const isGlobal = value.length === 0;
+  const toggle = (mk: MarketplaceId) => {
+    if (value.includes(mk)) onChange(value.filter((m) => m !== mk));
+    else onChange([...value, mk]);
+  };
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-1">
+      <button
+        onClick={() => onChange([])}
+        className={cn(
+          "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors",
+          isGlobal
+            ? "bg-primary/15 text-primary"
+            : "border border-border text-muted-foreground hover:text-foreground",
+        )}
+        title="Visível em todos os marketplaces"
+      >
+        Global
+      </button>
+      {MK_KEYS.map((mk) => {
+        const active = value.includes(mk);
+        return (
+          <button
+            key={mk}
+            onClick={() => toggle(mk)}
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors",
+              active
+                ? "bg-foreground text-background"
+                : "border border-border text-muted-foreground hover:text-foreground",
+            )}
+            title={MARKETPLACE_LABELS[mk]}
+          >
+            {MK_SHORT[mk]}
+          </button>
+        );
+      })}
     </div>
   );
 }
