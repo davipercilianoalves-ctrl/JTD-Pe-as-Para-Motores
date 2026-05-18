@@ -38,18 +38,28 @@ export interface MarketplaceData {
   extras: Record<string, string>;
 }
 
+export type CostKind = "currency" | "percent";
+export type PercentBase = "final" | "cost";
+export type CostGroup = "produto" | "logistica" | "marketing" | "taxas" | "outros";
+
+export interface CostItem {
+  id: string;
+  label: string;
+  kind: CostKind;
+  value: number;
+  base?: PercentBase;
+  group: CostGroup;
+  note?: string;
+}
+
 export interface PricingData {
-  cost: number;
-  shipping: number;
-  packaging: number;
-  transportation: number;
-  ads: number;
-  taxes: number;
-  marketplaceFee: number;
-  commission: number;
-  markup: number;
-  discount: number;
+  items: CostItem[];
+  desiredProfit: number;
+  desiredProfitKind: CostKind;
+  visibleDiscount: number;
   maxDiscount: number;
+  compensateDiscount: boolean;
+  scenarios: number[];
 }
 
 export interface ProductImage {
@@ -131,18 +141,30 @@ export const emptyMarketplace = (): MarketplaceData => ({
   extras: {},
 });
 
+const uid = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+
+export const defaultCostItems = (): CostItem[] => [
+  { id: uid(), label: "Custo do produto", kind: "currency", value: 0, group: "produto" },
+  { id: uid(), label: "Frete", kind: "currency", value: 0, group: "logistica" },
+  { id: uid(), label: "Embalagem", kind: "currency", value: 0, group: "logistica" },
+  { id: uid(), label: "Transporte", kind: "currency", value: 0, group: "logistica" },
+  { id: uid(), label: "Anúncios", kind: "currency", value: 0, group: "marketing" },
+  { id: uid(), label: "Imposto", kind: "percent", value: 0, base: "final", group: "taxas" },
+  { id: uid(), label: "Taxa do marketplace", kind: "percent", value: 0, base: "final", group: "taxas" },
+  { id: uid(), label: "Comissão", kind: "percent", value: 0, base: "final", group: "taxas" },
+];
+
 export const emptyPricing = (): PricingData => ({
-  cost: 0,
-  shipping: 0,
-  packaging: 0,
-  transportation: 0,
-  ads: 0,
-  taxes: 0,
-  marketplaceFee: 0,
-  commission: 0,
-  markup: 50,
-  discount: 0,
+  items: defaultCostItems(),
+  desiredProfit: 30,
+  desiredProfitKind: "percent",
+  visibleDiscount: 0,
   maxDiscount: 15,
+  compensateDiscount: true,
+  scenarios: [10, 15, 20, 25],
 });
 
 export const newProduct = (name = "Novo produto"): Product => ({
@@ -186,13 +208,58 @@ export const parseSingleWords = (raw: string): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+export function migratePricing(raw: any): PricingData {
+  const base = emptyPricing();
+  if (!raw || typeof raw !== "object") return base;
+  // Already new shape
+  if (Array.isArray(raw.items)) {
+    return {
+      ...base,
+      ...raw,
+      items: raw.items,
+      scenarios: Array.isArray(raw.scenarios) && raw.scenarios.length ? raw.scenarios : base.scenarios,
+    };
+  }
+  // Legacy → items[]
+  const items: CostItem[] = [];
+  const push = (
+    label: string,
+    value: any,
+    kind: CostKind,
+    group: CostGroup,
+    base?: PercentBase,
+  ) => {
+    const n = Number(value) || 0;
+    if (n === 0 && !["Custo do produto"].includes(label)) {
+      // Still keep zero items so user sees the field — but only the standard ones
+    }
+    items.push({ id: uid(), label, kind, value: n, group, ...(kind === "percent" ? { base } : {}) });
+  };
+  push("Custo do produto", raw.cost, "currency", "produto");
+  push("Frete", raw.shipping, "currency", "logistica");
+  push("Embalagem", raw.packaging, "currency", "logistica");
+  push("Transporte", raw.transportation, "currency", "logistica");
+  push("Anúncios", raw.ads, "currency", "marketing");
+  push("Imposto", raw.taxes, "percent", "taxas", "final");
+  push("Taxa do marketplace", raw.marketplaceFee, "percent", "taxas", "final");
+  push("Comissão", raw.commission, "percent", "taxas", "final");
+  return {
+    ...base,
+    items,
+    desiredProfit: Number(raw.markup) || base.desiredProfit,
+    desiredProfitKind: "percent",
+    visibleDiscount: Number(raw.discount) || 0,
+    maxDiscount: Number(raw.maxDiscount) || base.maxDiscount,
+  };
+}
+
 /** Migrate any legacy Product shape to the current one. Safe to call on existing products. */
 export function migrateProduct(raw: any): Product {
   const base = newProduct(raw?.name ?? "Sem nome");
   const p: Product = {
     ...base,
     ...raw,
-    pricing: { ...base.pricing, ...(raw?.pricing ?? {}) },
+    pricing: migratePricing(raw?.pricing),
     mercadoLivre: { ...base.mercadoLivre, ...(raw?.mercadoLivre ?? {}) },
     shopee: { ...base.shopee, ...(raw?.shopee ?? {}) },
     amazon: { ...base.amazon, ...(raw?.amazon ?? {}) },

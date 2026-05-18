@@ -26,7 +26,18 @@ import {
   type CompetitorBlock,
   type MarketplaceData,
   type ProductVideo,
+  type CostItem,
+  type CostGroup,
+  type CostKind,
 } from "@/lib/types";
+import {
+  computePricing,
+  simulateScenario,
+  brl,
+  GROUP_LABELS,
+  GROUP_ORDER,
+  type Alert as PricingAlert,
+} from "@/lib/pricing";
 import {
   AutoTextArea,
   Btn,
@@ -1129,244 +1140,492 @@ function SoftBlock({ label, children }: { label: string; children: React.ReactNo
 
 
 /* ============================================================
-   4. PRICING — strategic simulator
+   4. PRICING — strategic cockpit
 ============================================================ */
-function brl(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-function psych(v: number) {
-  if (v <= 0) return 0;
-  const base = Math.floor(v);
-  return base + (v < 100 ? 0.9 : 0.99);
-}
+
 
 function PricingSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
   const p = product.pricing;
-  const set = (key: keyof PricingData, value: number) =>
-    updateProduct(product.id, (prod) => ({
-      ...prod,
-      pricing: { ...prod.pricing, [key]: value },
+
+  const patch = (patchFn: (prev: typeof p) => typeof p) =>
+    updateProduct(product.id, (prod) => ({ ...prod, pricing: patchFn(prod.pricing) }));
+
+  const setItem = (id: string, change: Partial<CostItem>) =>
+    patch((prev) => ({
+      ...prev,
+      items: prev.items.map((it) => (it.id === id ? { ...it, ...change } : it)),
+    }));
+  const removeItem = (id: string) =>
+    patch((prev) => ({ ...prev, items: prev.items.filter((it) => it.id !== id) }));
+  const addItem = (group: CostGroup) =>
+    patch((prev) => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        {
+          id: crypto.randomUUID(),
+          label: "Novo custo",
+          kind: "currency",
+          value: 0,
+          group,
+        },
+      ],
     }));
 
-  const c = useMemo(() => {
-    const baseCost =
-      p.cost + p.shipping + p.packaging + p.transportation + p.ads;
-    const feesPct = p.marketplaceFee + p.commission + p.taxes;
-    const finalPrice = baseCost * (1 + p.markup / 100);
-    const discounted = finalPrice * (1 - p.discount / 100);
-    const aggressive = finalPrice * (1 - p.maxDiscount / 100);
-    const feesValue = discounted * (feesPct / 100);
-    const taxValue = discounted * (p.taxes / 100);
-    const mpFeeValue = discounted * (p.marketplaceFee / 100);
-    const commissionValue = discounted * (p.commission / 100);
-    const net = discounted - baseCost - feesValue;
-    const marginPct = discounted > 0 ? (net / discounted) * 100 : 0;
-    const minPrice = baseCost / Math.max(1 - feesPct / 100, 0.01);
-    return {
-      baseCost,
-      feesPct,
-      feesValue,
-      taxValue,
-      mpFeeValue,
-      commissionValue,
-      finalPrice,
-      discounted,
-      aggressive,
-      net,
-      marginPct,
-      minPrice,
-      psychPrice: psych(finalPrice),
-    };
-  }, [p]);
-
-  // proportions for the visibility panel
-  const totalSpend = c.baseCost + c.feesValue;
-  const pctOf = (v: number) => (c.discounted > 0 ? (v / c.discounted) * 100 : 0);
+  const result = useMemo(() => computePricing(p), [p]);
 
   return (
     <section>
-      <SectionTitle hint="Simulador estratégico. Veja exatamente para onde vai cada real.">
+      <SectionTitle hint="Cockpit estratégico — entenda exatamente para onde vai cada real e quanta margem você tem para jogar.">
         Precificação
       </SectionTitle>
 
-      <div className="rounded-2xl bg-surface p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-          <PriceInput label="Custo do produto" value={p.cost} onChange={(v) => set("cost", v)} prefix="R$" />
-          <PriceInput label="Frete" value={p.shipping} onChange={(v) => set("shipping", v)} prefix="R$" />
-          <PriceInput label="Embalagem" value={p.packaging} onChange={(v) => set("packaging", v)} prefix="R$" />
-          <PriceInput
-            label="Transporte"
-            value={p.transportation}
-            onChange={(v) => set("transportation", v)}
-            prefix="R$"
-          />
-          <PriceInput label="Ads" value={p.ads} onChange={(v) => set("ads", v)} prefix="R$" />
-          <PriceInput label="Imposto" value={p.taxes} onChange={(v) => set("taxes", v)} suffix="%" />
-          <PriceInput label="Taxa marketplace" value={p.marketplaceFee} onChange={(v) => set("marketplaceFee", v)} suffix="%" />
-          <PriceInput label="Comissão" value={p.commission} onChange={(v) => set("commission", v)} suffix="%" />
+      <div className="grid lg:grid-cols-[300px_minmax(0,1fr)_320px] gap-5 items-start">
+        {/* LEFT — costs editor */}
+        <div className="rounded-2xl bg-surface p-5 space-y-5">
+          <div className="rounded-xl bg-primary/10 border border-primary/20 p-4">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/80 mb-2">
+              Quanto de lucro você quer ter?
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.1"
+                value={p.desiredProfit || ""}
+                onChange={(e) =>
+                  patch((prev) => ({ ...prev, desiredProfit: +e.target.value || 0 }))
+                }
+                className="w-full bg-transparent outline-none text-3xl font-semibold tabular-nums tracking-tight"
+                placeholder="0"
+              />
+              <KindToggle
+                kind={p.desiredProfitKind}
+                onChange={(k) =>
+                  patch((prev) => ({ ...prev, desiredProfitKind: k }))
+                }
+              />
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-1">
+              {p.desiredProfitKind === "percent"
+                ? "% sobre cada venda."
+                : "valor fixo por venda."}
+            </div>
+          </div>
+
+          {GROUP_ORDER.map((group) => {
+            const items = p.items.filter((it) => it.group === group);
+            return (
+              <div key={group}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    {GROUP_LABELS[group]}
+                  </div>
+                  <button
+                    onClick={() => addItem(group as CostGroup)}
+                    className="text-[11px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> adicionar
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {items.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground/60 italic px-2 py-1">
+                      vazio
+                    </div>
+                  )}
+                  {items.map((it) => (
+                    <CostRow
+                      key={it.id}
+                      item={it}
+                      onChange={(c) => setItem(it.id, c)}
+                      onRemove={() => removeItem(it.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-4 border-t border-border pt-5">
-          <PriceInput label="Markup" value={p.markup} onChange={(v) => set("markup", v)} suffix="%" />
-          <PriceInput label="Desconto promo" value={p.discount} onChange={(v) => set("discount", v)} suffix="%" />
-          <PriceInput label="Desconto máx" value={p.maxDiscount} onChange={(v) => set("maxDiscount", v)} suffix="%" />
-        </div>
-      </div>
+        {/* CENTER — massive result */}
+        <div className="space-y-5">
+          <div className="rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 p-8">
+            <div className="flex items-baseline justify-between gap-6 flex-wrap">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
+                  Preço final cobrado
+                </div>
+                <div className="text-6xl font-semibold tabular-nums tracking-tight leading-none">
+                  {brl(result.finalPrice)}
+                </div>
+                {p.visibleDiscount > 0 && p.compensateDiscount && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    De{" "}
+                    <span className="line-through tabular-nums">
+                      {brl(result.displayedPrice)}
+                    </span>{" "}
+                    por{" "}
+                    <span className="text-foreground font-medium tabular-nums">
+                      {brl(result.finalPrice)}
+                    </span>{" "}
+                    ({p.visibleDiscount}% OFF — lucro preservado)
+                  </div>
+                )}
+                {p.visibleDiscount > 0 && !p.compensateDiscount && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Desconto sai do seu lucro.
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-8">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
+                    Lucro líquido
+                  </div>
+                  <div
+                    className={cn(
+                      "text-4xl font-semibold tabular-nums tracking-tight leading-none",
+                      result.netProfit >= 0 ? "text-success" : "text-destructive",
+                    )}
+                  >
+                    {brl(result.netProfit)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
+                    Margem real
+                  </div>
+                  <div
+                    className={cn(
+                      "text-4xl font-semibold tabular-nums tracking-tight leading-none",
+                      result.marginPct >= 0 ? "text-success" : "text-destructive",
+                    )}
+                  >
+                    {result.marginPct.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      {/* RESULTS */}
-      <div className="mt-5 grid lg:grid-cols-[2fr_1fr] gap-5">
-        <div className="rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 p-8">
-          <div className="grid grid-cols-2 gap-8">
-            <ResultBig label="Preço final" value={brl(c.discounted)} />
-            <ResultBig
-              label="Lucro líquido"
-              value={brl(c.net)}
-              tone={c.net >= 0 ? "positive" : "negative"}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-7 pt-6 border-t border-border/50">
+              <MiniStat label="Preço ideal" value={brl(result.idealPrice)} />
+              <MiniStat label="Mínimo seguro" value={brl(result.minSafePrice)} />
+              <MiniStat label="Agressivo" value={brl(result.aggressivePrice)} />
+              <MiniStat label="Psicológico" value={brl(result.psychological)} accent />
+            </div>
+          </div>
+
+          {/* discount slider */}
+          <div className="rounded-2xl bg-surface p-6">
+            <div className="flex items-center justify-between mb-3 gap-4">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Mostrar desconto
+                </div>
+                <div className="text-2xl font-semibold tabular-nums mt-1">
+                  {p.visibleDiscount}% OFF
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={p.compensateDiscount}
+                  onChange={(e) =>
+                    patch((prev) => ({
+                      ...prev,
+                      compensateDiscount: e.target.checked,
+                    }))
+                  }
+                  className="accent-primary w-4 h-4"
+                />
+                Compensar no preço de
+                <span className="text-muted-foreground">(lucro intacto)</span>
+              </label>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(50, p.maxDiscount)}
+              step={1}
+              value={p.visibleDiscount}
+              onChange={(e) =>
+                patch((prev) => ({ ...prev, visibleDiscount: +e.target.value }))
+              }
+              className="w-full accent-primary"
             />
-            <ResultBig
-              label="Margem"
-              value={`${c.marginPct.toFixed(1)}%`}
-              tone={c.marginPct >= 0 ? "positive" : "negative"}
-              small
-            />
-            <ResultBig label="Preço ideal" value={brl(c.finalPrice)} small />
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-2">
+              <span>0%</span>
+              <span>
+                Limite seguro:{" "}
+                <input
+                  type="number"
+                  value={p.maxDiscount}
+                  onChange={(e) =>
+                    patch((prev) => ({
+                      ...prev,
+                      maxDiscount: +e.target.value || 0,
+                    }))
+                  }
+                  className="w-12 bg-transparent text-foreground tabular-nums outline-none border-b border-border focus:border-primary"
+                />
+                %
+              </span>
+              <span>{Math.max(50, p.maxDiscount)}%</span>
+            </div>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-surface p-6 flex flex-col justify-center gap-3 text-sm">
-          <MiniRow label="Mínimo viável" value={brl(c.minPrice)} />
-          <MiniRow label="Psicológico" value={brl(c.psychPrice)} accent />
-          <MiniRow label="Agressivo" value={brl(c.aggressive)} />
-          <div className="h-px bg-border my-1" />
-          <MiniRow label="Custo base" value={brl(c.baseCost)} />
-          <MiniRow label="Total de taxas" value={brl(c.feesValue)} />
+        {/* RIGHT — analysis */}
+        <div className="space-y-5">
+          <div className="rounded-2xl bg-surface p-5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-3">
+              Pra onde vai seu dinheiro
+            </div>
+            <div className="space-y-2">
+              {result.breakdown
+                .filter((b) => b.amount > 0)
+                .sort((a, b) => b.amount - a.amount)
+                .map((b) => (
+                  <div key={b.item.id}>
+                    <div className="flex items-baseline justify-between text-xs mb-1">
+                      <span className="text-muted-foreground truncate">
+                        {b.item.label}
+                      </span>
+                      <span className="tabular-nums">
+                        {brl(b.amount)}{" "}
+                        <span className="text-muted-foreground">
+                          ({b.pctOfFinal.toFixed(1)}%)
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-1 rounded-full bg-background/80 overflow-hidden">
+                      <div
+                        className="h-full bg-primary/60"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, b.pctOfFinal))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              {result.breakdown.every((b) => b.amount === 0) && (
+                <div className="text-xs text-muted-foreground/70 italic">
+                  preencha os custos para ver o fluxo do dinheiro
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-surface p-5 space-y-2 text-sm leading-relaxed">
+            <p className="text-muted-foreground">
+              Custo base total:{" "}
+              <span className="text-foreground font-medium tabular-nums">
+                {brl(result.baseCost)}
+              </span>
+            </p>
+            <p className="text-muted-foreground">
+              Taxas % consomem{" "}
+              <span className="text-foreground font-medium">
+                {(result.feesPct * 100).toFixed(1)}%
+              </span>{" "}
+              de cada venda.
+            </p>
+            <p
+              className={cn(
+                result.netProfit >= 0 ? "text-success" : "text-destructive",
+              )}
+            >
+              Você fica com{" "}
+              <span className="font-semibold tabular-nums">
+                {brl(result.netProfit)}
+              </span>{" "}
+              ({result.marginPct.toFixed(1)}%) depois de tudo.
+            </p>
+          </div>
+
+          {result.alerts.length > 0 && (
+            <div className="space-y-2">
+              {result.alerts.map((a) => (
+                <AlertCard key={a.id} alert={a} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* OPERATIONAL EXPLANATION */}
-      <div className="mt-5 rounded-2xl bg-surface px-7 py-6">
-        <SubLabel>Para onde vai seu dinheiro</SubLabel>
-        <div className="grid lg:grid-cols-2 gap-x-10 gap-y-2 mt-3 text-sm">
-          <SpendRow label="Custo do produto" value={p.cost} pct={pctOf(p.cost)} />
-          <SpendRow label="Frete" value={p.shipping} pct={pctOf(p.shipping)} />
-          <SpendRow label="Embalagem" value={p.packaging} pct={pctOf(p.packaging)} />
-          <SpendRow label="Transporte" value={p.transportation} pct={pctOf(p.transportation)} />
-          <SpendRow label="Ads" value={p.ads} pct={pctOf(p.ads)} />
-          <SpendRow label="Imposto" value={c.taxValue} pct={pctOf(c.taxValue)} />
-          <SpendRow label="Taxa marketplace" value={c.mpFeeValue} pct={pctOf(c.mpFeeValue)} />
-          <SpendRow label="Comissão" value={c.commissionValue} pct={pctOf(c.commissionValue)} />
+      {/* SCENARIOS */}
+      <div className="mt-6 rounded-2xl bg-surface p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Simulador de cenários
+            </div>
+            <div className="text-sm text-muted-foreground mt-0.5">
+              Veja como cada nível de desconto impacta seu lucro real.
+            </div>
+          </div>
         </div>
-
-        <div className="mt-6 pt-5 border-t border-border space-y-2">
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Custo base total:{" "}
-            <span className="text-foreground font-medium">{brl(c.baseCost)}</span> (
-            {pctOf(c.baseCost).toFixed(1)}% do preço final).
-          </p>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Taxas representam{" "}
-            <span className="text-foreground font-medium">
-              {c.feesPct.toFixed(1)}%
-            </span>{" "}
-            do preço final ({brl(c.feesValue)}).
-          </p>
-          <p
-            className={cn(
-              "text-base leading-relaxed",
-              c.net >= 0 ? "text-success" : "text-destructive",
-            )}
-          >
-            Seu lucro líquido é{" "}
-            <span className="font-semibold">{brl(c.net)}</span> (
-            <span className="font-semibold">{c.marginPct.toFixed(1)}%</span> de margem).
-          </p>
-          {totalSpend === 0 && (
-            <p className="text-sm text-muted-foreground/70">
-              Preencha os custos acima para ver a análise.
-            </p>
-          )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {p.scenarios.map((pct) => {
+            const r = simulateScenario(p, pct);
+            const tone =
+              r.netProfit < 0
+                ? "danger"
+                : r.marginPct < 10
+                  ? "warning"
+                  : "success";
+            return (
+              <button
+                key={pct}
+                onClick={() =>
+                  patch((prev) => ({ ...prev, visibleDiscount: pct }))
+                }
+                className={cn(
+                  "text-left rounded-xl border p-4 transition-colors hover:bg-accent/40",
+                  tone === "danger" && "border-destructive/40",
+                  tone === "warning" && "border-warning/40",
+                  tone === "success" && "border-success/40",
+                )}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {pct}% OFF
+                  </span>
+                  <span
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      tone === "danger" && "bg-destructive",
+                      tone === "warning" && "bg-warning",
+                      tone === "success" && "bg-success",
+                    )}
+                  />
+                </div>
+                <div className="text-xl font-semibold tabular-nums">
+                  {brl(r.finalPrice)}
+                </div>
+                {p.compensateDiscount && (
+                  <div className="text-[11px] text-muted-foreground line-through tabular-nums">
+                    {brl(r.displayedPrice)}
+                  </div>
+                )}
+                <div className="mt-2 text-xs flex items-center justify-between">
+                  <span className="text-muted-foreground">Lucro</span>
+                  <span
+                    className={cn(
+                      "tabular-nums font-medium",
+                      r.netProfit >= 0 ? "text-success" : "text-destructive",
+                    )}
+                  >
+                    {brl(r.netProfit)}
+                  </span>
+                </div>
+                <div className="text-xs flex items-center justify-between">
+                  <span className="text-muted-foreground">Margem</span>
+                  <span className="tabular-nums">
+                    {r.marginPct.toFixed(1)}%
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>
   );
 }
 
-function SpendRow({ label, value, pct }: { label: string; value: number; pct: number }) {
-  const safe = isFinite(pct) ? pct : 0;
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-44 text-muted-foreground">{label}</span>
-      <div className="flex-1 h-1.5 rounded-full bg-background/80 overflow-hidden">
-        <div
-          className="h-full bg-primary/60"
-          style={{ width: `${Math.min(100, Math.max(0, safe))}%` }}
-        />
-      </div>
-      <span className="tabular-nums text-xs text-muted-foreground w-20 text-right">
-        {brl(value)}
-      </span>
-      <span className="tabular-nums text-xs w-12 text-right">{safe.toFixed(1)}%</span>
-    </div>
-  );
-}
-
-function PriceInput({
-  label,
-  value,
+function CostRow({
+  item,
   onChange,
-  prefix,
-  suffix,
+  onRemove,
 }: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  prefix?: string;
-  suffix?: string;
+  item: CostItem;
+  onChange: (c: Partial<CostItem>) => void;
+  onRemove: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </span>
-      <div className="flex items-center gap-1.5 rounded-lg bg-input/50 px-3 py-2 focus-within:ring-2 focus-within:ring-ring/40">
-        {prefix && <span className="text-xs text-muted-foreground">{prefix}</span>}
-        <input
-          type="number"
-          step="0.01"
-          value={value || ""}
-          onChange={(e) => onChange(+e.target.value || 0)}
-          placeholder="0"
-          className="w-full bg-transparent outline-none tabular-nums text-base"
-        />
-        {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
-      </div>
+    <div className="group flex items-center gap-1.5 rounded-lg bg-input/40 px-2 py-1.5 hover:bg-input/60 transition-colors">
+      <input
+        value={item.label}
+        onChange={(e) => onChange({ label: e.target.value })}
+        className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/50 min-w-0"
+        placeholder="Nome do custo"
+      />
+      <input
+        type="number"
+        step="0.01"
+        value={item.value || ""}
+        onChange={(e) => onChange({ value: +e.target.value || 0 })}
+        placeholder="0"
+        className="w-16 bg-transparent outline-none tabular-nums text-[13px] text-right"
+      />
+      <KindToggle
+        kind={item.kind}
+        onChange={(k) =>
+          onChange({
+            kind: k,
+            base: k === "percent" ? item.base ?? "final" : undefined,
+          })
+        }
+      />
+      {item.kind === "percent" && (
+        <button
+          onClick={() =>
+            onChange({ base: item.base === "cost" ? "final" : "cost" })
+          }
+          title={item.base === "cost" ? "% sobre o custo" : "% sobre o preço final"}
+          className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground px-1"
+        >
+          {item.base === "cost" ? "/c" : "/p"}
+        </button>
+      )}
+      <button
+        onClick={onRemove}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
 
-function ResultBig({
+function KindToggle({
+  kind,
+  onChange,
+}: {
+  kind: CostKind;
+  onChange: (k: CostKind) => void;
+}) {
+  return (
+    <button
+      onClick={() => onChange(kind === "currency" ? "percent" : "currency")}
+      className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-background/60 text-muted-foreground hover:text-foreground tabular-nums"
+      title="Alternar R$ / %"
+    >
+      {kind === "currency" ? "R$" : "%"}
+    </button>
+  );
+}
+
+function MiniStat({
   label,
   value,
-  tone,
-  small,
+  accent,
 }: {
   label: string;
   value: string;
-  tone?: "positive" | "negative";
-  small?: boolean;
+  accent?: boolean;
 }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1">
         {label}
       </div>
       <div
         className={cn(
-          "font-semibold tabular-nums tracking-tight",
-          small ? "text-3xl" : "text-5xl",
-          tone === "positive" && "text-success",
-          tone === "negative" && "text-destructive",
+          "text-lg font-semibold tabular-nums tracking-tight",
+          accent && "text-primary",
         )}
       >
         {value}
@@ -1375,14 +1634,23 @@ function ResultBig({
   );
 }
 
-function MiniRow({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function AlertCard({ alert }: { alert: PricingAlert }) {
+  const tones = {
+    danger: "border-destructive/40 bg-destructive/10 text-destructive",
+    warning: "border-warning/40 bg-warning/10 text-warning",
+    success: "border-success/40 bg-success/10 text-success",
+    info: "border-border bg-surface text-foreground",
+  } as const;
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={cn("tabular-nums font-medium", accent && "text-primary")}>{value}</span>
+    <div className={cn("rounded-xl border px-4 py-3 text-sm", tones[alert.tone])}>
+      <div className="font-semibold">{alert.title}</div>
+      {alert.detail && (
+        <div className="text-xs opacity-80 mt-0.5">{alert.detail}</div>
+      )}
     </div>
   );
 }
+
 
 /* ============================================================
    5. IMAGES — large gallery, drag-reorder, main image, lightbox
