@@ -2,7 +2,8 @@ export type TitleVariant = "SEO Forte" | "Conversão" | "Mobile" | "Curto" | "Co
 
 export interface Keyword {
   id: string;
-  text: string;
+  text: string; // canonical lowercased
+  display: string; // original case (first occurrence)
   favorite: boolean;
   uses: number;
 }
@@ -13,7 +14,9 @@ export interface CompetitorBlock {
   title: string;
   description: string;
   notes: string;
-  strongWords: string;
+  keywordsFound: string[];
+  /** @deprecated kept for backwards-compat migration only */
+  strongWords?: string;
   marketplace: string;
   updatedAt: number;
 }
@@ -38,13 +41,14 @@ export interface PricingData {
   cost: number;
   shipping: number;
   packaging: number;
+  transportation: number;
   ads: number;
-  taxes: number; // %
-  marketplaceFee: number; // %
-  commission: number; // %
-  markup: number; // %
-  discount: number; // %
-  maxDiscount: number; // %
+  taxes: number;
+  marketplaceFee: number;
+  commission: number;
+  markup: number;
+  discount: number;
+  maxDiscount: number;
 }
 
 export interface ProductImage {
@@ -52,18 +56,25 @@ export interface ProductImage {
   dataUrl: string;
   name: string;
   favorite: boolean;
+  isMain?: boolean;
   notes: string;
 }
 
 export interface ProductVideo {
   id: string;
   link: string;
+  videoDataUrl?: string;
+  videoName?: string;
+  audioDataUrl?: string;
+  audioName?: string;
   script: string;
+  speech: string;
   audio: string;
   description: string;
   cta: string;
   platform: string;
   editingNotes: string;
+  notes: string;
 }
 
 export interface ViralClip {
@@ -93,7 +104,9 @@ export interface Product {
   createdAt: number;
   updatedAt: number;
 
-  keywordsText: string; // single large keyword workspace (one per line)
+  keywords: Keyword[];
+  /** @deprecated kept for migration only */
+  keywordsText?: string;
   competitors: CompetitorBlock[];
 
   mercadoLivre: MarketplaceData;
@@ -120,6 +133,7 @@ export const emptyPricing = (): PricingData => ({
   cost: 0,
   shipping: 0,
   packaging: 0,
+  transportation: 0,
   ads: 0,
   taxes: 0,
   marketplaceFee: 0,
@@ -141,7 +155,7 @@ export const newProduct = (name = "Novo produto"): Product => ({
   favorite: false,
   createdAt: Date.now(),
   updatedAt: Date.now(),
-  keywordsText: "",
+  keywords: [],
   competitors: [],
   mercadoLivre: emptyMarketplace(),
   shopee: emptyMarketplace(),
@@ -151,3 +165,71 @@ export const newProduct = (name = "Novo produto"): Product => ({
   images: [],
   videos: [],
 });
+
+/** Canonicalize a raw token to its lowercase trimmed form. */
+export const canonKeyword = (s: string) =>
+  s.trim().toLowerCase().replace(/\s+/g, " ");
+
+/** Parse a freeform string (spaces, commas, newlines) into tokens. */
+export const parseKeywordTokens = (raw: string): string[] =>
+  raw
+    .split(/[\n,]+|\s{2,}/) // newlines / commas / double spaces split phrases
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+/** Looser tokenizer: splits on single spaces too. Used for the manual single-word flow. */
+export const parseSingleWords = (raw: string): string[] =>
+  raw
+    .split(/[\s,\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+/** Migrate any legacy Product shape to the current one. Safe to call on existing products. */
+export function migrateProduct(raw: any): Product {
+  const base = newProduct(raw?.name ?? "Sem nome");
+  const p: Product = {
+    ...base,
+    ...raw,
+    pricing: { ...base.pricing, ...(raw?.pricing ?? {}) },
+    mercadoLivre: { ...base.mercadoLivre, ...(raw?.mercadoLivre ?? {}) },
+    shopee: { ...base.shopee, ...(raw?.shopee ?? {}) },
+    amazon: { ...base.amazon, ...(raw?.amazon ?? {}) },
+    tiktok: { ...base.tiktok, ...(raw?.tiktok ?? {}) },
+    images: (raw?.images ?? []).map((i: any) => ({ ...i, isMain: i.isMain ?? false })),
+    videos: (raw?.videos ?? []).map((v: any) => ({
+      speech: "",
+      notes: "",
+      ...v,
+    })),
+    competitors: (raw?.competitors ?? []).map((c: any) => ({
+      ...c,
+      keywordsFound: Array.isArray(c.keywordsFound)
+        ? c.keywordsFound
+        : c.strongWords
+          ? parseKeywordTokens(c.strongWords)
+          : [],
+    })),
+    keywords: Array.isArray(raw?.keywords) ? raw.keywords : [],
+  };
+  // legacy keywordsText → keywords[]
+  if ((!p.keywords || p.keywords.length === 0) && typeof raw?.keywordsText === "string") {
+    const tokens = parseKeywordTokens(raw.keywordsText);
+    const map = new Map<string, Keyword>();
+    for (const t of tokens) {
+      const key = canonKeyword(t);
+      if (!key) continue;
+      const ex = map.get(key);
+      if (ex) ex.uses += 1;
+      else
+        map.set(key, {
+          id: crypto.randomUUID(),
+          text: key,
+          display: t.trim(),
+          favorite: false,
+          uses: 1,
+        });
+    }
+    p.keywords = Array.from(map.values());
+  }
+  return p;
+}
