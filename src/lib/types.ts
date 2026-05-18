@@ -122,6 +122,7 @@ export interface Product {
 
 export const emptyMarketplace = (): MarketplaceData => ({
   titles: [],
+  shortDescription: "",
   description: "",
   seo: "",
   notes: "",
