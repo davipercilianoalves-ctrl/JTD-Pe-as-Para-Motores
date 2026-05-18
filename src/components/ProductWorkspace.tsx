@@ -220,13 +220,15 @@ export function ProductWorkspace() {
 }
 
 /* ============================================================
-   1. KEYWORDS — horizontal chip flow, manual + populated by competitors
+   1. KEYWORDS — vertical list + selected column for partial copy
 ============================================================ */
 function KeywordsSection({ product }: { product: Product }) {
   const { addKeywordTokens, removeKeyword, toggleKeywordFavorite } = useStore();
   const [draft, setDraft] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"all" | "sel" | null>(null);
   const [filter, setFilter] = useState<"all" | "fav">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
 
   const commit = () => {
     const toks = parseKeywordTokens(draft);
@@ -243,47 +245,77 @@ function KeywordsSection({ product }: { product: Product }) {
   };
 
   const sorted = useMemo(() => {
-    const list = filter === "fav" ? product.keywords.filter((k) => k.favorite) : product.keywords;
+    let list = filter === "fav" ? product.keywords.filter((k) => k.favorite) : product.keywords;
+    if (query.trim()) {
+      const q = query.toLowerCase().trim();
+      list = list.filter((k) => k.text.includes(q));
+    }
     return [...list].sort((a, b) => {
       if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
       return b.uses - a.uses;
     });
-  }, [product.keywords, filter]);
+  }, [product.keywords, filter, query]);
+
+  useEffect(() => {
+    setSelected((prev) => {
+      const valid = new Set(product.keywords.map((k) => k.id));
+      const next = new Set<string>();
+      prev.forEach((id) => valid.has(id) && next.add(id));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [product.keywords]);
+
+  const selectedKws = product.keywords.filter((k) => selected.has(k.id));
+
+  const toggleSel = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const copyAll = () => {
     navigator.clipboard.writeText(sorted.map((k) => k.display).join(", "));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setCopied("all");
+    setTimeout(() => setCopied(null), 1500);
+  };
+  const copySel = () => {
+    if (!selectedKws.length) return;
+    navigator.clipboard.writeText(selectedKws.map((k) => k.display).join(", "));
+    setCopied("sel");
+    setTimeout(() => setCopied(null), 1500);
   };
 
   return (
     <section>
       <SectionTitle
-        hint="Extraídas automaticamente da análise de concorrentes ou digitadas aqui."
+        hint="Lista mestre do produto. Use os checkboxes para copiar só o que importa."
         action={
-          <div className="flex items-center gap-3">
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {product.keywords.length} palavras
-            </span>
-            <Btn variant="soft" size="sm" onClick={copyAll} disabled={!sorted.length}>
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? "Copiado" : "Copiar tudo"}
-            </Btn>
-          </div>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {product.keywords.length} palavras
+          </span>
         }
       >
         Palavras-chave
       </SectionTitle>
 
-      <div className="rounded-2xl bg-surface px-6 py-5">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="rounded-2xl bg-surface overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border/60">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKey}
             onBlur={commit}
-            placeholder="Adicionar palavra-chave (Enter ou vírgula)"
+            placeholder="+ adicionar palavra (Enter ou vírgula)"
             className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/40"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filtrar..."
+            className="w-32 bg-background/60 rounded-md px-2.5 py-1 text-xs outline-none placeholder:text-muted-foreground/40"
           />
           <div className="flex items-center gap-1 rounded-lg bg-background/60 p-0.5 text-xs">
             <button
@@ -302,76 +334,132 @@ function KeywordsSection({ product }: { product: Product }) {
                 filter === "fav" ? "bg-accent text-foreground" : "text-muted-foreground",
               )}
             >
-              <Star className="inline h-3 w-3 mr-1" /> Favoritas
+              <Star className="inline h-3 w-3 mr-1" /> Fav
             </button>
           </div>
         </div>
 
-        {sorted.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground/70">
-            Nenhuma palavra ainda. Analise concorrentes para popular automaticamente.
+        <div className="grid lg:grid-cols-[1fr_320px]">
+          <div className="max-h-[480px] overflow-auto py-2">
+            {sorted.length === 0 ? (
+              <div className="py-16 text-center text-sm text-muted-foreground/70">
+                Nenhuma palavra ainda. Adicione acima ou extraia da análise de concorrentes.
+              </div>
+            ) : (
+              sorted.map((k) => {
+                const isSel = selected.has(k.id);
+                return (
+                  <div
+                    key={k.id}
+                    className={cn(
+                      "group flex items-center gap-3 pl-6 pr-4 py-2 hover:bg-surface-elevated transition-colors",
+                      isSel && "bg-primary/5",
+                    )}
+                  >
+                    <button
+                      onClick={() => toggleSel(k.id)}
+                      className={cn(
+                        "shrink-0 h-4 w-4 rounded-[5px] border flex items-center justify-center transition-colors",
+                        isSel
+                          ? "bg-primary border-primary"
+                          : "border-muted-foreground/40 hover:border-foreground",
+                      )}
+                      title={isSel ? "Desmarcar" : "Selecionar"}
+                    >
+                      {isSel && <Check className="h-3 w-3 text-primary-foreground" />}
+                    </button>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(k.display)}
+                      className="flex-1 text-left text-[15px] leading-relaxed cursor-copy truncate"
+                      title="Copiar"
+                    >
+                      {k.display}
+                    </button>
+                    <span className="tabular-nums text-xs text-muted-foreground/70 shrink-0 w-10 text-right">
+                      ×{k.uses}
+                    </span>
+                    <button
+                      onClick={() => toggleKeywordFavorite(product.id, k.id)}
+                      className="shrink-0 p-1 opacity-50 hover:opacity-100"
+                      title="Favoritar"
+                    >
+                      <Star
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          k.favorite && "fill-warning text-warning opacity-100",
+                        )}
+                      />
+                    </button>
+                    <button
+                      onClick={() => removeKeyword(product.id, k.id)}
+                      className="shrink-0 p-1 opacity-0 group-hover:opacity-60 hover:!opacity-100 text-muted-foreground hover:text-destructive"
+                      title="Remover"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })
+            )}
           </div>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {sorted.map((k) => (
-              <KeywordChip
-                key={k.id}
-                kw={k}
-                onCopy={() => navigator.clipboard.writeText(k.display)}
-                onFav={() => toggleKeywordFavorite(product.id, k.id)}
-                onRemove={() => removeKeyword(product.id, k.id)}
-              />
-            ))}
+
+          <div className="border-t lg:border-t-0 lg:border-l border-border/60 bg-background/30 p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Selecionadas
+              </span>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {selectedKws.length}
+              </span>
+            </div>
+
+            <div className="flex-1 min-h-[120px]">
+              {selectedKws.length === 0 ? (
+                <p className="text-xs text-muted-foreground/60 leading-relaxed">
+                  Marque os checkboxes para montar uma seleção e copiar só essas palavras.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {selectedKws.map((k) => (
+                    <div key={k.id} className="flex items-center gap-2 text-sm py-0.5 group/sel">
+                      <span className="h-1 w-1 rounded-full bg-primary shrink-0" />
+                      <span className="truncate flex-1">{k.display}</span>
+                      <button
+                        onClick={() => toggleSel(k.id)}
+                        className="opacity-0 group-hover/sel:opacity-60 hover:!opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex flex-col gap-1.5">
+              <Btn variant="primary" size="sm" onClick={copySel} disabled={!selectedKws.length}>
+                {copied === "sel" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied === "sel" ? "Copiado" : "Copiar selecionadas"}
+              </Btn>
+              <div className="flex gap-1.5">
+                <Btn variant="soft" size="sm" onClick={copyAll} disabled={!sorted.length} className="flex-1">
+                  {copied === "all" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied === "all" ? "Copiado" : "Copiar tudo"}
+                </Btn>
+                {selectedKws.length > 0 && (
+                  <Btn variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+                    Limpar
+                  </Btn>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
 }
 
-function KeywordChip({
-  kw,
-  onCopy,
-  onFav,
-  onRemove,
-}: {
-  kw: Keyword;
-  onCopy: () => void;
-  onFav: () => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div
-      className={cn(
-        "group inline-flex items-center gap-1.5 rounded-full pl-3 pr-1 py-1 text-sm transition-colors",
-        kw.favorite
-          ? "bg-warning/15 text-warning ring-1 ring-warning/30"
-          : "bg-background/70 hover:bg-background",
-      )}
-    >
-      <button onClick={onCopy} className="cursor-copy" title="Copiar">
-        {kw.display}
-      </button>
-      {kw.uses > 1 && (
-        <span className="text-[10px] tabular-nums text-muted-foreground">({kw.uses})</span>
-      )}
-      <button
-        onClick={onFav}
-        className="opacity-0 group-hover:opacity-70 hover:!opacity-100 p-0.5"
-        title="Favoritar"
-      >
-        <Star className={cn("h-3 w-3", kw.favorite && "fill-warning text-warning opacity-100")} />
-      </button>
-      <button
-        onClick={onRemove}
-        className="opacity-0 group-hover:opacity-70 hover:!opacity-100 p-0.5"
-        title="Remover"
-      >
-        <X className="h-3 w-3" />
-      </button>
-    </div>
-  );
-}
 
 /* ============================================================
    2. COMPETITORS — fast inline blocks; keywords feed back into main list
