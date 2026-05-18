@@ -167,6 +167,20 @@ export function ProductWorkspace() {
             <DescriptionSection product={product} market={market} />
           </div>
 
+          {/* Per-marketplace custom fields */}
+          <div className="mt-14">
+            <CustomFieldsPanel
+              title={`Campos do ${MARKETS.find((m) => m.key === market)?.label}`}
+              hint="Crie qualquer campo que esse marketplace pede — atributos técnicos, bullets, hashtags, observações. Arraste para reordenar, redimensione e use modo foco."
+              fields={product[market].customFields ?? []}
+              onChange={(fields) =>
+                updateProduct(product.id, {
+                  [market]: { ...product[market], customFields: fields },
+                } as Partial<Product>)
+              }
+            />
+          </div>
+
           {/* 4 — PRICING */}
           <div className="mt-16">
             <PricingSection product={product} />
@@ -180,6 +194,16 @@ export function ProductWorkspace() {
           {/* 6 — VIDEOS */}
           <div className="mt-16">
             <VideosSection product={product} />
+          </div>
+
+          {/* Global custom fields — independent of marketplace */}
+          <div className="mt-16">
+            <CustomFieldsPanel
+              title="Campos do produto"
+              hint="Campos globais — valem para todos os marketplaces. Use para informações operacionais, garantia, compatibilidade, notas estratégicas."
+              fields={product.customFields ?? []}
+              onChange={(fields) => set("customFields", fields)}
+            />
           </div>
 
           {/* META */}
