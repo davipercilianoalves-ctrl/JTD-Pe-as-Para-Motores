@@ -141,18 +141,30 @@ export const emptyMarketplace = (): MarketplaceData => ({
   extras: {},
 });
 
+const uid = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+
+export const defaultCostItems = (): CostItem[] => [
+  { id: uid(), label: "Custo do produto", kind: "currency", value: 0, group: "produto" },
+  { id: uid(), label: "Frete", kind: "currency", value: 0, group: "logistica" },
+  { id: uid(), label: "Embalagem", kind: "currency", value: 0, group: "logistica" },
+  { id: uid(), label: "Transporte", kind: "currency", value: 0, group: "logistica" },
+  { id: uid(), label: "Anúncios", kind: "currency", value: 0, group: "marketing" },
+  { id: uid(), label: "Imposto", kind: "percent", value: 0, base: "final", group: "taxas" },
+  { id: uid(), label: "Taxa do marketplace", kind: "percent", value: 0, base: "final", group: "taxas" },
+  { id: uid(), label: "Comissão", kind: "percent", value: 0, base: "final", group: "taxas" },
+];
+
 export const emptyPricing = (): PricingData => ({
-  cost: 0,
-  shipping: 0,
-  packaging: 0,
-  transportation: 0,
-  ads: 0,
-  taxes: 0,
-  marketplaceFee: 0,
-  commission: 0,
-  markup: 50,
-  discount: 0,
+  items: defaultCostItems(),
+  desiredProfit: 30,
+  desiredProfitKind: "percent",
+  visibleDiscount: 0,
   maxDiscount: 15,
+  compensateDiscount: true,
+  scenarios: [10, 15, 20, 25],
 });
 
 export const newProduct = (name = "Novo produto"): Product => ({
