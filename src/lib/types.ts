@@ -15,6 +15,7 @@ export interface CompetitorBlock {
   notes: string;
   strongWords: string;
   marketplace: string;
+  updatedAt: number;
 }
 
 export interface TitleEntry {
@@ -30,7 +31,6 @@ export interface MarketplaceData {
   notes: string;
   media: string;
   strategies: string;
-  // shopee/amazon/tiktok specifics stored loose
   extras: Record<string, string>;
 }
 
@@ -38,11 +38,13 @@ export interface PricingData {
   cost: number;
   shipping: number;
   packaging: number;
+  ads: number;
   taxes: number; // %
   marketplaceFee: number; // %
   commission: number; // %
   markup: number; // %
   discount: number; // %
+  maxDiscount: number; // %
 }
 
 export interface ProductImage {
@@ -75,6 +77,7 @@ export interface ViralClip {
   audio: string;
   notes: string;
   editType: string;
+  createdAt: number;
 }
 
 export interface Product {
@@ -88,8 +91,9 @@ export interface Product {
   internalNotes: string;
   favorite: boolean;
   createdAt: number;
+  updatedAt: number;
 
-  keywords: Keyword[];
+  keywordsText: string; // single large keyword workspace (one per line)
   competitors: CompetitorBlock[];
 
   mercadoLivre: MarketplaceData;
@@ -100,7 +104,6 @@ export interface Product {
   pricing: PricingData;
   images: ProductImage[];
   videos: ProductVideo[];
-  viralClips: ViralClip[];
 }
 
 export const emptyMarketplace = (): MarketplaceData => ({
@@ -117,11 +120,13 @@ export const emptyPricing = (): PricingData => ({
   cost: 0,
   shipping: 0,
   packaging: 0,
+  ads: 0,
   taxes: 0,
   marketplaceFee: 0,
   commission: 0,
   markup: 50,
   discount: 0,
+  maxDiscount: 15,
 });
 
 export const newProduct = (name = "Novo produto"): Product => ({
@@ -135,7 +140,8 @@ export const newProduct = (name = "Novo produto"): Product => ({
   internalNotes: "",
   favorite: false,
   createdAt: Date.now(),
-  keywords: [],
+  updatedAt: Date.now(),
+  keywordsText: "",
   competitors: [],
   mercadoLivre: emptyMarketplace(),
   shopee: emptyMarketplace(),
@@ -144,5 +150,4 @@ export const newProduct = (name = "Novo produto"): Product => ({
   pricing: emptyPricing(),
   images: [],
   videos: [],
-  viralClips: [],
 });
