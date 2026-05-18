@@ -98,7 +98,7 @@ export const AutoTextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttribut
         }}
         {...rest}
         className={cn(
-          "w-full bg-transparent text-base leading-relaxed outline-none placeholder:text-muted-foreground/45 resize-none overflow-hidden",
+          "w-full bg-transparent text-base leading-relaxed outline-none placeholder:text-muted-foreground/45 resize-none overflow-hidden break-words [overflow-wrap:anywhere] whitespace-pre-wrap",
           className,
         )}
       />
