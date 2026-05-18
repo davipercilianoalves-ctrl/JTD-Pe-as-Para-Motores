@@ -1,5 +1,14 @@
 export type TitleVariant = "SEO Forte" | "Conversão" | "Mobile" | "Curto" | "Completo";
 
+export type MarketplaceId = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
+
+export const MARKETPLACE_LABELS: Record<MarketplaceId, string> = {
+  mercadoLivre: "Mercado Livre",
+  shopee: "Shopee",
+  amazon: "Amazon",
+  tiktok: "TikTok",
+};
+
 export interface Keyword {
   id: string;
   text: string; // canonical lowercased
