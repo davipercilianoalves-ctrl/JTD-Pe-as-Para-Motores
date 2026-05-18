@@ -13,78 +13,14 @@ import {
   Film,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { computePricing } from "@/lib/pricing";
 import { brl } from "@/lib/pricing";
+import { evaluateProduct, STATUS_META, type ProductSignal } from "@/lib/product-signal";
 import logoUrl from "@/assets/jtd-logo.png";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
 type ViewMode = "comfortable" | "compact" | "cards";
 
-interface ProductSignal {
-  status: "healthy" | "attention" | "risk" | "incomplete";
-  margin: number;
-  finalPrice: number;
-  netProfit: number;
-  completeness: number; // 0..1
-  missing: string[];
-}
-
-function evaluateProduct(p: Product): ProductSignal {
-  const pricing = computePricing(p.pricing);
-  const missing: string[] = [];
-  if (!p.name?.trim()) missing.push("Nome");
-  if (!p.sku?.trim()) missing.push("SKU");
-  if (!p.images?.length) missing.push("Imagens");
-  if (!p.keywords?.length) missing.push("Keywords");
-  if (!p.competitors?.length) missing.push("Concorrentes");
-  if (!pricing.baseCost) missing.push("Custos");
-  const completeness = 1 - missing.length / 6;
-
-  let status: ProductSignal["status"] = "healthy";
-  if (missing.length >= 3) status = "incomplete";
-  else if (pricing.baseCost > 0 && pricing.netProfit < 0) status = "risk";
-  else if (pricing.baseCost > 0 && pricing.marginPct < 15) status = "attention";
-
-  return {
-    status,
-    margin: pricing.marginPct,
-    finalPrice: pricing.finalPrice,
-    netProfit: pricing.netProfit,
-    completeness,
-    missing,
-  };
-}
-
-const STATUS_META: Record<
-  ProductSignal["status"],
-  { label: string; dot: string; ring: string; text: string }
-> = {
-  healthy: {
-    label: "Saudável",
-    dot: "bg-success",
-    ring: "ring-success/30",
-    text: "text-success",
-  },
-  attention: {
-    label: "Atenção",
-    dot: "bg-warning",
-    ring: "ring-warning/40",
-    text: "text-warning",
-  },
-  risk: {
-    label: "Risco",
-    dot: "bg-primary",
-    ring: "ring-primary/40",
-    text: "text-primary",
-  },
-  incomplete: {
-    label: "Incompleto",
-    dot: "bg-muted-foreground",
-    ring: "ring-border",
-    text: "text-muted-foreground",
-  },
-};
 
 const VIEW_KEY = "jtd:home-view";
 

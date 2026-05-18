@@ -14,6 +14,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { useStore, useSelectedProduct } from "@/lib/store";
+import { useConfirm } from "@/components/ConfirmProvider";
 import {
   parseSingleWords,
   parseKeywordTokens,
@@ -63,6 +64,7 @@ const TITLE_VARIANTS: TitleVariant[] = ["SEO Forte", "Conversão", "Mobile", "Cu
 export function ProductWorkspace() {
   const product = useSelectedProduct();
   const { updateProduct, toggleFavorite, deleteProduct, goHome } = useStore();
+  const confirm = useConfirm();
   const [market, setMarket] = useState<MK>("mercadoLivre");
   const [showMeta, setShowMeta] = useState(false);
 
@@ -109,8 +111,16 @@ export function ProductWorkspace() {
                 />
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Excluir "${product.name}"?`)) deleteProduct(product.id);
+                onClick={async () => {
+                  if (
+                    await confirm({
+                      title: `Excluir "${product.name || "este produto"}"?`,
+                      message: "Esta ação remove o produto e tudo dentro dele. Não pode ser desfeita.",
+                      confirmLabel: "Excluir produto",
+                      tone: "danger",
+                    })
+                  )
+                    deleteProduct(product.id);
                 }}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 title="Excluir"
@@ -492,6 +502,7 @@ function KeywordsSection({ product }: { product: Product }) {
 ============================================================ */
 function CompetitorsSection({ product }: { product: Product }) {
   const { updateProduct, addKeywordTokens } = useStore();
+  const confirm = useConfirm();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const add = () => {
@@ -563,9 +574,17 @@ function CompetitorsSection({ product }: { product: Product }) {
                     </div>
                   </div>
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      if (confirm("Excluir este concorrente?")) rm(c.id);
+                      if (
+                        await confirm({
+                          title: "Excluir este concorrente?",
+                          message: "A análise e as keywords extraídas dele serão removidas.",
+                          confirmLabel: "Excluir",
+                          tone: "danger",
+                        })
+                      )
+                        rm(c.id);
                     }}
                     className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-60 hover:opacity-100"
                   >
@@ -2092,6 +2111,7 @@ function IconChip({
 ============================================================ */
 function VideosSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
+  const confirm = useConfirm();
   const [openId, setOpenId] = useState<string | null>(null);
 
   const add = () => {
@@ -2194,8 +2214,16 @@ function VideosSection({ product }: { product: Product }) {
                     </span>
                   )}
                   <button
-                    onClick={() => {
-                      if (confirm("Excluir este vídeo?")) rm(v.id);
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: "Excluir este vídeo?",
+                          message: "O roteiro, mídia e notas vinculadas serão removidos.",
+                          confirmLabel: "Excluir",
+                          tone: "danger",
+                        })
+                      )
+                        rm(v.id);
                     }}
                     className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
