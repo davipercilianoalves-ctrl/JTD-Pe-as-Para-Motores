@@ -10,7 +10,7 @@ import {
   ExternalLink,
   ChevronDown,
   X,
-  Maximize2,
+  
   GripVertical,
 } from "lucide-react";
 import { useStore, useSelectedProduct } from "@/lib/store";
