@@ -1598,7 +1598,7 @@ function IconChip({
 }
 
 /* ============================================================
-   6. VIDEOS — one clean block per video
+   6. VIDEOS — two-column card per video (media | content)
 ============================================================ */
 function VideosSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
@@ -1613,7 +1613,7 @@ function VideosSection({ product }: { product: Product }) {
       audio: "",
       description: "",
       cta: "",
-      platform: "",
+      platform: "TikTok",
       editingNotes: "",
       notes: "",
     };
@@ -1647,7 +1647,7 @@ function VideosSection({ product }: { product: Product }) {
   return (
     <section>
       <SectionTitle
-        hint="Roteiro, falas, áudio e arquivo — tudo junto."
+        hint="Vídeos do anúncio do produto. Mídia à esquerda, roteiro à direita."
         action={
           <Btn variant="soft" size="sm" onClick={add}>
             <Plus className="h-3.5 w-3.5" /> Novo vídeo
@@ -1659,78 +1659,75 @@ function VideosSection({ product }: { product: Product }) {
 
       {product.videos.length === 0 ? (
         <div className="rounded-2xl bg-surface/60 py-12 text-center text-sm text-muted-foreground">
-          Sem vídeos ainda.
+          Nenhum vídeo ainda. Crie o primeiro para começar.
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {product.videos.map((v, i) => {
             const open = openId === v.id;
+            const title = v.cta || v.videoName || `Vídeo #${product.videos.length - i}`;
             return (
-              <div key={v.id} className="rounded-xl bg-surface overflow-hidden">
-                <div
-                  className="flex items-center gap-4 px-5 py-3.5 cursor-pointer hover:bg-surface-elevated"
-                  onClick={() => setOpenId(open ? null : v.id)}
-                >
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 text-muted-foreground transition-transform",
-                      open && "rotate-180",
-                    )}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">
-                      {v.cta || v.platform || v.videoName || `Vídeo #${product.videos.length - i}`}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {v.platform || "Sem plataforma"}
-                      {v.videoDataUrl && " · arquivo carregado"}
-                    </div>
-                  </div>
+              <div key={v.id} className="rounded-2xl bg-surface overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={() => setOpenId(open ? null : v.id)}
+                    className="rounded-md p-1 hover:bg-accent"
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 text-muted-foreground transition-transform",
+                        open && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  <input
+                    value={v.cta}
+                    onChange={(e) => upd(v.id, { cta: e.target.value })}
+                    placeholder={title}
+                    className="flex-1 bg-transparent text-base font-medium outline-none placeholder:text-muted-foreground/50"
+                  />
+                  <select
+                    value={v.platform}
+                    onChange={(e) => upd(v.id, { platform: e.target.value })}
+                    className="rounded-md bg-background/60 px-2 py-1 text-xs outline-none"
+                  >
+                    <option>TikTok</option>
+                    <option>Reels</option>
+                    <option>Shorts</option>
+                    <option>YouTube</option>
+                    <option>Mercado Livre</option>
+                    <option>Outro</option>
+                  </select>
+                  {v.videoDataUrl && (
+                    <span className="text-[10px] uppercase tracking-wider text-success">
+                      ● arquivo
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
                       if (confirm("Excluir este vídeo?")) rm(v.id);
                     }}
-                    className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-60 hover:opacity-100"
+                    className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
 
                 {open && (
-                  <div className="px-6 pb-6 pt-2 flex flex-col gap-5">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="flex gap-2">
-                        <input
-                          value={v.link}
-                          onChange={(e) => upd(v.id, { link: e.target.value })}
-                          placeholder="Link externo"
-                          className="flex-1 bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
+                  <div className="grid lg:grid-cols-[340px_1fr] gap-6 px-6 pb-6 pt-2 border-t border-border/50">
+                    <div className="flex flex-col gap-3">
+                      <SubLabel>Mídia</SubLabel>
+                      {v.videoDataUrl ? (
+                        <video
+                          src={v.videoDataUrl}
+                          controls
+                          className="w-full rounded-xl bg-black aspect-[9/16] object-contain"
                         />
-                        {v.link && (
-                          <a
-                            href={v.link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center justify-center rounded-lg bg-accent px-3 hover:bg-accent/70"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        )}
-                      </div>
-                      <input
-                        value={v.platform}
-                        onChange={(e) => upd(v.id, { platform: e.target.value })}
-                        placeholder="Plataforma (TikTok, Reels...)"
-                        className="bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
-                      />
-                    </div>
-
-                    {v.videoDataUrl ? (
-                      <video src={v.videoDataUrl} controls className="w-full rounded-xl bg-black max-h-[420px]" />
-                    ) : null}
-
-                    <div className="grid md:grid-cols-2 gap-3">
+                      ) : (
+                        <div className="w-full rounded-xl bg-background/50 aspect-[9/16] flex items-center justify-center text-xs text-muted-foreground/60">
+                          sem vídeo
+                        </div>
+                      )}
                       <FileSlot
                         label={v.videoName || "Carregar vídeo"}
                         accept="video/*"
@@ -1745,52 +1742,81 @@ function VideosSection({ product }: { product: Product }) {
                         onClear={() => upd(v.id, { audioDataUrl: undefined, audioName: undefined })}
                         hasFile={!!v.audioDataUrl}
                       />
+                      {v.audioDataUrl && <audio src={v.audioDataUrl} controls className="w-full" />}
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          value={v.link}
+                          onChange={(e) => upd(v.id, { link: e.target.value })}
+                          placeholder="Link externo"
+                          className="flex-1 bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
+                        />
+                        {v.link && (
+                          <a
+                            href={v.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center justify-center rounded-lg bg-accent px-3 hover:bg-accent/70"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
                     </div>
 
-                    {v.audioDataUrl && <audio src={v.audioDataUrl} controls className="w-full" />}
-
-                    <div>
-                      <SubLabel>Roteiro</SubLabel>
-                      <AutoTextArea
-                        value={v.script}
-                        onChange={(e) => upd(v.id, { script: e.target.value })}
-                        placeholder="Estrutura do vídeo cena a cena..."
-                        minRows={5}
-                      />
-                    </div>
-                    <div>
-                      <SubLabel>Falas</SubLabel>
-                      <AutoTextArea
-                        value={v.speech}
-                        onChange={(e) => upd(v.id, { speech: e.target.value })}
-                        placeholder="Texto exato a ser falado..."
-                        minRows={4}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-3">
-                      <input
-                        value={v.cta}
-                        onChange={(e) => upd(v.id, { cta: e.target.value })}
-                        placeholder="CTA"
-                        className="bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
-                      />
-                      <input
-                        value={v.audio}
-                        onChange={(e) => upd(v.id, { audio: e.target.value })}
-                        placeholder="Referência de áudio / música"
-                        className="bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
-                      />
-                    </div>
-
-                    <div>
-                      <SubLabel>Notas</SubLabel>
-                      <AutoTextArea
-                        value={v.notes}
-                        onChange={(e) => upd(v.id, { notes: e.target.value })}
-                        placeholder="Edição, ganchos, observações..."
-                        minRows={3}
-                      />
+                    <div className="flex flex-col gap-5">
+                      <div>
+                        <SubLabel>Roteiro</SubLabel>
+                        <div className="rounded-lg bg-background/40 px-4 py-3">
+                          <AutoTextArea
+                            value={v.script}
+                            onChange={(e) => upd(v.id, { script: e.target.value })}
+                            placeholder="Estrutura do vídeo cena a cena..."
+                            minRows={5}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <SubLabel>Falas</SubLabel>
+                        <div className="rounded-lg bg-background/40 px-4 py-3">
+                          <AutoTextArea
+                            value={v.speech}
+                            onChange={(e) => upd(v.id, { speech: e.target.value })}
+                            placeholder="Texto exato a ser falado..."
+                            minRows={4}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div>
+                          <SubLabel>Referência de áudio / música</SubLabel>
+                          <input
+                            value={v.audio}
+                            onChange={(e) => upd(v.id, { audio: e.target.value })}
+                            placeholder="Nome / link da trilha"
+                            className="w-full bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
+                          />
+                        </div>
+                        <div>
+                          <SubLabel>Notas de edição</SubLabel>
+                          <input
+                            value={v.editingNotes}
+                            onChange={(e) => upd(v.id, { editingNotes: e.target.value })}
+                            placeholder="Cortes, transições, ritmo..."
+                            className="w-full bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <SubLabel>Notas gerais</SubLabel>
+                        <div className="rounded-lg bg-background/40 px-4 py-3">
+                          <AutoTextArea
+                            value={v.notes}
+                            onChange={(e) => upd(v.id, { notes: e.target.value })}
+                            placeholder="Ganchos, observações, ideias..."
+                            minRows={3}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1802,6 +1828,8 @@ function VideosSection({ product }: { product: Product }) {
     </section>
   );
 }
+
+
 
 function FileSlot({
   label,
