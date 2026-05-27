@@ -35,6 +35,7 @@ interface StoreContextValue extends StoreState {
   goHome: () => void;
   openProduct: (id: string) => void;
   openViral: () => void;
+  openSettings: () => void;
 
   createProduct: () => string;
   updateProduct: (id: string, patch: Partial<Product> | ((p: Product) => Product)) => void;
