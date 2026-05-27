@@ -107,6 +107,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [setUI],
   );
   const openViral = useCallback(() => setUI({ view: "viral" }), [setUI]);
+  const openSettings = useCallback(() => setUI({ view: "settings" }), [setUI]);
 
   const createProduct = useCallback(() => {
     const p = newProduct();
