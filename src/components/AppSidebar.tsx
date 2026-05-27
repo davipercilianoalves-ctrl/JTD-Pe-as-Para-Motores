@@ -7,6 +7,7 @@ import {
   Pin,
   PinOff,
   Package2,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ const HOVER_CLOSE_DELAY = 240;
 const RECENT_LIMIT = 8;
 
 export function AppSidebar() {
-  const { products, ui, openProduct, createProduct, goHome, openViral } =
+  const { products, ui, openProduct, createProduct, goHome, openViral, openSettings } =
     useStore();
   const openPalette = useCommandPalette();
 
@@ -205,6 +206,13 @@ export function AppSidebar() {
             active={ui.view === "viral"}
             collapsed={!expanded}
             onClick={openViral}
+          />
+          <NavItem
+            icon={SettingsIcon}
+            label="Configurações"
+            active={ui.view === "settings"}
+            collapsed={!expanded}
+            onClick={openSettings}
           />
         </nav>
 

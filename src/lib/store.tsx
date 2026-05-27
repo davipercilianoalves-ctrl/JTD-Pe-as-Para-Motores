@@ -18,7 +18,7 @@ import {
 const STORAGE_KEY = "jtd-motors-hub:v3";
 const LEGACY_KEY = "jtd-motors-hub:v2";
 
-export type View = "home" | "product" | "viral";
+export type View = "home" | "product" | "viral" | "settings";
 
 interface UIState {
   view: View;
@@ -35,6 +35,7 @@ interface StoreContextValue extends StoreState {
   goHome: () => void;
   openProduct: (id: string) => void;
   openViral: () => void;
+  openSettings: () => void;
 
   createProduct: () => string;
   updateProduct: (id: string, patch: Partial<Product> | ((p: Product) => Product)) => void;
@@ -106,6 +107,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [setUI],
   );
   const openViral = useCallback(() => setUI({ view: "viral" }), [setUI]);
+  const openSettings = useCallback(() => setUI({ view: "settings" }), [setUI]);
 
   const createProduct = useCallback(() => {
     const p = newProduct();
@@ -248,6 +250,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         goHome,
         openProduct,
         openViral,
+        openSettings,
         createProduct,
         updateProduct,
         deleteProduct,

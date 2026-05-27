@@ -4,6 +4,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ProductWorkspace } from "@/components/ProductWorkspace";
 import { HomeScreen } from "@/components/HomeScreen";
 import { ViralLibraryScreen } from "@/components/ViralLibraryScreen";
+import { SettingsScreen } from "@/components/SettingsScreen";
+import { StorageBanner } from "@/components/StorageBanner";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
 import { CommandPaletteProvider } from "@/components/CommandPalette";
 
@@ -28,7 +30,10 @@ function Index() {
         <CommandPaletteProvider>
           <div className="dark flex h-screen w-full overflow-hidden bg-background text-foreground">
             <AppSidebar />
-            <Main />
+            <div className="flex flex-1 flex-col min-w-0">
+              <StorageBanner />
+              <Main />
+            </div>
           </div>
         </CommandPaletteProvider>
       </ConfirmProvider>
@@ -40,6 +45,6 @@ function Main() {
   const { ui } = useStore();
   if (ui.view === "home") return <HomeScreen />;
   if (ui.view === "viral") return <ViralLibraryScreen />;
+  if (ui.view === "settings") return <SettingsScreen />;
   return <ProductWorkspace />;
 }
-
