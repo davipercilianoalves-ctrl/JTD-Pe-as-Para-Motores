@@ -250,6 +250,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         goHome,
         openProduct,
         openViral,
+        openSettings,
         createProduct,
         updateProduct,
         deleteProduct,
