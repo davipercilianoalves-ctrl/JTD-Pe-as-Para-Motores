@@ -207,6 +207,13 @@ export function AppSidebar() {
             collapsed={!expanded}
             onClick={openViral}
           />
+          <NavItem
+            icon={SettingsIcon}
+            label="Configurações"
+            active={ui.view === "settings"}
+            collapsed={!expanded}
+            onClick={openSettings}
+          />
         </nav>
 
         {/* Primary CTA */}
