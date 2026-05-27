@@ -22,7 +22,7 @@ const HOVER_CLOSE_DELAY = 240;
 const RECENT_LIMIT = 8;
 
 export function AppSidebar() {
-  const { products, ui, openProduct, createProduct, goHome, openViral } =
+  const { products, ui, openProduct, createProduct, goHome, openViral, openSettings } =
     useStore();
   const openPalette = useCommandPalette();
 
