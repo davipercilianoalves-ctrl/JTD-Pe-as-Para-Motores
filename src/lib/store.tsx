@@ -18,7 +18,7 @@ import {
 const STORAGE_KEY = "jtd-motors-hub:v3";
 const LEGACY_KEY = "jtd-motors-hub:v2";
 
-export type View = "home" | "product" | "viral";
+export type View = "home" | "product" | "viral" | "settings";
 
 interface UIState {
   view: View;
