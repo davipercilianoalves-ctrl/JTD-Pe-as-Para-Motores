@@ -7,6 +7,7 @@ import {
   Pin,
   PinOff,
   Package2,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
