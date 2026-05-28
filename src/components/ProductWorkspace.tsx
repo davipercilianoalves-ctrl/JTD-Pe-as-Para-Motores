@@ -1297,7 +1297,7 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
           <div className="rounded-xl bg-background/50 border border-border/40 focus-within:border-primary/40 focus-within:bg-background/70 transition-colors px-5 py-4">
             <AutoResizeTextarea
               value={data.shortDescription}
-              onChange={(e) => set("shortDescription", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("shortDescription", e.target.value)}
               placeholder="Uma ou duas frases que resumem o produto incluindo as palavras-chave principais..."
               className="text-[15px] leading-relaxed"
               minRows={2}
@@ -1348,7 +1348,7 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
             )}
             <AutoResizeTextarea
               value={data.description}
-              onChange={(e) => set("description", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("description", e.target.value)}
               placeholder="Continue a descrição a partir do resumo..."
               className="text-[15px] leading-loose"
               minRows={8}
@@ -1362,7 +1362,7 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
         <SoftBlock label="Bullet points / ficha técnica">
           <AutoResizeTextarea
             value={data.media}
-            onChange={(e) => set("media", e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("media", e.target.value)}
             placeholder={"• Item 1\n• Item 2"}
             minRows={4}
           />
@@ -1370,21 +1370,21 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
         <SoftBlock label="SEO complementar">
           <AutoResizeTextarea
             value={data.seo}
-            onChange={(e) => set("seo", e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("seo", e.target.value)}
             minRows={4}
           />
         </SoftBlock>
         <SoftBlock label="Estratégia / copy viral">
           <AutoResizeTextarea
             value={data.strategies}
-            onChange={(e) => set("strategies", e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("strategies", e.target.value)}
             minRows={4}
           />
         </SoftBlock>
         <SoftBlock label="Notas">
           <AutoResizeTextarea
             value={data.notes}
-            onChange={(e) => set("notes", e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("notes", e.target.value)}
             minRows={4}
           />
         </SoftBlock>
@@ -2517,7 +2517,7 @@ function VideosSection({ product }: { product: Product }) {
                         <div className="rounded-lg bg-background/40 px-4 py-3">
                           <AutoResizeTextarea
                             value={v.script}
-                            onChange={(e) => upd(v.id, { script: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { script: e.target.value })}
                             placeholder="Estrutura do vídeo cena a cena..."
                             minRows={5}
                           />
@@ -2528,7 +2528,7 @@ function VideosSection({ product }: { product: Product }) {
                         <div className="rounded-lg bg-background/40 px-4 py-3">
                           <AutoResizeTextarea
                             value={v.speech}
-                            onChange={(e) => upd(v.id, { speech: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { speech: e.target.value })}
                             placeholder="Texto exato a ser falado..."
                             minRows={4}
                           />
@@ -2559,7 +2559,7 @@ function VideosSection({ product }: { product: Product }) {
                         <div className="rounded-lg bg-background/40 px-4 py-3">
                           <AutoResizeTextarea
                             value={v.notes}
-                            onChange={(e) => upd(v.id, { notes: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { notes: e.target.value })}
                             placeholder="Ganchos, observações, ideias..."
                             minRows={3}
                           />
