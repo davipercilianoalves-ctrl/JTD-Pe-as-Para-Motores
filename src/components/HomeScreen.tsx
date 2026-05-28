@@ -481,7 +481,7 @@ function RecentProducts() {
               <div className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-2">
                 {p.sku && <span>SKU: {p.sku}</span>}
                 {p.sku && <span className="h-0.5 w-0.5 rounded-full bg-muted-foreground/40" />}
-                <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                <span>{p.createdAt > 0 ? new Date(p.createdAt).toLocaleDateString() : "agora"}</span>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
