@@ -150,7 +150,7 @@ export function ProductWorkspace() {
 
           <input
             value={product.name}
-            onChange={(e) => set("name", e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("name", e.target.value)}
             placeholder="Nome do produto"
             className="w-full bg-transparent text-5xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/30 mb-2"
           />
@@ -237,33 +237,33 @@ export function ProductWorkspace() {
             {showMeta && (
               <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <Field label="SKU">
-                  <TextInput value={product.sku} onChange={(e) => set("sku", e.target.value)} />
+                  <TextInput value={product.sku} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("sku", e.target.value)} />
                 </Field>
                 <Field label="Código original">
                   <TextInput
                     value={product.originalCode}
-                    onChange={(e) => set("originalCode", e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("originalCode", e.target.value)}
                   />
                 </Field>
                 <Field label="Marca">
-                  <TextInput value={product.brand} onChange={(e) => set("brand", e.target.value)} />
+                  <TextInput value={product.brand} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("brand", e.target.value)} />
                 </Field>
                 <Field label="Categoria">
                   <TextInput
                     value={product.category}
-                    onChange={(e) => set("category", e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("category", e.target.value)}
                   />
                 </Field>
                 <Field label="Fornecedor">
                   <TextInput
                     value={product.supplier}
-                    onChange={(e) => set("supplier", e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("supplier", e.target.value)}
                   />
                 </Field>
                 <Field label="Notas internas">
                   <AutoTextArea
                     value={product.internalNotes}
-                    onChange={(e) => set("internalNotes", e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("internalNotes", e.target.value)}
                     className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-base outline-none focus:bg-input/70 transition-colors placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-ring/40"
                     minRows={2}
                   />
@@ -279,7 +279,7 @@ export function ProductWorkspace() {
             <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
             <AutoTextArea
               value={product.niche_faqs || ""}
-              onChange={(e) => set("niche_faqs", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("niche_faqs", e.target.value)}
               placeholder="Ex: Serve para modelo X? Tem garantia? Qual o prazo de entrega?"
               className="mt-2 w-full rounded-xl bg-surface px-5 py-4 text-[15px] border border-border/40 focus:border-primary/40 transition-colors outline-none"
               minRows={4}
@@ -396,7 +396,7 @@ function KeywordsSection({ product }: { product: Product }) {
         <div className="flex items-center gap-3 px-6 py-4 border-b border-border/60">
           <input
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
             onKeyDown={onKey}
             onBlur={commit}
             placeholder="+ adicionar palavra (Enter ou vírgula)"
@@ -404,7 +404,7 @@ function KeywordsSection({ product }: { product: Product }) {
           />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
             placeholder="Filtrar..."
             className="w-32 bg-background/60 rounded-md px-2.5 py-1 text-xs outline-none placeholder:text-muted-foreground/40"
           />
@@ -743,13 +743,13 @@ function CompetitorsSection({ product }: { product: Product }) {
                     <div className="flex gap-2">
                       <input
                         value={c.link}
-                        onChange={(e) => upd(c.id, { link: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(c.id, { link: e.target.value })}
                         placeholder="Link do anúncio"
                         className="flex-1 bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70"
                       />
                       <select
                         value={c.marketplace}
-                        onChange={(e) => upd(c.id, { marketplace: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(c.id, { marketplace: e.target.value })}
                         className="rounded-lg bg-input/40 px-3 text-sm outline-none"
                       >
                         <option>Mercado Livre</option>
@@ -771,7 +771,7 @@ function CompetitorsSection({ product }: { product: Product }) {
 
                     <input
                       value={c.title}
-                      onChange={(e) => upd(c.id, { title: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(c.id, { title: e.target.value })}
                       placeholder="Título do concorrente"
                       className="w-full bg-transparent text-xl font-medium outline-none placeholder:text-muted-foreground/40"
                     />
@@ -780,7 +780,7 @@ function CompetitorsSection({ product }: { product: Product }) {
                       <SubLabel>Descrição</SubLabel>
                       <AutoTextArea
                         value={c.description}
-                        onChange={(e) => upd(c.id, { description: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(c.id, { description: e.target.value })}
                         placeholder="Cole a descrição completa..."
                         minRows={4}
                         className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none transition-colors"
@@ -791,7 +791,7 @@ function CompetitorsSection({ product }: { product: Product }) {
                       <Field label="Preço (R$)">
                         <TextInput
                           value={c.price?.toString() || ""}
-                          onChange={(e) => {
+                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                             const value = e.target.value;
                             const price = parseFloat(
                               value
@@ -815,7 +815,7 @@ function CompetitorsSection({ product }: { product: Product }) {
                       <SubLabel>Notas internas</SubLabel>
                       <AutoTextArea
                         value={c.notes}
-                        onChange={(e) => upd(c.id, { notes: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(c.id, { notes: e.target.value })}
                         placeholder="O que faz bem? O que dá pra superar?"
                         minRows={3}
                         className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none transition-colors"
@@ -1128,7 +1128,7 @@ function TitleField({
       )}>
         <input
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
           placeholder="Digite o título do anúncio..."
           maxLength={60}
           autoFocus={autoFocus}
@@ -1442,7 +1442,7 @@ function PricingSection({ product }: { product: Product }) {
               max={Math.max(50, p.maxDiscount)}
               step={1}
               value={p.visibleDiscount}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 patch((prev) => ({ ...prev, visibleDiscount: +e.target.value }))
               }
               className="w-full accent-primary"
@@ -1454,7 +1454,7 @@ function PricingSection({ product }: { product: Product }) {
                 <input
                   type="number"
                   value={p.maxDiscount}
-                  onChange={(e) =>
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                     patch((prev) => ({ ...prev, maxDiscount: +e.target.value || 0 }))
                   }
                   className="w-12 bg-transparent text-foreground tabular-nums outline-none border-b border-border focus:border-primary"
@@ -1468,7 +1468,7 @@ function PricingSection({ product }: { product: Product }) {
             <input
               type="checkbox"
               checked={p.compensateDiscount}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 patch((prev) => ({ ...prev, compensateDiscount: e.target.checked }))
               }
               className="accent-primary w-4 h-4"
@@ -1492,7 +1492,7 @@ function PricingSection({ product }: { product: Product }) {
                 type="number"
                 step="0.1"
                 value={p.desiredProfit || ""}
-                onChange={(e) =>
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                   patch((prev) => ({ ...prev, desiredProfit: +e.target.value || 0 }))
                 }
                 className="w-full bg-transparent outline-none text-3xl font-semibold tabular-nums tracking-tight"
@@ -1894,7 +1894,7 @@ function CostRow({
     <div className="group flex items-center gap-1.5 rounded-lg bg-input/40 px-2 py-1.5 hover:bg-input/60 transition-colors">
       <input
         value={item.label}
-        onChange={(e) => onChange({ label: e.target.value })}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange({ label: e.target.value })}
         className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/50 min-w-0"
         placeholder="Nome do custo"
       />
@@ -1902,7 +1902,7 @@ function CostRow({
         type="number"
         step="0.01"
         value={item.value || ""}
-        onChange={(e) => onChange({ value: +e.target.value || 0 })}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange({ value: +e.target.value || 0 })}
         placeholder="0"
         className="w-16 bg-transparent outline-none tabular-nums text-[13px] text-right"
       />
@@ -2088,7 +2088,7 @@ function ImagesSection({ product }: { product: Product }) {
         accept="image/*"
         multiple
         hidden
-        onChange={(e) => e.target.files && ingest(e.target.files)}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => e.target.files && ingest(e.target.files)}
       />
 
       <div
@@ -2334,13 +2334,13 @@ function VideosSection({ product }: { product: Product }) {
                   </button>
                   <input
                     value={v.cta}
-                    onChange={(e) => upd(v.id, { cta: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { cta: e.target.value })}
                     placeholder={title}
                     className="flex-1 bg-transparent text-base font-medium outline-none placeholder:text-muted-foreground/50"
                   />
                   <select
                     value={v.platform}
-                    onChange={(e) => upd(v.id, { platform: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { platform: e.target.value })}
                     className="rounded-md bg-background/60 px-2 py-1 text-xs outline-none"
                   >
                     <option>TikTok</option>
@@ -2406,7 +2406,7 @@ function VideosSection({ product }: { product: Product }) {
                       <div className="flex gap-2 mt-1">
                         <input
                           value={v.link}
-                          onChange={(e) => upd(v.id, { link: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { link: e.target.value })}
                           placeholder="Link externo"
                           className="flex-1 bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
                         />
@@ -2451,7 +2451,7 @@ function VideosSection({ product }: { product: Product }) {
                           <SubLabel>Referência de áudio / música</SubLabel>
                           <input
                             value={v.audio}
-                            onChange={(e) => upd(v.id, { audio: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { audio: e.target.value })}
                             placeholder="Nome / link da trilha"
                             className="w-full bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
                           />
@@ -2460,7 +2460,7 @@ function VideosSection({ product }: { product: Product }) {
                           <SubLabel>Notas de edição</SubLabel>
                           <input
                             value={v.editingNotes}
-                            onChange={(e) => upd(v.id, { editingNotes: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { editingNotes: e.target.value })}
                             placeholder="Cortes, transições, ritmo..."
                             className="w-full bg-input/40 rounded-lg px-3 py-2 text-sm outline-none focus:bg-input/70"
                           />
@@ -2512,7 +2512,7 @@ function FileSlot({
         type="file"
         accept={accept}
         hidden
-        onChange={(e) => onFile(e.target.files?.[0])}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onFile(e.target.files?.[0])}
       />
       <button
         onClick={() => ref.current?.click()}
