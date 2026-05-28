@@ -10,9 +10,10 @@ import {
   ExternalLink,
   ChevronDown,
   X,
-  
   GripVertical,
+  Cloud,
 } from "lucide-react";
+import { FloatingKeywordInput, FloatingKeywordCloud } from "./KeywordTools";
 import { useStore, useSelectedProduct } from "@/lib/store";
 import { useConfirm } from "@/components/ConfirmProvider";
 import {
@@ -67,6 +68,16 @@ export function ProductWorkspace() {
   const confirm = useConfirm();
   const [market, setMarket] = useState<MK>("mercadoLivre");
   const [showMeta, setShowMeta] = useState(false);
+  const [showCloud, setShowCloud] = useState(false);
+
+  const allKeywords = useMemo(() => {
+    if (!product) return [];
+    const list: { text: string; source: string }[] = [];
+    product.competitors.forEach((c) => {
+      c.keywordsFound.forEach((kw) => list.push({ text: kw, source: c.title || "Concorrente" }));
+    });
+    return list;
+  }, [product?.competitors]);
 
   if (!product) {
     return (
@@ -97,7 +108,13 @@ export function ProductWorkspace() {
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               Workspace
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCloud(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border/40"
+              >
+                <Cloud className="h-3.5 w-3.5" /> Ver todas as palavras
+              </button>
               <button
                 onClick={() => toggleFavorite(product.id)}
                 className="rounded-lg p-2 hover:bg-accent"
@@ -249,8 +266,29 @@ export function ProductWorkspace() {
               </div>
             )}
           </div>
+
+          <ConsolidatedKeywords product={product} />
+
+          {/* 8 — FAQ */}
+          <div className="mt-20">
+            <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
+            <AutoTextArea
+              value={product.niche_faqs || ""}
+              onChange={(e) => set("niche_faqs", e.target.value)}
+              placeholder="Ex: Serve para modelo X? Tem garantia? Qual o prazo de entrega?"
+              className="mt-2 rounded-xl bg-surface px-5 py-4 text-[15px] border border-border/40 focus:border-primary/40 transition-colors"
+              minRows={4}
+            />
+          </div>
         </div>
       </div>
+      {showCloud && (
+        <FloatingKeywordCloud
+          keywords={allKeywords}
+          onClose={() => setShowCloud(false)}
+          productName={product.name}
+        />
+      )}
     </div>
   );
 }
@@ -496,6 +534,95 @@ function KeywordsSection({ product }: { product: Product }) {
   );
 }
 
+function ConsolidatedKeywords({ product }: { product: Product }) {
+  const { removeKeyword } = useStore();
+  const [copied, setCopied] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const copyAll = () => {
+    navigator.clipboard.writeText(product.keywords.map((k) => k.display).join(", "));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copySelected = () => {
+    const text = product.keywords
+      .filter((k) => selected.has(k.id))
+      .map((k) => k.display)
+      .join(", ");
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="mt-16">
+      <SectionTitle
+        hint="Lista mestre consolidada de todas as palavras encontradas."
+        action={
+          <div className="flex gap-2">
+            <Btn variant="soft" size="sm" onClick={copySelected} disabled={selected.size === 0}>
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              Copiar selecionadas
+            </Btn>
+            <Btn variant="soft" size="sm" onClick={copyAll} disabled={product.keywords.length === 0}>
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              Copiar todas
+            </Btn>
+          </div>
+        }
+      >
+        Palavras-chave encontradas
+      </SectionTitle>
+
+      <div className="rounded-2xl bg-surface p-6">
+        {product.keywords.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma palavra-chave adicionada ainda.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {product.keywords.map((k) => {
+              const isSelected = selected.has(k.id);
+              return (
+                <div
+                  key={k.id}
+                  onClick={() => toggleSelect(k.id)}
+                  className={cn(
+                    "group flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all cursor-pointer select-none",
+                    isSelected
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-background/40 border-border/60 hover:border-primary/40",
+                  )}
+                >
+                  <span className="text-sm">{k.display}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeKeyword(product.id, k.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 /* ============================================================
    2. COMPETITORS — fast inline blocks; keywords feed back into main list
@@ -537,9 +664,11 @@ function CompetitorsSection({ product }: { product: Product }) {
       <SectionTitle
         hint="O coração do app. Cole, observe, extraia palavras."
         action={
-          <Btn variant="soft" size="sm" onClick={add}>
-            <Plus className="h-3.5 w-3.5" /> Novo concorrente
-          </Btn>
+          <div className="flex items-center gap-2">
+            <Btn variant="soft" size="sm" onClick={add}>
+              <Plus className="h-3.5 w-3.5" /> Novo concorrente
+            </Btn>
+          </div>
         }
       >
         Análise de concorrentes
@@ -637,7 +766,22 @@ function CompetitorsSection({ product }: { product: Product }) {
                         onChange={(e) => upd(c.id, { description: e.target.value })}
                         placeholder="Cole a descrição completa..."
                         minRows={4}
+                        className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none resize-none overflow-hidden"
                       />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Field label="Preço (R$)">
+                        <TextInput
+                          value={c.price?.toString() || ""}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(",", ".");
+                            const val = parseFloat(raw);
+                            upd(c.id, { price: isNaN(val) ? undefined : val });
+                          }}
+                          placeholder="0,00"
+                        />
+                      </Field>
                     </div>
 
                     <CompetitorKeywords
@@ -647,12 +791,13 @@ function CompetitorsSection({ product }: { product: Product }) {
                     />
 
                     <div>
-                      <SubLabel>Observações</SubLabel>
+                      <SubLabel>Notas internas</SubLabel>
                       <AutoTextArea
                         value={c.notes}
                         onChange={(e) => upd(c.id, { notes: e.target.value })}
                         placeholder="O que faz bem? O que dá pra superar?"
                         minRows={3}
+                        className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none resize-none overflow-hidden"
                       />
                     </div>
                   </div>
@@ -660,9 +805,50 @@ function CompetitorsSection({ product }: { product: Product }) {
               </div>
             );
           })}
+          <PriceAnalysisSummary competitors={product.competitors} />
         </div>
       )}
     </section>
+  );
+}
+
+function PriceAnalysisSummary({ competitors }: { competitors: CompetitorBlock[] }) {
+  const prices = competitors
+    .map((c) => c.price)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+
+  if (prices.length === 0) {
+    return (
+      <div className="rounded-xl border border-border/40 bg-surface px-6 py-5">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-4">
+          Análise de Preços dos Concorrentes
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Mínimo</div><div className="text-lg font-medium">—</div></div>
+          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Máximo</div><div className="text-lg font-medium">—</div></div>
+          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Médio</div><div className="text-lg font-medium">—</div></div>
+          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Base</div><div className="text-lg font-medium">0 anúncios</div></div>
+        </div>
+      </div>
+    );
+  }
+
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+  return (
+    <div className="rounded-xl border border-primary/20 bg-primary/5 px-6 py-5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/80 mb-4">
+        Análise de Preços dos Concorrentes
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Mínimo</div><div className="text-lg font-medium text-foreground">{brl(min)}</div></div>
+        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Máximo</div><div className="text-lg font-medium text-foreground">{brl(max)}</div></div>
+        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Médio</div><div className="text-lg font-medium text-primary">{brl(avg)}</div></div>
+        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Base</div><div className="text-lg font-medium text-foreground">{prices.length} {prices.length === 1 ? 'anúncio' : 'anúncios'}</div></div>
+      </div>
+    </div>
   );
 }
 
@@ -675,47 +861,27 @@ function CompetitorKeywords({
   onChange: (words: string[]) => void;
   onCommit: (words: string[]) => void;
 }) {
-  const [draft, setDraft] = useState("");
   const [flash, setFlash] = useState(false);
+  const [showInput, setShowInput] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const flashOk = () => {
     setFlash(true);
     setTimeout(() => setFlash(false), 700);
   };
 
-  const commitTokens = (raw: string) => {
-    const toks = parseSingleWords(raw);
-    if (!toks.length) return;
-    const existing = new Set(block.keywordsFound.map((w) => canonKeyword(w)));
-    const fresh: string[] = [];
-    const added: string[] = [];
-    for (const t of toks) {
-      const key = canonKeyword(t);
-      if (!key) continue;
-      if (!existing.has(key)) {
-        existing.add(key);
-        fresh.push(t);
-      }
-      added.push(t);
+  const addWord = (word: string) => {
+    const key = canonKeyword(word);
+    if (!key) return;
+    if (!block.keywordsFound.some((w) => canonKeyword(w) === key)) {
+      onChange([...block.keywordsFound, word]);
     }
-    if (fresh.length) onChange([...block.keywordsFound, ...fresh]);
-    if (added.length) {
-      onCommit(added);
-      flashOk();
-    }
+    onCommit([word]);
+    flashOk();
   };
 
-  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === " " || e.key === ",") {
-      if (e.key === " " && draft.trim().length === 0) return;
-      e.preventDefault();
-      commitTokens(draft);
-      setDraft("");
-    }
-  };
-
-  const removeWord = (idx: number) => {
-    onChange(block.keywordsFound.filter((_, i) => i !== idx));
+  const removeWord = (word: string) => {
+    onChange(block.keywordsFound.filter((w) => w !== word));
   };
 
   const resendAll = () => {
@@ -726,62 +892,68 @@ function CompetitorKeywords({
 
   return (
     <div>
-      <SubLabel>
-        <span className="inline-flex items-center gap-2">
-          Palavras-chave encontradas
-          <span className="normal-case tracking-normal text-muted-foreground/70 text-[11px]">
-            Espaço, vírgula ou Enter — entram na lista principal automaticamente
+      <div className="flex items-center justify-between mb-2">
+        <SubLabel>
+          <span className="inline-flex items-center gap-2">
+            Palavras-chave encontradas
+            {flash && (
+              <span className="normal-case tracking-normal text-success text-[11px] inline-flex items-center gap-1">
+                <Check className="h-3 w-3" /> enviado
+              </span>
+            )}
           </span>
-          {flash && (
-            <span className="normal-case tracking-normal text-success text-[11px] inline-flex items-center gap-1">
-              <Check className="h-3 w-3" /> enviado
-            </span>
-          )}
+        </SubLabel>
+        <div className="flex items-center gap-3">
+          <button
+            ref={btnRef}
+            onClick={() => setShowInput(true)}
+            className="text-[11px] text-primary hover:underline flex items-center gap-1"
+          >
+            <Plus className="h-3 w-3" /> Palavras-chave
+          </button>
           <button
             onClick={resendAll}
             disabled={!block.keywordsFound.length}
-            className="ml-auto normal-case tracking-normal text-[11px] text-primary hover:underline disabled:opacity-30"
-            title="Reenviar todas para a lista principal"
+            className="text-[11px] text-primary hover:underline disabled:opacity-30"
           >
             Enviar todas →
           </button>
-        </span>
-      </SubLabel>
-      <div
-        className={cn(
-          "rounded-lg bg-input/40 px-3 py-2.5 flex flex-wrap items-center gap-1.5 transition-colors",
-          flash ? "ring-2 ring-success/50 bg-success/5" : "focus-within:bg-input/70",
-        )}
-      >
-        {block.keywordsFound.map((w, i) => (
-          <span
-            key={i}
-            className="group inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2.5 py-0.5 text-xs"
-          >
-            {w}
-            <button
-              onClick={() => removeWord(i)}
-              className="opacity-60 hover:opacity-100"
-              title="Remover"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        ))}
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onKey}
-          onBlur={() => {
-            if (draft.trim()) {
-              commitTokens(draft);
-              setDraft("");
-            }
-          }}
-          placeholder={block.keywordsFound.length ? "" : "alta temperatura vedação motor..."}
-          className="flex-1 min-w-[160px] bg-transparent outline-none text-sm py-1"
-        />
+        </div>
       </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 min-h-[40px]">
+        {block.keywordsFound.length === 0 ? (
+          <span className="text-xs text-muted-foreground/50">Nenhuma palavra adicionada.</span>
+        ) : (
+          block.keywordsFound.map((w, i) => (
+            <span
+              key={i}
+              className="group inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs"
+            >
+              {w}
+              <button
+                onClick={() => removeWord(w)}
+                className="opacity-60 hover:opacity-100"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))
+        )}
+      </div>
+
+      {showInput && btnRef.current && (
+        <FloatingKeywordInput
+          initialKeywords={block.keywordsFound}
+          onAdd={addWord}
+          onRemove={removeWord}
+          onClose={() => setShowInput(false)}
+          position={{
+            top: btnRef.current.getBoundingClientRect().bottom + window.scrollY + 5,
+            left: btnRef.current.getBoundingClientRect().left + window.scrollX - 200,
+          }}
+        />
+      )}
     </div>
   );
 }

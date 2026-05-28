@@ -28,6 +28,7 @@ export interface CompetitorBlock {
   strongWords?: string;
   marketplace: string;
   updatedAt: number;
+  price?: number; // Added for competitive analysis
 }
 
 export interface TitleEntry {
@@ -163,6 +164,7 @@ export interface Product {
   /** @deprecated kept for migration only */
   keywordsText?: string;
   competitors: CompetitorBlock[];
+  niche_faqs?: string; // Added for FAQs section
 
   mercadoLivre: MarketplaceData;
   shopee: MarketplaceData;
