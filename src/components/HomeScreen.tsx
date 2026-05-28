@@ -343,16 +343,19 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
 
 function DailyGoal() {
   const { products } = useStore();
-  const [goal, setGoal] = useState<number>(() => {
+  const [goal, setGoal] = useState<number>(0);
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("jtd:daily-goal");
-      if (!saved) return 0;
-      const parsed = parseInt(saved, 10);
-      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (Number.isFinite(parsed) && parsed >= 0) setGoal(parsed);
+      }
     } catch {
-      return 0;
+      /* ignore */
     }
-  });
+  }, []);
 
   const todayCount = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -478,7 +481,7 @@ function RecentProducts() {
               <div className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-2">
                 {p.sku && <span>SKU: {p.sku}</span>}
                 {p.sku && <span className="h-0.5 w-0.5 rounded-full bg-muted-foreground/40" />}
-                <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                <span>{p.createdAt > 0 ? new Date(p.createdAt).toLocaleDateString() : "agora"}</span>
               </div>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
