@@ -261,7 +261,7 @@ export function ProductWorkspace() {
                   />
                 </Field>
                 <Field label="Notas internas">
-                  <AutoResizeTextarea
+                  <AutoTextArea
                     value={product.internalNotes}
                     onChange={(e) => set("internalNotes", e.target.value)}
                     className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-base outline-none focus:bg-input/70 transition-colors placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-ring/40"
@@ -277,7 +277,7 @@ export function ProductWorkspace() {
           {/* 8 — FAQ */}
           <div className="mt-20">
             <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
-            <AutoResizeTextarea
+            <AutoTextArea
               value={product.niche_faqs || ""}
               onChange={(e) => set("niche_faqs", e.target.value)}
               placeholder="Ex: Serve para modelo X? Tem garantia? Qual o prazo de entrega?"
@@ -778,7 +778,7 @@ function CompetitorsSection({ product }: { product: Product }) {
 
                     <div>
                       <SubLabel>Descrição</SubLabel>
-                      <AutoResizeTextarea
+                      <AutoTextArea
                         value={c.description}
                         onChange={(e) => upd(c.id, { description: e.target.value })}
                         placeholder="Cole a descrição completa..."
@@ -813,7 +813,7 @@ function CompetitorsSection({ product }: { product: Product }) {
 
                     <div>
                       <SubLabel>Notas internas</SubLabel>
-                      <AutoResizeTextarea
+                      <AutoTextArea
                         value={c.notes}
                         onChange={(e) => upd(c.id, { notes: e.target.value })}
                         placeholder="O que faz bem? O que dá pra superar?"
@@ -2427,7 +2427,7 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Roteiro</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoResizeTextarea
+                          <AutoTextArea
                             value={v.script}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { script: e.target.value })}
                             placeholder="Estrutura do vídeo cena a cena..."
@@ -2438,7 +2438,7 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Falas</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoResizeTextarea
+                          <AutoTextArea
                             value={v.speech}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { speech: e.target.value })}
                             placeholder="Texto exato a ser falado..."
@@ -2469,7 +2469,7 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Notas gerais</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoResizeTextarea
+                          <AutoTextArea
                             value={v.notes}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { notes: e.target.value })}
                             placeholder="Ganchos, observações, ideias..."
