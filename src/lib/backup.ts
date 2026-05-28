@@ -2,6 +2,11 @@
 // All app data lives in localStorage — these helpers serialize, validate
 // and restore every key without depending on any external service.
 
+// ATENÇÃO: imagens salvas em base64 no localStorage aumentam o
+// tamanho em ~37%. Se o app salvar muitas imagens, o armazenamento
+// pode atingir o limite rapidamente. Limite seguro: até 2MB de uso.
+// Acima de 4MB o risco de falha em backup/importação é alto.
+
 const APP_PREFIX = "jtd";
 const APP_NAME = "JTD Motors Hub";
 const BACKUP_VERSION = "1.0";
@@ -19,7 +24,6 @@ function readAppKeys(): Record<string, string> {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key) continue;
-    if (!key.startsWith(APP_PREFIX)) continue;
     const value = localStorage.getItem(key);
     if (value !== null) out[key] = value;
   }
@@ -92,19 +96,27 @@ export async function importData(file: File): Promise<void> {
   }
   keysToRemove.forEach((k) => localStorage.removeItem(k));
   for (const [k, v] of Object.entries(parsed.data)) {
-    localStorage.setItem(k, v);
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      throw new Error(
+        "Falha ao restaurar backup. Espaço do navegador excedido."
+      );
+    }
   }
+  window.location.reload();
 }
 
 export function getStorageUsage(): { usedMB: number; percent: number } {
-  let used = 0;
+  let usedMB = 0;
   try {
-    used = (JSON.stringify(localStorage).length * 2) / 1024 / 1024;
+    const bytes = new Blob([JSON.stringify(localStorage)]).size;
+    usedMB = bytes / (1024 * 1024);
   } catch {
-    used = 0;
+    usedMB = 0;
   }
-  const percent = (used / STORAGE_LIMIT_MB) * 100;
-  return { usedMB: used, percent };
+  const percent = (usedMB / STORAGE_LIMIT_MB) * 100;
+  return { usedMB, percent };
 }
 
 export const STORAGE_LIMIT = STORAGE_LIMIT_MB;
