@@ -1031,190 +1031,155 @@ function SubLabel({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================================================
-   3a. TITLES — focused card per title, with keyword highlight & suggestions
+   3a. TITLES — multiple variants with floating keyword box
 ============================================================ */
 function TitlesSection({ product, market }: { product: Product; market: MK }) {
   const { updateProduct } = useStore();
   const data = product[market];
+  const [showKeywordBox, setShowKeywordBox] = useState(false);
 
-  const add = (variant: TitleVariant, text = "") => {
-    const entry: TitleEntry = { id: crypto.randomUUID(), variant, text };
-    updateProduct(product.id, (p) => ({
-      ...p,
-      [market]: { ...p[market], titles: [...p[market].titles, entry] },
-    }));
+  const titles = data.titles && data.titles.length > 0 ? data.titles : [""];
+
+  const upd = (idx: number, text: string) => {
+    updateProduct(product.id, (p) => {
+      const nextTitles = [...(p[market].titles || [""])];
+      nextTitles[idx] = text.slice(0, 60);
+      return { ...p, [market]: { ...p[market], titles: nextTitles } };
+    });
   };
-  const upd = (id: string, text: string) =>
-    updateProduct(product.id, (p) => ({
-      ...p,
-      [market]: {
-        ...p[market],
-        titles: p[market].titles.map((t) => (t.id === id ? { ...t, text } : t)),
-      },
-    }));
-  const rm = (id: string) =>
-    updateProduct(product.id, (p) => ({
-      ...p,
-      [market]: { ...p[market], titles: p[market].titles.filter((t) => t.id !== id) },
-    }));
-  const duplicate = (t: TitleEntry) => add(t.variant, t.text);
+
+  const add = () => {
+    updateProduct(product.id, (p) => {
+      const nextTitles = [...(p[market].titles || [""]), ""];
+      return { ...p, [market]: { ...p[market], titles: nextTitles } };
+    });
+  };
+
+  const rm = (idx: number) => {
+    updateProduct(product.id, (p) => {
+      let nextTitles = (p[market].titles || [""]).filter((_, i) => i !== idx);
+      if (nextTitles.length === 0) nextTitles = [""];
+      return { ...p, [market]: { ...p[market], titles: nextTitles } };
+    });
+  };
+
+  const usedWords = useMemo(() => {
+    return new Set(
+      titles
+        .join(" ")
+        .toLowerCase()
+        .split(/[\s,\n]+/)
+        .filter(Boolean)
+    );
+  }, [titles]);
+
+  const isUsed = (word: string) => usedWords.has(word.toLowerCase().trim());
+
+  const copyUnused = () => {
+    const unused = product.keywords
+      .map((k) => k.display)
+      .filter((w) => !isUsed(w));
+    if (unused.length > 0) {
+      navigator.clipboard.writeText(unused.join(", "));
+    }
+  };
+
+  const allKeywords = useMemo(() => {
+    return product.keywords.map(k => ({ text: k.display, source: "Lista Geral" }));
+  }, [product.keywords]);
 
   return (
     <section>
-      <SectionTitle hint={`Para ${MARKETS.find((m) => m.key === market)?.label}. Clique nas sugestões para inserir.`}>
+      <SectionTitle 
+        hint="Crie múltiplos títulos. Use o box flutuante para ver palavras disponíveis."
+        action={
+          <button
+            onClick={() => setShowKeywordBox(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Cloud className="h-3.5 w-3.5" /> ☁ Palavras disponíveis
+          </button>
+        }
+      >
         Títulos
       </SectionTitle>
 
-      <div className="flex flex-col gap-3">
-        {data.titles.length === 0 && (
-          <div className="rounded-2xl bg-surface/60 py-12 text-center text-sm text-muted-foreground">
-            Crie sua primeira variação abaixo.
-          </div>
-        )}
-        {data.titles.map((t) => (
-          <TitleCard
-            key={t.id}
-            entry={t}
-            keywords={product.keywords}
-            onChange={(text) => upd(t.id, text)}
-            onDuplicate={() => duplicate(t)}
-            onRemove={() => rm(t.id)}
+      <div className="flex flex-col gap-4">
+        {titles.map((text, i) => (
+          <TitleField
+            key={i}
+            value={text}
+            onChange={(val) => upd(i, val)}
+            onRemove={() => rm(i)}
+            autoFocus={i === titles.length - 1 && i > 0 && !text}
           />
         ))}
 
-        <div className="rounded-2xl bg-surface/40 border border-dashed border-border/60 px-5 py-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground mr-2">
-            + Nova variação
-          </span>
-          {TITLE_VARIANTS.map((v) => (
-            <button
-              key={v}
-              onClick={() => add(v)}
-              className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-xs hover:bg-surface-elevated"
-            >
-              <Plus className="h-3 w-3" /> {v}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={add}
+          className="w-full py-3 rounded-xl border border-dashed border-border/60 text-sm font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-all flex items-center justify-center gap-2"
+        >
+          <Plus className="h-4 w-4" /> Adicionar título
+        </button>
       </div>
+
+      {showKeywordBox && (
+        <FloatingKeywordCloud
+          keywords={allKeywords}
+          onClose={() => setShowKeywordBox(false)}
+          productName="Títulos"
+          checkUsed={isUsed}
+          onCopyUnused={copyUnused}
+        />
+      )}
     </section>
   );
 }
 
-function TitleCard({
-  entry,
-  keywords,
-  onChange,
-  onDuplicate,
+function TitleField({ 
+  value, 
+  onChange, 
   onRemove,
-}: {
-  entry: TitleEntry;
-  keywords: Keyword[];
-  onChange: (text: string) => void;
-  onDuplicate: () => void;
+  autoFocus
+}: { 
+  value: string; 
+  onChange: (v: string) => void; 
   onRemove: () => void;
+  autoFocus?: boolean;
 }) {
-  const lower = entry.text.toLowerCase();
-  const used = useMemo(
-    () => keywords.filter((k) => k.text && lower.includes(k.text)),
-    [keywords, lower],
-  );
-  const usedIds = new Set(used.map((k) => k.id));
-  const suggestions = useMemo(
-    () =>
-      [...keywords]
-        .filter((k) => !usedIds.has(k.id))
-        .sort((a, b) => {
-          if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
-          return b.uses - a.uses;
-        })
-        .slice(0, 8),
-    [keywords, entry.text],
-  );
-
-  const len = entry.text.length;
-  const tone =
-    len > 80 ? "text-destructive" : len > 60 ? "text-warning" : "text-muted-foreground";
-
-  const insert = (word: string) => {
-    const next = entry.text ? `${entry.text.trim()} ${word}` : word;
-    onChange(next);
-  };
+  const len = value.length;
+  const isRed = len === 60;
+  const isYellow = len > 55 && len < 60;
 
   return (
-    <div className="group rounded-2xl bg-surface px-6 py-5 transition-colors hover:bg-surface-elevated">
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/90">
-          {entry.variant}
-        </span>
-        <span className={cn("ml-auto tabular-nums text-xs", tone)}>{len}/60</span>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={() => navigator.clipboard.writeText(entry.text)}
-            className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
-            title="Copiar"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={onDuplicate}
-            className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
-            title="Duplicar"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+    <div className="group relative">
+      <div className={cn(
+        "flex items-center gap-3 bg-surface px-5 py-3.5 rounded-xl border transition-all",
+        isRed ? "border-destructive ring-1 ring-destructive/20" : "border-border/40 focus-within:border-primary/40"
+      )}>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Digite o título do anúncio..."
+          maxLength={60}
+          autoFocus={autoFocus}
+          className="flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/30"
+        />
+        <div className="flex items-center gap-3">
+          <span className={cn(
+            "text-[11px] font-bold tabular-nums tracking-wider",
+            isRed ? "text-destructive" : isYellow ? "text-warning" : "text-muted-foreground/40"
+          )}>
+            {len}/60
+          </span>
           <button
             onClick={onRemove}
-            className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"
-            title="Excluir"
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded transition-all"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>
-
-      <input
-        value={entry.text}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Digite o título..."
-        className="w-full bg-transparent text-xl font-medium tracking-tight outline-none placeholder:text-muted-foreground/30"
-      />
-
-      {(used.length > 0 || suggestions.length > 0) && (
-        <div className="mt-4 space-y-2.5">
-          {used.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-[0.12em] text-success/80 mr-1">
-                Usadas
-              </span>
-              {used.map((k) => (
-                <span
-                  key={k.id}
-                  className="inline-flex items-center gap-1 rounded-full bg-success/15 text-success px-2 py-0.5 text-[11px]"
-                >
-                  <Check className="h-3 w-3" /> {k.display}
-                </span>
-              ))}
-            </div>
-          )}
-          {suggestions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mr-1">
-                Sugestões
-              </span>
-              {suggestions.map((k) => (
-                <button
-                  key={k.id}
-                  onClick={() => insert(k.display)}
-                  className="inline-flex items-center gap-1 rounded-full bg-background/70 hover:bg-primary/15 hover:text-primary px-2 py-0.5 text-[11px] transition-colors"
-                >
-                  <Plus className="h-3 w-3" /> {k.display}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
