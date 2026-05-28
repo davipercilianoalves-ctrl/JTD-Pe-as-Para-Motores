@@ -50,6 +50,17 @@ export function FloatingKeywordInput({
         y: Math.max(0, Math.min(window.innerHeight - WINDOW_H, newY)),
       });
     };
+    const handleUp = () => {
+      dragging.current = false;
+    };
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+    };
+  }, [isMobile]);
+
   const handleAdd = () => {
     if (!text.trim()) return;
     onAdd(text.trim());
