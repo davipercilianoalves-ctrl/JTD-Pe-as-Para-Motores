@@ -4,8 +4,8 @@ PROJECT_STATE.md — Estado atual:
 
 ## Etapas
 - [x] Etapa 0: Backup e Segurança de Dados — CONCLUÍDA
-- [ ] Etapa 1: Dashboard com dados locais — PRÓXIMA
-- [ ] Etapa 2: Análise de concorrentes + janelas flutuantes
+- [x] Etapa 1: Dashboard com dados locais — CONCLUÍDA
+- [ ] Etapa 2: Análise de concorrentes + janelas flutuantes — PRÓXIMA
 - [ ] Etapa 3: Criação de títulos e descrição
 - [ ] Etapa 4: Precificação refinada
 - [ ] Etapa 5: Imagens
@@ -22,14 +22,20 @@ PROJECT_STATE.md — Estado atual:
 
 ## Bugs corrigidos
 - backup.ts: readAppKeys() filtrava chaves por prefixo — corrigido
-- backup.ts: importData() sem tratamento de QuotaExceededError — corrigido
-- backup.ts: getStorageUsage() cálculo impreciso — corrigido para Blob.size
-- backup.ts: sem window.location.reload() após restauração — corrigido
+- backup.ts: importData() sem QuotaExceededError — corrigido
+- backup.ts: getStorageUsage() cálculo impreciso — corrigido
+- backup.ts: sem reload após restauração — corrigido
+- HomeScreen: parseInt salvava NaN — corrigido
+- HomeScreen: localStorage sem try/catch — corrigido
+- HomeScreen: createdToday com risco de timezone — corrigido
+- HomeScreen: sort sem suporte a string ISO — corrigido
+- types.ts: createdAt/updatedAt agora aceitam number | string
 
 ## Decisões tomadas
-- localStorage mantido no MVP (sem Supabase)
-- Supabase entra apenas na Fase 2 (multi-device/múltiplos usuários)
+- localStorage mantido no MVP
+- Supabase entra na Fase 2
 - Stack: React + TanStack + shadcn/ui + Tailwind + localStorage
 
 ## Próxima etapa
-Etapa 1 — Dashboard com dados locais (produtos, anúncios, kits criados)
+Etapa 2 — Análise de concorrentes com janelas flutuantes de
+palavras-chave, análise de preços e lista consolidada
