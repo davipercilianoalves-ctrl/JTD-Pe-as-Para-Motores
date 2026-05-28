@@ -266,8 +266,27 @@ export function ProductWorkspace() {
               </div>
             )}
           </div>
+
+          {/* 8 — FAQ */}
+          <div className="mt-20">
+            <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
+            <AutoTextArea
+              value={product.niche_faqs || ""}
+              onChange={(e) => set("niche_faqs", e.target.value)}
+              placeholder="Ex: Serve para modelo X? Tem garantia? Qual o prazo de entrega?"
+              className="mt-2 rounded-xl bg-surface px-5 py-4 text-[15px] border border-border/40 focus:border-primary/40 transition-colors"
+              minRows={4}
+            />
+          </div>
         </div>
       </div>
+      {showCloud && (
+        <FloatingKeywordCloud
+          keywords={allKeywords}
+          onClose={() => setShowCloud(false)}
+          productName={product.name}
+        />
+      )}
     </div>
   );
 }
