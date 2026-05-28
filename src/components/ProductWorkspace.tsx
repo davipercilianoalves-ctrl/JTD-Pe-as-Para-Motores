@@ -573,9 +573,11 @@ function CompetitorsSection({ product }: { product: Product }) {
       <SectionTitle
         hint="O coração do app. Cole, observe, extraia palavras."
         action={
-          <Btn variant="soft" size="sm" onClick={add}>
-            <Plus className="h-3.5 w-3.5" /> Novo concorrente
-          </Btn>
+          <div className="flex items-center gap-2">
+            <Btn variant="soft" size="sm" onClick={add}>
+              <Plus className="h-3.5 w-3.5" /> Novo concorrente
+            </Btn>
+          </div>
         }
       >
         Análise de concorrentes
