@@ -1184,40 +1184,6 @@ function TitleField({
   );
 }
 
-/* ============================================================
-   3b. DESCRIPTION — short summary + full (auto-composed)
-============================================================ */
-function DescriptionSection({ product, market }: { product: Product; market: MK }) {
-  const { updateProduct } = useStore();
-  const data = product[market];
-  const [copied, setCopied] = useState<"short" | "full" | null>(null);
-
-  const set = <K extends keyof MarketplaceData>(key: K, value: MarketplaceData[K]) =>
-    updateProduct(product.id, (p) => ({ ...p, [market]: { ...p[market], [key]: value } }));
-
-  const composed = useMemo(() => {
-    const s = (data.shortDescription || "").trim();
-    const d = (data.description || "").trim();
-    if (s && d) return `${s}\n\n${d}`;
-    return s || d;
-  }, [data.shortDescription, data.description]);
-
-  const insertKeywords = (only: "all" | "fav") => {
-    const list =
-      only === "fav" ? product.keywords.filter((k) => k.favorite) : product.keywords;
-    if (!list.length) return;
-    const words = list.map((k) => k.display).join(", ");
-    const base = (data.shortDescription || "").trim();
-    set("shortDescription", base ? `${base} ${words}` : words);
-  };
-
-  const copy = (text: string, kind: "short" | "full") => {
-    navigator.clipboard.writeText(text);
-    setCopied(kind);
-    setTimeout(() => setCopied(null), 1500);
-  };
-
-  const shortChars = (data.shortDescription || "").length;
 function DescriptionSection({ product, market }: { product: Product; market: MK }) {
   const { updateProduct } = useStore();
   const data = product[market];
