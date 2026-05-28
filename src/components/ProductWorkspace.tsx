@@ -218,11 +218,15 @@ export function ProductWorkspace() {
             ))}
           </div>
 
-          {/* 3 — TITLES + DESCRIPTION (continuous flow) */}
-          <div className="mt-6">
+          {/* 3 — TITLES (Part 2) */}
+          <div className="mt-16">
             <TitlesSection product={product} market={market} />
           </div>
-          <div className="mt-10">
+
+          <div className="mt-16 h-px bg-border/20" />
+
+          {/* 4 — DESCRIPTION (Short + Full) */}
+          <div className="mt-16">
             <DescriptionSection product={product} market={market} />
           </div>
 
