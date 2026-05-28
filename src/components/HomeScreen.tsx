@@ -343,16 +343,19 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
 
 function DailyGoal() {
   const { products } = useStore();
-  const [goal, setGoal] = useState<number>(() => {
+  const [goal, setGoal] = useState<number>(0);
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("jtd:daily-goal");
-      if (!saved) return 0;
-      const parsed = parseInt(saved, 10);
-      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (Number.isFinite(parsed) && parsed >= 0) setGoal(parsed);
+      }
     } catch {
-      return 0;
+      /* ignore */
     }
-  });
+  }, []);
 
   const todayCount = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
