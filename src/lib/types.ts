@@ -38,7 +38,7 @@ export interface TitleEntry {
 }
 
 export interface MarketplaceData {
-  titles: TitleEntry[];
+  titles: string[];
   shortDescription: string;
   description: string;
   seo: string;
@@ -180,7 +180,7 @@ export interface Product {
 }
 
 export const emptyMarketplace = (): MarketplaceData => ({
-  titles: [],
+  titles: [""],
   shortDescription: "",
   description: "",
   seo: "",
@@ -309,11 +309,21 @@ export function migratePricing(raw: any): PricingData {
 /** Migrate any legacy Product shape to the current one. Safe to call on existing products. */
 export function migrateProduct(raw: any): Product {
   const base = newProduct(raw?.name ?? "Sem nome");
-  const ensureMK = (mk: any): MarketplaceData => ({
-    ...base.mercadoLivre,
-    ...(mk ?? {}),
-    customFields: Array.isArray(mk?.customFields) ? mk.customFields : [],
-  });
+  const ensureMK = (mk: any): MarketplaceData => {
+    const data = {
+      ...base.mercadoLivre,
+      ...(mk ?? {}),
+      customFields: Array.isArray(mk?.customFields) ? mk.customFields : [],
+    };
+    // Migration: TitleEntry[] -> string[]
+    if (Array.isArray(data.titles) && data.titles.length > 0 && typeof data.titles[0] === "object") {
+      data.titles = (data.titles as any).map((t: any) => t.text || "");
+    }
+    if (!Array.isArray(data.titles) || data.titles.length === 0) {
+      data.titles = [""];
+    }
+    return data;
+  };
   const p: Product = {
     ...base,
     ...raw,

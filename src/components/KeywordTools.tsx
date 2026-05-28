@@ -150,10 +150,14 @@ export function FloatingKeywordCloud({
   keywords,
   onClose,
   productName,
+  checkUsed,
+  onCopyUnused,
 }: {
   keywords: { text: string; source: string }[];
   onClose: () => void;
   productName: string;
+  checkUsed?: (word: string) => boolean;
+  onCopyUnused?: () => void;
 }) {
   const [pos, setPos] = useState({ x: 0, y: 0 });
 
@@ -202,13 +206,29 @@ export function FloatingKeywordCloud({
           <button onClick={onClose} className="p-1"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex flex-wrap gap-2 mb-20">
-          {keywords.map((kw, i) => (
-            <span key={i} title={kw.source} className="bg-secondary px-3 py-1.5 rounded-lg text-sm">
-              {kw.text}
-            </span>
-          ))}
+          {keywords.map((kw, i) => {
+            const used = checkUsed?.(kw.text);
+            return (
+              <span 
+                key={i} 
+                title={kw.source} 
+                className={cn(
+                  "bg-secondary px-3 py-1.5 rounded-lg text-sm flex items-center gap-1",
+                  used && "opacity-40"
+                )}
+              >
+                {used && <Check className="h-3.5 w-3.5" />}
+                {kw.text}
+              </span>
+            );
+          })}
         </div>
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t flex flex-col gap-2">
+          {onCopyUnused && (
+            <Btn variant="soft" className="w-full" onClick={onCopyUnused}>
+              Copiar não usadas
+            </Btn>
+          )}
           <Btn className="w-full" onClick={() => navigator.clipboard.writeText(keywords.map(k => k.text).join(", "))}>
             <Copy className="h-4 w-4 mr-2" /> Copiar todas
           </Btn>
@@ -227,13 +247,29 @@ export function FloatingKeywordCloud({
         <button onClick={onClose}><X className="h-4 w-4" /></button>
       </div>
       <div className="p-4 overflow-y-auto flex flex-wrap gap-1.5">
-        {keywords.map((kw, i) => (
-          <span key={i} title={kw.source} className="bg-secondary px-2 py-0.5 rounded text-xs">
-            {kw.text}
-          </span>
-        ))}
+        {keywords.map((kw, i) => {
+          const used = checkUsed?.(kw.text);
+          return (
+            <span 
+              key={i} 
+              title={kw.source} 
+              className={cn(
+                "bg-secondary px-2 py-0.5 rounded text-xs flex items-center gap-1 transition-opacity",
+                used && "opacity-40"
+              )}
+            >
+              {used && <Check className="h-3 w-3" />}
+              {kw.text}
+            </span>
+          );
+        })}
       </div>
-      <div className="p-3 border-t">
+      <div className="p-3 border-t flex flex-col gap-2">
+        {onCopyUnused && (
+          <Btn variant="soft" size="sm" className="w-full" onClick={onCopyUnused}>
+            Copiar não usadas
+          </Btn>
+        )}
         <Btn size="sm" className="w-full" onClick={() => navigator.clipboard.writeText(keywords.map(k => k.text).join(", "))}>
           <Copy className="h-3.5 w-3.5 mr-1" /> Copiar todas
         </Btn>

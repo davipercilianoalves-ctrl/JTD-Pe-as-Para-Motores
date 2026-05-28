@@ -48,42 +48,11 @@ import {
   Field,
   SectionTitle,
   TextInput,
+  AutoTextArea,
 } from "@/components/ui-kit";
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
 
-function AutoResizeTextarea({
-  value,
-  onChange,
-  placeholder,
-  className,
-  minRows = 3,
-}: {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  placeholder?: string;
-  className?: string;
-  minRows?: number;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.style.height = "auto";
-    ref.current.style.height = ref.current.scrollHeight + "px";
-  }, [value]);
-
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      rows={minRows}
-      style={{ resize: "none", overflow: "hidden" }}
-      className={cn("w-full bg-transparent text-base leading-relaxed outline-none placeholder:text-muted-foreground/45 resize-none overflow-hidden break-words [overflow-wrap:anywhere] whitespace-pre-wrap", className)}
-    />
-  );
-}
 
 type MK = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
 const MARKETS: { key: MK; label: string }[] = [
@@ -201,7 +170,7 @@ export function ProductWorkspace() {
           </div>
 
           {/* Marketplace switcher (applies to títulos + descrição) */}
-          <div className="mt-16 flex items-center gap-1 rounded-xl bg-surface p-1 w-fit">
+          <div className="mt-20 flex items-center gap-1 rounded-xl bg-surface p-1 w-fit">
             {MARKETS.map((m) => (
               <button
                 key={m.key}
@@ -218,11 +187,14 @@ export function ProductWorkspace() {
             ))}
           </div>
 
-          {/* 3 — TITLES + DESCRIPTION (continuous flow) */}
-          <div className="mt-6">
+          <div className="mt-8 space-y-16">
+            {/* 1. Consolidated Keywords */}
+            <ConsolidatedKeywords product={product} />
+
+            {/* 2. Titles */}
             <TitlesSection product={product} market={market} />
-          </div>
-          <div className="mt-10">
+
+            {/* 3. Description (Short + Full) */}
             <DescriptionSection product={product} market={market} />
           </div>
 
@@ -288,7 +260,7 @@ export function ProductWorkspace() {
                   />
                 </Field>
                 <Field label="Notas internas">
-                  <AutoResizeTextarea
+                  <AutoTextArea
                     value={product.internalNotes}
                     onChange={(e) => set("internalNotes", e.target.value)}
                     className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-base outline-none focus:bg-input/70 transition-colors placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-ring/40"
@@ -299,12 +271,11 @@ export function ProductWorkspace() {
             )}
           </div>
 
-          <ConsolidatedKeywords product={product} />
 
           {/* 8 — FAQ */}
           <div className="mt-20">
             <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
-            <AutoResizeTextarea
+            <AutoTextArea
               value={product.niche_faqs || ""}
               onChange={(e) => set("niche_faqs", e.target.value)}
               placeholder="Ex: Serve para modelo X? Tem garantia? Qual o prazo de entrega?"
@@ -610,7 +581,7 @@ function ConsolidatedKeywords({ product }: { product: Product }) {
   };
 
   return (
-    <div className="mt-16">
+    <div>
       <SectionTitle
         hint="Lista mestre consolidada de todas as palavras encontradas."
         action={
@@ -805,7 +776,7 @@ function CompetitorsSection({ product }: { product: Product }) {
 
                     <div>
                       <SubLabel>Descrição</SubLabel>
-                      <AutoResizeTextarea
+                      <AutoTextArea
                         value={c.description}
                         onChange={(e) => upd(c.id, { description: e.target.value })}
                         placeholder="Cole a descrição completa..."
@@ -840,7 +811,7 @@ function CompetitorsSection({ product }: { product: Product }) {
 
                     <div>
                       <SubLabel>Notas internas</SubLabel>
-                      <AutoResizeTextarea
+                      <AutoTextArea
                         value={c.notes}
                         onChange={(e) => upd(c.id, { notes: e.target.value })}
                         placeholder="O que faz bem? O que dá pra superar?"
@@ -1027,377 +998,316 @@ function SubLabel({ children }: { children: React.ReactNode }) {
 }
 
 /* ============================================================
-   3a. TITLES — focused card per title, with keyword highlight & suggestions
+   3a. TITLES — multiple variants with floating keyword box
 ============================================================ */
 function TitlesSection({ product, market }: { product: Product; market: MK }) {
   const { updateProduct } = useStore();
   const data = product[market];
+  const [showKeywordBox, setShowKeywordBox] = useState(false);
 
-  const add = (variant: TitleVariant, text = "") => {
-    const entry: TitleEntry = { id: crypto.randomUUID(), variant, text };
-    updateProduct(product.id, (p) => ({
-      ...p,
-      [market]: { ...p[market], titles: [...p[market].titles, entry] },
-    }));
+  const titles = data.titles && data.titles.length > 0 ? data.titles : [""];
+
+  const upd = (idx: number, text: string) => {
+    updateProduct(product.id, (p) => {
+      const nextTitles = [...(p[market].titles || [""])];
+      nextTitles[idx] = text.slice(0, 60);
+      return { ...p, [market]: { ...p[market], titles: nextTitles } };
+    });
   };
-  const upd = (id: string, text: string) =>
-    updateProduct(product.id, (p) => ({
-      ...p,
-      [market]: {
-        ...p[market],
-        titles: p[market].titles.map((t) => (t.id === id ? { ...t, text } : t)),
-      },
-    }));
-  const rm = (id: string) =>
-    updateProduct(product.id, (p) => ({
-      ...p,
-      [market]: { ...p[market], titles: p[market].titles.filter((t) => t.id !== id) },
-    }));
-  const duplicate = (t: TitleEntry) => add(t.variant, t.text);
+
+  const add = () => {
+    updateProduct(product.id, (p) => {
+      const nextTitles = [...(p[market].titles || [""]), ""];
+      return { ...p, [market]: { ...p[market], titles: nextTitles } };
+    });
+  };
+
+  const rm = (idx: number) => {
+    updateProduct(product.id, (p) => {
+      let nextTitles = (p[market].titles || [""]).filter((_, i) => i !== idx);
+      if (nextTitles.length === 0) nextTitles = [""];
+      return { ...p, [market]: { ...p[market], titles: nextTitles } };
+    });
+  };
+
+  const usedWords = useMemo(() => {
+    return new Set(
+      titles
+        .join(" ")
+        .toLowerCase()
+        .split(/[\s,\n]+/)
+        .filter(Boolean)
+    );
+  }, [titles]);
+
+  const isUsed = (word: string) => usedWords.has(word.toLowerCase().trim());
+
+  const copyUnused = () => {
+    const unused = product.keywords
+      .map((k) => k.display)
+      .filter((w) => !isUsed(w));
+    if (unused.length > 0) {
+      navigator.clipboard.writeText(unused.join(", "));
+    }
+  };
+
+  const allKeywords = useMemo(() => {
+    return product.keywords.map(k => ({ text: k.display, source: "Lista Geral" }));
+  }, [product.keywords]);
 
   return (
     <section>
-      <SectionTitle hint={`Para ${MARKETS.find((m) => m.key === market)?.label}. Clique nas sugestões para inserir.`}>
+      <SectionTitle 
+        hint="Crie múltiplos títulos. Use o box flutuante para ver palavras disponíveis."
+        action={
+          <button
+            onClick={() => setShowKeywordBox(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Cloud className="h-3.5 w-3.5" /> ☁ Palavras disponíveis
+          </button>
+        }
+      >
         Títulos
       </SectionTitle>
 
-      <div className="flex flex-col gap-3">
-        {data.titles.length === 0 && (
-          <div className="rounded-2xl bg-surface/60 py-12 text-center text-sm text-muted-foreground">
-            Crie sua primeira variação abaixo.
-          </div>
-        )}
-        {data.titles.map((t) => (
-          <TitleCard
-            key={t.id}
-            entry={t}
-            keywords={product.keywords}
-            onChange={(text) => upd(t.id, text)}
-            onDuplicate={() => duplicate(t)}
-            onRemove={() => rm(t.id)}
+      <div className="flex flex-col gap-4">
+        {titles.map((text, i) => (
+          <TitleField
+            key={i}
+            value={text}
+            onChange={(val) => upd(i, val)}
+            onRemove={() => rm(i)}
+            autoFocus={i === titles.length - 1 && i > 0 && !text}
           />
         ))}
 
-        <div className="rounded-2xl bg-surface/40 border border-dashed border-border/60 px-5 py-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground mr-2">
-            + Nova variação
-          </span>
-          {TITLE_VARIANTS.map((v) => (
-            <button
-              key={v}
-              onClick={() => add(v)}
-              className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-xs hover:bg-surface-elevated"
-            >
-              <Plus className="h-3 w-3" /> {v}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={add}
+          className="w-full py-3 rounded-xl border border-dashed border-border/60 text-sm font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-all flex items-center justify-center gap-2"
+        >
+          <Plus className="h-4 w-4" /> Adicionar título
+        </button>
       </div>
+
+      {showKeywordBox && (
+        <FloatingKeywordCloud
+          keywords={allKeywords}
+          onClose={() => setShowKeywordBox(false)}
+          productName="Títulos"
+          checkUsed={isUsed}
+          onCopyUnused={copyUnused}
+        />
+      )}
     </section>
   );
 }
 
-function TitleCard({
-  entry,
-  keywords,
-  onChange,
-  onDuplicate,
+function TitleField({ 
+  value, 
+  onChange, 
   onRemove,
-}: {
-  entry: TitleEntry;
-  keywords: Keyword[];
-  onChange: (text: string) => void;
-  onDuplicate: () => void;
+  autoFocus
+}: { 
+  value: string; 
+  onChange: (v: string) => void; 
   onRemove: () => void;
+  autoFocus?: boolean;
 }) {
-  const lower = entry.text.toLowerCase();
-  const used = useMemo(
-    () => keywords.filter((k) => k.text && lower.includes(k.text)),
-    [keywords, lower],
-  );
-  const usedIds = new Set(used.map((k) => k.id));
-  const suggestions = useMemo(
-    () =>
-      [...keywords]
-        .filter((k) => !usedIds.has(k.id))
-        .sort((a, b) => {
-          if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
-          return b.uses - a.uses;
-        })
-        .slice(0, 8),
-    [keywords, entry.text],
-  );
-
-  const len = entry.text.length;
-  const tone =
-    len > 80 ? "text-destructive" : len > 60 ? "text-warning" : "text-muted-foreground";
-
-  const insert = (word: string) => {
-    const next = entry.text ? `${entry.text.trim()} ${word}` : word;
-    onChange(next);
-  };
+  const len = value.length;
+  const isRed = len === 60;
+  const isYellow = len > 55 && len < 60;
 
   return (
-    <div className="group rounded-2xl bg-surface px-6 py-5 transition-colors hover:bg-surface-elevated">
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/90">
-          {entry.variant}
-        </span>
-        <span className={cn("ml-auto tabular-nums text-xs", tone)}>{len}/60</span>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={() => navigator.clipboard.writeText(entry.text)}
-            className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
-            title="Copiar"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={onDuplicate}
-            className="rounded-md p-1.5 hover:bg-accent text-muted-foreground"
-            title="Duplicar"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+    <div className="group relative">
+      <div className={cn(
+        "flex items-center gap-3 bg-surface px-5 py-3.5 rounded-xl border transition-all",
+        isRed ? "border-destructive ring-1 ring-destructive/20" : "border-border/40 focus-within:border-primary/40"
+      )}>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Digite o título do anúncio..."
+          maxLength={60}
+          autoFocus={autoFocus}
+          className="flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/30"
+        />
+        <div className="flex items-center gap-3">
+          <span className={cn(
+            "text-[11px] font-bold tabular-nums tracking-wider",
+            isRed ? "text-destructive" : isYellow ? "text-warning" : "text-muted-foreground/40"
+          )}>
+            {len}/60
+          </span>
           <button
             onClick={onRemove}
-            className="rounded-md p-1.5 hover:bg-destructive/10 text-destructive"
-            title="Excluir"
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded transition-all"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <input
-        value={entry.text}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Digite o título..."
-        className="w-full bg-transparent text-xl font-medium tracking-tight outline-none placeholder:text-muted-foreground/30"
-      />
+function DescriptionSection({ product, market }: { product: Product; market: MK }) {
+  const { updateProduct } = useStore();
+  const data = product[market];
+  const [showAI, setShowAI] = useState(false);
 
-      {(used.length > 0 || suggestions.length > 0) && (
-        <div className="mt-4 space-y-2.5">
-          {used.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-[0.12em] text-success/80 mr-1">
-                Usadas
-              </span>
-              {used.map((k) => (
-                <span
-                  key={k.id}
-                  className="inline-flex items-center gap-1 rounded-full bg-success/15 text-success px-2 py-0.5 text-[11px]"
-                >
-                  <Check className="h-3 w-3" /> {k.display}
-                </span>
-              ))}
-            </div>
-          )}
-          {suggestions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mr-1">
-                Sugestões
-              </span>
-              {suggestions.map((k) => (
-                <button
-                  key={k.id}
-                  onClick={() => insert(k.display)}
-                  className="inline-flex items-center gap-1 rounded-full bg-background/70 hover:bg-primary/15 hover:text-primary px-2 py-0.5 text-[11px] transition-colors"
-                >
-                  <Plus className="h-3 w-3" /> {k.display}
-                </button>
-              ))}
-            </div>
-          )}
+  const set = (patch: Partial<MarketplaceData>) => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      [market]: { ...p[market], ...patch }
+    }));
+  };
+
+  const usedKeywordsCount = useMemo(() => {
+    const text = (data.shortDescription || "").toLowerCase();
+    return product.keywords.filter(k => text.includes(k.text)).length;
+  }, [data.shortDescription, product.keywords]);
+
+  return (
+    <div className="space-y-12">
+      {/* Short Description */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <SectionTitle hint="Uma ou duas frases resumindo o produto com as palavras-chave principais.">
+            Breve descrição
+          </SectionTitle>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 bg-surface px-2.5 py-1 rounded-full border border-border/40">
+            {usedKeywordsCount} de {product.keywords.length} palavras-chave usadas
+          </span>
         </div>
+        <div className="rounded-2xl bg-surface p-5 border border-border/40 focus-within:border-primary/40 transition-colors">
+          <AutoTextArea
+            value={data.shortDescription}
+            onChange={(e) => set({ shortDescription: e.target.value })}
+            placeholder="Uma ou duas frases que resumem o produto incluindo as palavras-chave principais..."
+            className="text-[15px] leading-relaxed"
+            minRows={3}
+          />
+        </div>
+      </section>
+
+      <div className="h-px bg-border/40" />
+
+      {/* Full Description */}
+      <section>
+        <SectionTitle hint="Descrição detalhada do produto. Use o template para gerar com IA externa.">
+          Descrição completa
+        </SectionTitle>
+        <div className="space-y-4">
+          <Btn 
+            variant="soft" 
+            className="w-full py-4 text-primary font-bold shadow-sm"
+            onClick={() => setShowAI(true)}
+          >
+            <Copy className="h-4 w-4 mr-2" /> 📋 Gerar com IA externa
+          </Btn>
+          <div className="rounded-2xl bg-surface p-6 border border-border/40 focus-within:border-primary/40 transition-colors">
+            <AutoTextArea
+              value={data.description}
+              onChange={(e) => set({ description: e.target.value })}
+              placeholder="Cole aqui a descrição completa gerada pela IA..."
+              className="text-[15px] leading-relaxed"
+              minRows={8}
+            />
+          </div>
+        </div>
+      </section>
+
+      {showAI && (
+        <AITemplateModal 
+          product={product} 
+          market={market} 
+          onClose={() => setShowAI(false)} 
+        />
       )}
     </div>
   );
 }
 
-/* ============================================================
-   3b. DESCRIPTION — short summary + full (auto-composed)
-============================================================ */
-function DescriptionSection({ product, market }: { product: Product; market: MK }) {
-  const { updateProduct } = useStore();
+function AITemplateModal({ 
+  product, 
+  market, 
+  onClose 
+}: { 
+  product: Product; 
+  market: MK; 
+  onClose: () => void 
+}) {
+  const [copied, setCopied] = useState(false);
   const data = product[market];
-  const [copied, setCopied] = useState<"short" | "full" | null>(null);
 
-  const set = <K extends keyof MarketplaceData>(key: K, value: MarketplaceData[K]) =>
-    updateProduct(product.id, (p) => ({ ...p, [market]: { ...p[market], [key]: value } }));
+  const marketRange = useMemo(() => {
+    const prices = product.competitors.map(c => c.price).filter((p): p is number => !!p && p > 0);
+    if (prices.length === 0) return "N/A";
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return `${min.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} a ${max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+  }, [product.competitors]);
 
-  const composed = useMemo(() => {
-    const s = (data.shortDescription || "").trim();
-    const d = (data.description || "").trim();
-    if (s && d) return `${s}\n\n${d}`;
-    return s || d;
-  }, [data.shortDescription, data.description]);
+  const template = `Você é um especialista em copywriting para marketplace.
+Crie uma descrição completa para o seguinte produto:
 
-  const insertKeywords = (only: "all" | "fav") => {
-    const list =
-      only === "fav" ? product.keywords.filter((k) => k.favorite) : product.keywords;
-    if (!list.length) return;
-    const words = list.map((k) => k.display).join(", ");
-    const base = (data.shortDescription || "").trim();
-    set("shortDescription", base ? `${base} ${words}` : words);
+Produto: ${product.name}
+Breve descrição: ${data.shortDescription}
+Palavras-chave obrigatórias: ${product.keywords.map(k => k.display).join(", ")}
+Faixa de preço do mercado: ${marketRange} (baseado na análise de concorrentes)
+
+A descrição deve:
+- Ter entre 300 e 500 palavras
+- Usar todas as palavras-chave de forma natural
+- Responder as principais dúvidas do comprador
+- Ter um parágrafo inicial de impacto
+- Listar benefícios e especificações técnicas
+- Terminar com chamada para ação
+- Tom: direto, confiante e informativo`;
+
+  const copy = () => {
+    navigator.clipboard.writeText(template);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-
-  const copy = (text: string, kind: "short" | "full") => {
-    navigator.clipboard.writeText(text);
-    setCopied(kind);
-    setTimeout(() => setCopied(null), 1500);
-  };
-
-  const shortChars = (data.shortDescription || "").length;
-  const fullChars = (data.description || "").length;
-  const totalChars = composed.length;
-  const totalWords = composed.trim() ? composed.trim().split(/\s+/).length : 0;
 
   return (
-    <section>
-      <SectionTitle hint="Resumo com palavras-chave + descrição completa. A cópia final junta as duas partes.">
-        Descrição
-      </SectionTitle>
-
-      {/* Unified document card: short summary + full body in one visual flow */}
-      <div className="rounded-2xl bg-surface overflow-hidden">
-        {/* Header bar */}
-        <div className="flex items-center gap-3 px-7 pt-5 pb-3 border-b border-border/30">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary/70" />
-            Documento de descrição
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-background border border-border w-full max-w-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-6 py-5 border-b border-border/40 flex items-center justify-between bg-surface/30">
+          <div>
+            <h3 className="text-lg font-bold">Template para IA externa</h3>
+            <p className="text-xs text-muted-foreground">Copie este prompt e cole no ChatGPT ou Claude</p>
           </div>
-          <span className="ml-auto text-[11px] text-muted-foreground/60 tabular-nums">
-            {totalWords} palavras · {totalChars} caracteres
-          </span>
-          <button
-            onClick={() => copy(composed, "full")}
-            disabled={!composed}
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-30"
-          >
-            {copied === "full" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-            {copied === "full" ? "Copiado" : "Copiar tudo"}
+          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors">
+            <X className="h-5 w-5" />
           </button>
         </div>
-
-        {/* SHORT zone */}
-        <div className="px-7 pt-5 pb-5">
-          <div className="flex items-center gap-3 mb-2">
-            <SubLabel>Resumo · breve descrição com palavras-chave</SubLabel>
-            <span className="text-[10px] text-muted-foreground/55 tabular-nums">{shortChars}</span>
-            <button
-              onClick={() => copy((data.shortDescription || "").trim(), "short")}
-              disabled={!data.shortDescription}
-              className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-30"
-            >
-              {copied === "short" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              só o resumo
-            </button>
-          </div>
-          <div className="rounded-xl bg-background/50 border border-border/40 focus-within:border-primary/40 focus-within:bg-background/70 transition-colors px-5 py-4">
-            <AutoResizeTextarea
-              value={data.shortDescription}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("shortDescription", e.target.value)}
-              placeholder="Uma ou duas frases que resumem o produto incluindo as palavras-chave principais..."
-              className="text-[15px] leading-relaxed"
-              minRows={2}
-            />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <Btn variant="soft" size="sm" onClick={() => insertKeywords("all")} disabled={!product.keywords.length}>
-              <Plus className="h-3.5 w-3.5" /> Inserir todas as palavras-chave
-            </Btn>
-            <Btn
-              variant="ghost"
-              size="sm"
-              onClick={() => insertKeywords("fav")}
-              disabled={!product.keywords.some((k) => k.favorite)}
-            >
-              <Star className="h-3.5 w-3.5" /> Inserir favoritas
-            </Btn>
-          </div>
+        
+        <div className="p-6 overflow-y-auto max-h-[60vh] bg-background">
+          <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono bg-surface p-5 rounded-xl border border-border/40 text-foreground/80">
+            {template}
+          </pre>
         </div>
 
-        {/* Divider between resumo and corpo */}
-        <div className="relative px-7">
-          <div className="border-t border-dashed border-border/40" />
-          <span className="absolute left-1/2 -translate-x-1/2 -top-[9px] bg-surface px-3 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">
-            corpo da descrição
-          </span>
-        </div>
-
-        {/* FULL zone */}
-        <div className="px-7 pt-6 pb-7">
-          <div className="flex items-center gap-3 mb-2">
-            <SubLabel>Descrição completa</SubLabel>
-            <span className="text-[10px] text-muted-foreground/55 tabular-nums">{fullChars}</span>
-            <span className="ml-auto text-[10px] text-muted-foreground/50 italic">
-              O resumo é incluído automaticamente ao copiar tudo
-            </span>
-          </div>
-          <div className="rounded-xl bg-background/50 border border-border/40 focus-within:border-primary/40 focus-within:bg-background/70 transition-colors px-6 py-5">
-            {data.shortDescription && (
-              <div className="mb-4 pb-4 border-b border-border/30">
-                <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/50 mb-1.5">
-                  Resumo (preview)
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground/85 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                  {data.shortDescription}
-                </p>
-              </div>
+        <div className="p-6 border-t border-border/40 bg-surface/30 flex items-center justify-end gap-3">
+          <Btn variant="ghost" onClick={onClose}>Fechar</Btn>
+          <Btn variant="primary" onClick={copy} className="min-w-[140px]">
+            {copied ? (
+              <><Check className="h-4 w-4 mr-2" /> Copiado!</>
+            ) : (
+              <><Copy className="h-4 w-4 mr-2" /> Copiar template</>
             )}
-            <AutoResizeTextarea
-              value={data.description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("description", e.target.value)}
-              placeholder="Continue a descrição a partir do resumo..."
-              className="text-[15px] leading-loose"
-              minRows={8}
-            />
-          </div>
+          </Btn>
         </div>
       </div>
-
-
-      <div className="mt-6 grid lg:grid-cols-2 gap-5">
-        <SoftBlock label="Bullet points / ficha técnica">
-          <AutoResizeTextarea
-            value={data.media}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("media", e.target.value)}
-            placeholder={"• Item 1\n• Item 2"}
-            minRows={4}
-          />
-        </SoftBlock>
-        <SoftBlock label="SEO complementar">
-          <AutoResizeTextarea
-            value={data.seo}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("seo", e.target.value)}
-            minRows={4}
-          />
-        </SoftBlock>
-        <SoftBlock label="Estratégia / copy viral">
-          <AutoResizeTextarea
-            value={data.strategies}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("strategies", e.target.value)}
-            minRows={4}
-          />
-        </SoftBlock>
-        <SoftBlock label="Notas">
-          <AutoResizeTextarea
-            value={data.notes}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("notes", e.target.value)}
-            minRows={4}
-          />
-        </SoftBlock>
-      </div>
-    </section>
-  );
-}
-
-function SoftBlock({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl bg-surface/60 px-6 py-5">
-      <SubLabel>{label}</SubLabel>
-      {children}
     </div>
   );
 }
@@ -2515,9 +2425,9 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Roteiro</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoResizeTextarea
+                          <AutoTextArea
                             value={v.script}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { script: e.target.value })}
+                            onChange={(e) => upd(v.id, { script: e.target.value })}
                             placeholder="Estrutura do vídeo cena a cena..."
                             minRows={5}
                           />
@@ -2526,9 +2436,9 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Falas</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoResizeTextarea
+                          <AutoTextArea
                             value={v.speech}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { speech: e.target.value })}
+                            onChange={(e) => upd(v.id, { speech: e.target.value })}
                             placeholder="Texto exato a ser falado..."
                             minRows={4}
                           />
@@ -2557,9 +2467,9 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Notas gerais</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoResizeTextarea
+                          <AutoTextArea
                             value={v.notes}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => upd(v.id, { notes: e.target.value })}
+                            onChange={(e) => upd(v.id, { notes: e.target.value })}
                             placeholder="Ganchos, observações, ideias..."
                             minRows={3}
                           />
