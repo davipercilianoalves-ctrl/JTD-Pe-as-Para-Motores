@@ -155,7 +155,7 @@ export function ProductWorkspace() {
             className="w-full bg-transparent text-5xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/30 mb-2"
           />
           <div className="text-xs text-muted-foreground">
-            Atualizado {new Date(product.updatedAt).toLocaleString("pt-BR")} ·
+            Atualizado {product.updatedAt > 0 ? new Date(product.updatedAt).toLocaleDateString("pt-BR") : "agora"} ·
             <span className="text-success ml-1">salvo automaticamente</span>
           </div>
 
