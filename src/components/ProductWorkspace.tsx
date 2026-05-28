@@ -714,9 +714,50 @@ function CompetitorsSection({ product }: { product: Product }) {
               </div>
             );
           })}
+          <PriceAnalysisSummary competitors={product.competitors} />
         </div>
       )}
     </section>
+  );
+}
+
+function PriceAnalysisSummary({ competitors }: { competitors: CompetitorBlock[] }) {
+  const prices = competitors
+    .map((c) => c.price)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+
+  if (prices.length === 0) {
+    return (
+      <div className="rounded-xl border border-border/40 bg-surface px-6 py-5">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-4">
+          Análise de Preços dos Concorrentes
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Mínimo</div><div className="text-lg font-medium">—</div></div>
+          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Máximo</div><div className="text-lg font-medium">—</div></div>
+          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Médio</div><div className="text-lg font-medium">—</div></div>
+          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Base</div><div className="text-lg font-medium">0 anúncios</div></div>
+        </div>
+      </div>
+    );
+  }
+
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+  return (
+    <div className="rounded-xl border border-primary/20 bg-primary/5 px-6 py-5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/80 mb-4">
+        Análise de Preços dos Concorrentes
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Mínimo</div><div className="text-lg font-medium text-foreground">{brl(min)}</div></div>
+        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Máximo</div><div className="text-lg font-medium text-foreground">{brl(max)}</div></div>
+        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Médio</div><div className="text-lg font-medium text-primary">{brl(avg)}</div></div>
+        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Base</div><div className="text-lg font-medium text-foreground">{prices.length} {prices.length === 1 ? 'anúncio' : 'anúncios'}</div></div>
+      </div>
+    </div>
   );
 }
 
