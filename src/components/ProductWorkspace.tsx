@@ -821,62 +821,68 @@ function CompetitorKeywords({
 
   return (
     <div>
-      <SubLabel>
-        <span className="inline-flex items-center gap-2">
-          Palavras-chave encontradas
-          <span className="normal-case tracking-normal text-muted-foreground/70 text-[11px]">
-            Espaço, vírgula ou Enter — entram na lista principal automaticamente
+      <div className="flex items-center justify-between mb-2">
+        <SubLabel>
+          <span className="inline-flex items-center gap-2">
+            Palavras-chave encontradas
+            {flash && (
+              <span className="normal-case tracking-normal text-success text-[11px] inline-flex items-center gap-1">
+                <Check className="h-3 w-3" /> enviado
+              </span>
+            )}
           </span>
-          {flash && (
-            <span className="normal-case tracking-normal text-success text-[11px] inline-flex items-center gap-1">
-              <Check className="h-3 w-3" /> enviado
-            </span>
-          )}
+        </SubLabel>
+        <div className="flex items-center gap-3">
+          <button
+            ref={btnRef}
+            onClick={() => setShowInput(true)}
+            className="text-[11px] text-primary hover:underline flex items-center gap-1"
+          >
+            <Plus className="h-3 w-3" /> Palavras-chave
+          </button>
           <button
             onClick={resendAll}
             disabled={!block.keywordsFound.length}
-            className="ml-auto normal-case tracking-normal text-[11px] text-primary hover:underline disabled:opacity-30"
-            title="Reenviar todas para a lista principal"
+            className="text-[11px] text-primary hover:underline disabled:opacity-30"
           >
             Enviar todas →
           </button>
-        </span>
-      </SubLabel>
-      <div
-        className={cn(
-          "rounded-lg bg-input/40 px-3 py-2.5 flex flex-wrap items-center gap-1.5 transition-colors",
-          flash ? "ring-2 ring-success/50 bg-success/5" : "focus-within:bg-input/70",
-        )}
-      >
-        {block.keywordsFound.map((w, i) => (
-          <span
-            key={i}
-            className="group inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2.5 py-0.5 text-xs"
-          >
-            {w}
-            <button
-              onClick={() => removeWord(i)}
-              className="opacity-60 hover:opacity-100"
-              title="Remover"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        ))}
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onKey}
-          onBlur={() => {
-            if (draft.trim()) {
-              commitTokens(draft);
-              setDraft("");
-            }
-          }}
-          placeholder={block.keywordsFound.length ? "" : "alta temperatura vedação motor..."}
-          className="flex-1 min-w-[160px] bg-transparent outline-none text-sm py-1"
-        />
+        </div>
       </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 min-h-[40px]">
+        {block.keywordsFound.length === 0 ? (
+          <span className="text-xs text-muted-foreground/50">Nenhuma palavra adicionada.</span>
+        ) : (
+          block.keywordsFound.map((w, i) => (
+            <span
+              key={i}
+              className="group inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs"
+            >
+              {w}
+              <button
+                onClick={() => removeWord(w)}
+                className="opacity-60 hover:opacity-100"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))
+        )}
+      </div>
+
+      {showInput && btnRef.current && (
+        <FloatingKeywordInput
+          initialKeywords={block.keywordsFound}
+          onAdd={addWord}
+          onRemove={removeWord}
+          onClose={() => setShowInput(false)}
+          position={{
+            top: btnRef.current.getBoundingClientRect().bottom + window.scrollY + 5,
+            left: btnRef.current.getBoundingClientRect().left + window.scrollX - 200,
+          }}
+        />
+      )}
     </div>
   );
 }
