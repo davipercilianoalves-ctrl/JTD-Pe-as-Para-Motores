@@ -770,47 +770,27 @@ function CompetitorKeywords({
   onChange: (words: string[]) => void;
   onCommit: (words: string[]) => void;
 }) {
-  const [draft, setDraft] = useState("");
   const [flash, setFlash] = useState(false);
+  const [showInput, setShowInput] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const flashOk = () => {
     setFlash(true);
     setTimeout(() => setFlash(false), 700);
   };
 
-  const commitTokens = (raw: string) => {
-    const toks = parseSingleWords(raw);
-    if (!toks.length) return;
-    const existing = new Set(block.keywordsFound.map((w) => canonKeyword(w)));
-    const fresh: string[] = [];
-    const added: string[] = [];
-    for (const t of toks) {
-      const key = canonKeyword(t);
-      if (!key) continue;
-      if (!existing.has(key)) {
-        existing.add(key);
-        fresh.push(t);
-      }
-      added.push(t);
+  const addWord = (word: string) => {
+    const key = canonKeyword(word);
+    if (!key) return;
+    if (!block.keywordsFound.some((w) => canonKeyword(w) === key)) {
+      onChange([...block.keywordsFound, word]);
     }
-    if (fresh.length) onChange([...block.keywordsFound, ...fresh]);
-    if (added.length) {
-      onCommit(added);
-      flashOk();
-    }
+    onCommit([word]);
+    flashOk();
   };
 
-  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === " " || e.key === ",") {
-      if (e.key === " " && draft.trim().length === 0) return;
-      e.preventDefault();
-      commitTokens(draft);
-      setDraft("");
-    }
-  };
-
-  const removeWord = (idx: number) => {
-    onChange(block.keywordsFound.filter((_, i) => i !== idx));
+  const removeWord = (word: string) => {
+    onChange(block.keywordsFound.filter((w) => w !== word));
   };
 
   const resendAll = () => {
