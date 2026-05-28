@@ -170,7 +170,7 @@ export function ProductWorkspace() {
           </div>
 
           {/* Marketplace switcher (applies to títulos + descrição) */}
-          <div className="mt-16 flex items-center gap-1 rounded-xl bg-surface p-1 w-fit">
+          <div className="mt-20 flex items-center gap-1 rounded-xl bg-surface p-1 w-fit">
             {MARKETS.map((m) => (
               <button
                 key={m.key}
@@ -187,15 +187,14 @@ export function ProductWorkspace() {
             ))}
           </div>
 
-          {/* 3 — TITLES (Part 2) */}
-          <div className="mt-16">
+          <div className="mt-8 space-y-16">
+            {/* 1. Consolidated Keywords */}
+            <ConsolidatedKeywords product={product} />
+
+            {/* 2. Titles */}
             <TitlesSection product={product} market={market} />
-          </div>
 
-          <div className="mt-16 h-px bg-border/20" />
-
-          {/* 4 — DESCRIPTION (Short + Full) */}
-          <div className="mt-16">
+            {/* 3. Description (Short + Full) */}
             <DescriptionSection product={product} market={market} />
           </div>
 
@@ -272,7 +271,6 @@ export function ProductWorkspace() {
             )}
           </div>
 
-          <ConsolidatedKeywords product={product} />
 
           {/* 8 — FAQ */}
           <div className="mt-20">
@@ -583,7 +581,7 @@ function ConsolidatedKeywords({ product }: { product: Product }) {
   };
 
   return (
-    <div className="mt-16">
+    <div>
       <SectionTitle
         hint="Lista mestre consolidada de todas as palavras encontradas."
         action={
