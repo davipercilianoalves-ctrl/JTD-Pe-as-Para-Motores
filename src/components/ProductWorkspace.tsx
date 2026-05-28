@@ -108,7 +108,13 @@ export function ProductWorkspace() {
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               Workspace
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCloud(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border/40"
+              >
+                <Cloud className="h-3.5 w-3.5" /> Ver todas as palavras
+              </button>
               <button
                 onClick={() => toggleFavorite(product.id)}
                 className="rounded-lg p-2 hover:bg-accent"
