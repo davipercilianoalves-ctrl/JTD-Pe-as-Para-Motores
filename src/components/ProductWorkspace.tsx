@@ -53,38 +53,6 @@ import {
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
 
-function AutoResizeTextarea({
-  value,
-  onChange,
-  placeholder,
-  className,
-  minRows = 3,
-}: {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  placeholder?: string;
-  className?: string;
-  minRows?: number;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.style.height = "auto";
-    ref.current.style.height = ref.current.scrollHeight + "px";
-  }, [value]);
-
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      rows={minRows}
-      style={{ resize: "none", overflow: "hidden" }}
-      className={cn("w-full bg-transparent text-base leading-relaxed outline-none placeholder:text-muted-foreground/45 resize-none overflow-hidden break-words [overflow-wrap:anywhere] whitespace-pre-wrap", className)}
-    />
-  );
-}
 
 type MK = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
 const MARKETS: { key: MK; label: string }[] = [
@@ -1217,7 +1185,7 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
         <div className="rounded-2xl bg-surface p-5 border border-border/40 focus-within:border-primary/40 transition-colors">
           <AutoTextArea
             value={data.shortDescription}
-            onChange={(e) => set({ shortDescription: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set({ shortDescription: e.target.value })}
             placeholder="Uma ou duas frases que resumem o produto incluindo as palavras-chave principais..."
             className="text-[15px] leading-relaxed"
             minRows={3}
@@ -1243,7 +1211,7 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
           <div className="rounded-2xl bg-surface p-6 border border-border/40 focus-within:border-primary/40 transition-colors">
             <AutoTextArea
               value={data.description}
-              onChange={(e) => set({ description: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set({ description: e.target.value })}
               placeholder="Cole aqui a descrição completa gerada pela IA..."
               className="text-[15px] leading-relaxed"
               minRows={8}
