@@ -141,34 +141,9 @@ export function HomeScreen() {
           </button>
         </div>
 
-        {/* Operational pulse */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-px rounded-xl overflow-hidden border border-border bg-border mb-10">
-          <PulseCell label="Total" value={stats.total} tone="metal" />
-          <PulseCell
-            label="Saudáveis"
-            value={stats.healthy}
-            tone="success"
-            icon={<TrendingUp className="h-3.5 w-3.5" />}
-          />
-          <PulseCell
-            label="Atenção"
-            value={stats.attention}
-            tone="warning"
-            icon={<AlertTriangle className="h-3.5 w-3.5" />}
-          />
-          <PulseCell
-            label="Risco"
-            value={stats.risk}
-            tone="primary"
-            icon={<AlertTriangle className="h-3.5 w-3.5" />}
-          />
-          <PulseCell
-            label="Incompletos"
-            value={stats.incomplete}
-            tone="muted"
-            icon={<Sparkles className="h-3.5 w-3.5" />}
-          />
-        </div>
+        {/* Operational Stats */}
+        <DashboardStats />
+
 
         {/* Filter chips + view mode */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
