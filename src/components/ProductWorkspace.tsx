@@ -267,6 +267,8 @@ export function ProductWorkspace() {
             )}
           </div>
 
+          <ConsolidatedKeywords product={product} />
+
           {/* 8 — FAQ */}
           <div className="mt-20">
             <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
