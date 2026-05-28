@@ -291,7 +291,7 @@ function DashboardStats() {
 
     const today = new Date().toISOString().slice(0, 10);
     const createdToday = products.filter(
-      p => p.createdAt?.startsWith(today)
+      p => (p.createdAt as any)?.startsWith?.(today)
     ).length;
 
     return { totalProducts, totalAnnouncements, totalKits, createdToday };
@@ -356,7 +356,7 @@ function DailyGoal() {
 
   const todayCount = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    return products.filter(p => p.createdAt?.startsWith(today)).length;
+    return products.filter(p => (p.createdAt as any)?.startsWith?.(today)).length;
   }, [products]);
 
   const updateGoal = (val: string) => {
