@@ -143,7 +143,7 @@ export interface ViralClip {
   audio: string;
   notes: string;
   editType: string;
-  createdAt: number | string;
+  createdAt: number;
 }
 
 export interface Product {
@@ -156,8 +156,8 @@ export interface Product {
   supplier: string;
   internalNotes: string;
   favorite: boolean;
-  createdAt: number | string;
-  updatedAt: number | string;
+  createdAt: number;
+  updatedAt: number;
 
   keywords: Keyword[];
   /** @deprecated kept for migration only */
