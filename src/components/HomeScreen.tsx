@@ -290,10 +290,9 @@ function DashboardStats() {
     });
 
     const today = new Date().toISOString().slice(0, 10);
-    const createdToday = products.filter(p => {
-      const date = new Date(p.createdAt).toISOString().slice(0, 10);
-      return date === today;
-    }).length;
+    const createdToday = products.filter(
+      p => (p.createdAt as any)?.startsWith?.(today)
+    ).length;
 
     return { totalProducts, totalAnnouncements, totalKits, createdToday };
   }, [products]);
@@ -345,19 +344,30 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
 function DailyGoal() {
   const { products } = useStore();
   const [goal, setGoal] = useState<number>(() => {
-    const saved = localStorage.getItem("jtd:daily-goal");
-    return saved ? parseInt(saved, 10) : 0;
+    try {
+      const saved = localStorage.getItem("jtd:daily-goal");
+      if (!saved) return 0;
+      const parsed = parseInt(saved, 10);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    } catch {
+      return 0;
+    }
   });
 
   const todayCount = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    return products.filter(p => new Date(p.createdAt).toISOString().slice(0, 10) === today).length;
+    return products.filter(p => (p.createdAt as any)?.startsWith?.(today)).length;
   }, [products]);
 
   const updateGoal = (val: string) => {
-    const n = val === "" ? 0 : parseInt(val, 10);
+    const parsed = parseInt(val, 10);
+    const n = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
     setGoal(n);
-    localStorage.setItem("jtd:daily-goal", n.toString());
+    try {
+      localStorage.setItem("jtd:daily-goal", n.toString());
+    } catch {
+      // ignora erros de storage
+    }
   };
 
   const percent = goal > 0 ? Math.min(100, (todayCount / goal) * 100) : 0;
@@ -418,7 +428,11 @@ function RecentProducts() {
   
   const recent = useMemo(() => {
     return [...products]
-      .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
+      .sort((a, b) => {
+        const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
+        const dateB = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
+        return dateB - dateA;
+      })
       .slice(0, 5);
   }, [products]);
 
