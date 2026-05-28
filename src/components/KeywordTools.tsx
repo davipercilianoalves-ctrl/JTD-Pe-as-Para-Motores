@@ -155,7 +155,13 @@ export function FloatingKeywordCloud({
   onClose: () => void;
   productName: string;
 }) {
-  const [pos, setPos] = useState({ x: window.innerWidth - 350, y: window.innerHeight - 450 });
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPos({ x: window.innerWidth - 350, y: window.innerHeight - 450 });
+    }
+  }, []);
   const [dragging, setDragging] = useState(false);
   const offset = useRef({ x: 0, y: 0 });
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
