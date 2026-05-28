@@ -1218,155 +1218,163 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
   };
 
   const shortChars = (data.shortDescription || "").length;
-  const fullChars = (data.description || "").length;
-  const totalChars = composed.length;
-  const totalWords = composed.trim() ? composed.trim().split(/\s+/).length : 0;
+function DescriptionSection({ product, market }: { product: Product; market: MK }) {
+  const { updateProduct } = useStore();
+  const data = product[market];
+  const [showAI, setShowAI] = useState(false);
+
+  const set = (patch: Partial<MarketplaceData>) => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      [market]: { ...p[market], ...patch }
+    }));
+  };
+
+  const usedKeywordsCount = useMemo(() => {
+    const text = (data.shortDescription || "").toLowerCase();
+    return product.keywords.filter(k => text.includes(k.text)).length;
+  }, [data.shortDescription, product.keywords]);
 
   return (
-    <section>
-      <SectionTitle hint="Resumo com palavras-chave + descrição completa. A cópia final junta as duas partes.">
-        Descrição
-      </SectionTitle>
-
-      {/* Unified document card: short summary + full body in one visual flow */}
-      <div className="rounded-2xl bg-surface overflow-hidden">
-        {/* Header bar */}
-        <div className="flex items-center gap-3 px-7 pt-5 pb-3 border-b border-border/30">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary/70" />
-            Documento de descrição
-          </div>
-          <span className="ml-auto text-[11px] text-muted-foreground/60 tabular-nums">
-            {totalWords} palavras · {totalChars} caracteres
+    <div className="space-y-12">
+      {/* Short Description */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <SectionTitle hint="Uma ou duas frases resumindo o produto com as palavras-chave principais.">
+            Breve descrição
+          </SectionTitle>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 bg-surface px-2.5 py-1 rounded-full border border-border/40">
+            {usedKeywordsCount} de {product.keywords.length} palavras-chave usadas
           </span>
-          <button
-            onClick={() => copy(composed, "full")}
-            disabled={!composed}
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-30"
+        </div>
+        <div className="rounded-2xl bg-surface p-5 border border-border/40 focus-within:border-primary/40 transition-colors">
+          <AutoTextArea
+            value={data.shortDescription}
+            onChange={(e) => set({ shortDescription: e.target.value })}
+            placeholder="Uma ou duas frases que resumem o produto incluindo as palavras-chave principais..."
+            className="text-[15px] leading-relaxed"
+            minRows={3}
+          />
+        </div>
+      </section>
+
+      <div className="h-px bg-border/40" />
+
+      {/* Full Description */}
+      <section>
+        <SectionTitle hint="Descrição detalhada do produto. Use o template para gerar com IA externa.">
+          Descrição completa
+        </SectionTitle>
+        <div className="space-y-4">
+          <Btn 
+            variant="soft" 
+            className="w-full py-4 text-primary font-bold shadow-sm"
+            onClick={() => setShowAI(true)}
           >
-            {copied === "full" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-            {copied === "full" ? "Copiado" : "Copiar tudo"}
-          </button>
-        </div>
-
-        {/* SHORT zone */}
-        <div className="px-7 pt-5 pb-5">
-          <div className="flex items-center gap-3 mb-2">
-            <SubLabel>Resumo · breve descrição com palavras-chave</SubLabel>
-            <span className="text-[10px] text-muted-foreground/55 tabular-nums">{shortChars}</span>
-            <button
-              onClick={() => copy((data.shortDescription || "").trim(), "short")}
-              disabled={!data.shortDescription}
-              className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-30"
-            >
-              {copied === "short" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              só o resumo
-            </button>
-          </div>
-          <div className="rounded-xl bg-background/50 border border-border/40 focus-within:border-primary/40 focus-within:bg-background/70 transition-colors px-5 py-4">
-            <AutoResizeTextarea
-              value={data.shortDescription}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("shortDescription", e.target.value)}
-              placeholder="Uma ou duas frases que resumem o produto incluindo as palavras-chave principais..."
-              className="text-[15px] leading-relaxed"
-              minRows={2}
-            />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <Btn variant="soft" size="sm" onClick={() => insertKeywords("all")} disabled={!product.keywords.length}>
-              <Plus className="h-3.5 w-3.5" /> Inserir todas as palavras-chave
-            </Btn>
-            <Btn
-              variant="ghost"
-              size="sm"
-              onClick={() => insertKeywords("fav")}
-              disabled={!product.keywords.some((k) => k.favorite)}
-            >
-              <Star className="h-3.5 w-3.5" /> Inserir favoritas
-            </Btn>
-          </div>
-        </div>
-
-        {/* Divider between resumo and corpo */}
-        <div className="relative px-7">
-          <div className="border-t border-dashed border-border/40" />
-          <span className="absolute left-1/2 -translate-x-1/2 -top-[9px] bg-surface px-3 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">
-            corpo da descrição
-          </span>
-        </div>
-
-        {/* FULL zone */}
-        <div className="px-7 pt-6 pb-7">
-          <div className="flex items-center gap-3 mb-2">
-            <SubLabel>Descrição completa</SubLabel>
-            <span className="text-[10px] text-muted-foreground/55 tabular-nums">{fullChars}</span>
-            <span className="ml-auto text-[10px] text-muted-foreground/50 italic">
-              O resumo é incluído automaticamente ao copiar tudo
-            </span>
-          </div>
-          <div className="rounded-xl bg-background/50 border border-border/40 focus-within:border-primary/40 focus-within:bg-background/70 transition-colors px-6 py-5">
-            {data.shortDescription && (
-              <div className="mb-4 pb-4 border-b border-border/30">
-                <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/50 mb-1.5">
-                  Resumo (preview)
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground/85 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                  {data.shortDescription}
-                </p>
-              </div>
-            )}
-            <AutoResizeTextarea
+            <Copy className="h-4 w-4 mr-2" /> 📋 Gerar com IA externa
+          </Btn>
+          <div className="rounded-2xl bg-surface p-6 border border-border/40 focus-within:border-primary/40 transition-colors">
+            <AutoTextArea
               value={data.description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("description", e.target.value)}
-              placeholder="Continue a descrição a partir do resumo..."
-              className="text-[15px] leading-loose"
+              onChange={(e) => set({ description: e.target.value })}
+              placeholder="Cole aqui a descrição completa gerada pela IA..."
+              className="text-[15px] leading-relaxed"
               minRows={8}
             />
           </div>
         </div>
-      </div>
+      </section>
 
-
-      <div className="mt-6 grid lg:grid-cols-2 gap-5">
-        <SoftBlock label="Bullet points / ficha técnica">
-          <AutoResizeTextarea
-            value={data.media}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("media", e.target.value)}
-            placeholder={"• Item 1\n• Item 2"}
-            minRows={4}
-          />
-        </SoftBlock>
-        <SoftBlock label="SEO complementar">
-          <AutoResizeTextarea
-            value={data.seo}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("seo", e.target.value)}
-            minRows={4}
-          />
-        </SoftBlock>
-        <SoftBlock label="Estratégia / copy viral">
-          <AutoResizeTextarea
-            value={data.strategies}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("strategies", e.target.value)}
-            minRows={4}
-          />
-        </SoftBlock>
-        <SoftBlock label="Notas">
-          <AutoResizeTextarea
-            value={data.notes}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("notes", e.target.value)}
-            minRows={4}
-          />
-        </SoftBlock>
-      </div>
-    </section>
+      {showAI && (
+        <AITemplateModal 
+          product={product} 
+          market={market} 
+          onClose={() => setShowAI(false)} 
+        />
+      )}
+    </div>
   );
 }
 
-function SoftBlock({ label, children }: { label: string; children: React.ReactNode }) {
+function AITemplateModal({ 
+  product, 
+  market, 
+  onClose 
+}: { 
+  product: Product; 
+  market: MK; 
+  onClose: () => void 
+}) {
+  const [copied, setCopied] = useState(false);
+  const data = product[market];
+
+  const marketRange = useMemo(() => {
+    const prices = product.competitors.map(c => c.price).filter((p): p is number => !!p && p > 0);
+    if (prices.length === 0) return "N/A";
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return `${min.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} a ${max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+  }, [product.competitors]);
+
+  const template = `Você é um especialista em copywriting para marketplace.
+Crie uma descrição completa para o seguinte produto:
+
+Produto: ${product.name}
+Breve descrição: ${data.shortDescription}
+Palavras-chave obrigatórias: ${product.keywords.map(k => k.display).join(", ")}
+Faixa de preço do mercado: ${marketRange} (baseado na análise de concorrentes)
+
+A descrição deve:
+- Ter entre 300 e 500 palavras
+- Usar todas as palavras-chave de forma natural
+- Responder as principais dúvidas do comprador
+- Ter um parágrafo inicial de impacto
+- Listar benefícios e especificações técnicas
+- Terminar com chamada para ação
+- Tom: direto, confiante e informativo`;
+
+  const copy = () => {
+    navigator.clipboard.writeText(template);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="rounded-2xl bg-surface/60 px-6 py-5">
-      <SubLabel>{label}</SubLabel>
-      {children}
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-background border border-border w-full max-w-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-6 py-5 border-b border-border/40 flex items-center justify-between bg-surface/30">
+          <div>
+            <h3 className="text-lg font-bold">Template para IA externa</h3>
+            <p className="text-xs text-muted-foreground">Copie este prompt e cole no ChatGPT ou Claude</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="p-6 overflow-y-auto max-h-[60vh] bg-background">
+          <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono bg-surface p-5 rounded-xl border border-border/40 text-foreground/80">
+            {template}
+          </pre>
+        </div>
+
+        <div className="p-6 border-t border-border/40 bg-surface/30 flex items-center justify-end gap-3">
+          <Btn variant="ghost" onClick={onClose}>Fechar</Btn>
+          <Btn variant="primary" onClick={copy} className="min-w-[140px]">
+            {copied ? (
+              <><Check className="h-4 w-4 mr-2" /> Copiado!</>
+            ) : (
+              <><Copy className="h-4 w-4 mr-2" /> Copiar template</>
+            )}
+          </Btn>
+        </div>
+      </div>
     </div>
   );
 }
