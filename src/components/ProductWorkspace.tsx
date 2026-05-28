@@ -978,8 +978,8 @@ function CompetitorKeywords({
           onRemove={removeWord}
           onClose={() => setShowInput(false)}
           position={{
-            top: btnRef.current.getBoundingClientRect().bottom + window.scrollY + 5,
-            left: btnRef.current.getBoundingClientRect().left + window.scrollX - 200,
+            top: (btnRef.current?.getBoundingClientRect().bottom ?? 0) + (typeof window !== "undefined" ? window.scrollY : 0) + 5,
+            left: (btnRef.current?.getBoundingClientRect().left ?? 0) + (typeof window !== "undefined" ? window.scrollX : 0) - 200,
           }}
         />
       )}
