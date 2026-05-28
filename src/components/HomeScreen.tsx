@@ -153,8 +153,8 @@ export function HomeScreen() {
           </div>
         </div>
 
-        {/* Operational Stats Grid */}
         <DashboardStats />
+
 
         {/* Middle Section: Daily Goal + Recent Products */}
         <div className="grid md:grid-cols-2 gap-6 mb-12">
