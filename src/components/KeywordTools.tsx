@@ -18,6 +18,7 @@ export function FloatingKeywordInput({
 }) {
   const [text, setText] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   const handleAdd = () => {
     if (!text.trim()) return;
@@ -26,6 +27,7 @@ export function FloatingKeywordInput({
   };
 
   useEffect(() => {
+    if (isMobile) return;
     const handleOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         onClose();
@@ -33,7 +35,40 @@ export function FloatingKeywordInput({
     };
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
-  }, [onClose]);
+  }, [onClose, isMobile]);
+
+  if (isMobile) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-popover border-t border-border rounded-t-xl p-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-semibold uppercase tracking-wider">Palavras-chave</span>
+          <button onClick={onClose} className="p-1"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex gap-2 mb-4">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            className="flex-1 rounded-lg bg-input/40 px-3 py-2 text-base outline-none border border-border/40"
+            placeholder="Adicionar..."
+            autoFocus
+          />
+          <Btn onClick={handleAdd}>Add</Btn>
+        </div>
+        <div className="flex flex-wrap gap-2 max-h-[40vh] overflow-y-auto pb-4">
+          {initialKeywords.map((w) => (
+            <span key={w} className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium">
+              {w}
+              <button onClick={() => onRemove(w)}><X className="h-4 w-4" /></button>
+            </span>
+          ))}
+          {initialKeywords.length === 0 && (
+            <span className="text-xs text-muted-foreground w-full text-center py-4">Nenhuma palavra extraída</span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -79,8 +114,10 @@ export function FloatingKeywordCloud({
   const [pos, setPos] = useState({ x: window.innerWidth - 350, y: window.innerHeight - 450 });
   const [dragging, setDragging] = useState(false);
   const offset = useRef({ x: 0, y: 0 });
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return;
     setDragging(true);
     offset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
   };
@@ -88,7 +125,15 @@ export function FloatingKeywordCloud({
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       if (!dragging) return;
-      setPos({ x: e.clientX - offset.current.x, y: e.clientY - offset.current.y });
+      const WINDOW_W = 320;
+      const WINDOW_H = 400;
+      const newX = e.clientX - offset.current.x;
+      const newY = e.clientY - offset.current.y;
+      
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - WINDOW_W, newX)),
+        y: Math.max(0, Math.min(window.innerHeight - WINDOW_H, newY)),
+      });
     };
     const handleUp = () => setDragging(false);
     document.addEventListener("mousemove", handleMove);
@@ -98,6 +143,29 @@ export function FloatingKeywordCloud({
       document.removeEventListener("mouseup", handleUp);
     };
   }, [dragging]);
+
+  if (isMobile) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border rounded-t-2xl p-4 max-h-[60vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div className="flex items-center justify-between mb-4 sticky top-0 bg-background py-1">
+          <span className="font-semibold text-sm">Todas as palavras ({productName})</span>
+          <button onClick={onClose} className="p-1"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-20">
+          {keywords.map((kw, i) => (
+            <span key={i} title={kw.source} className="bg-secondary px-3 py-1.5 rounded-lg text-sm">
+              {kw.text}
+            </span>
+          ))}
+        </div>
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+          <Btn className="w-full" onClick={() => navigator.clipboard.writeText(keywords.map(k => k.text).join(", "))}>
+            <Copy className="h-4 w-4 mr-2" /> Copiar todas
+          </Btn>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
