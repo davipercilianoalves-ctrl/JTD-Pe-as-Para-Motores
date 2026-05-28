@@ -90,38 +90,25 @@ export function HomeScreen() {
     return list;
   }, [decorated, statusFilter, query]);
 
-  const stats = useMemo(() => {
-    const total = decorated.length;
-    const risk = decorated.filter((d) => d.signal.status === "risk").length;
-    const attention = decorated.filter(
-      (d) => d.signal.status === "attention",
-    ).length;
-    const incomplete = decorated.filter(
-      (d) => d.signal.status === "incomplete",
-    ).length;
-    const healthy = decorated.filter((d) => d.signal.status === "healthy")
-      .length;
-    return { total, risk, attention, incomplete, healthy };
-  }, [decorated]);
-
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto bg-[#fafafa] dark:bg-[#050505]">
       <div className="mx-auto max-w-[1280px] px-10 py-12">
         {/* Brand strip */}
         <header className="flex items-end justify-between gap-8 border-b border-border/60 pb-8 mb-8">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-3">
               <span className="h-px w-8 bg-primary" />
-              JTD · Peças para motores
+              JTD · Centro de Operações
             </div>
             <h1 className="text-[44px] font-semibold tracking-tight leading-[1.02]">
-              Centro de <span className="text-primary">operações</span>
+              Dashboard <span className="text-primary">E-commerce</span>
             </h1>
           </div>
           <div className="hidden md:block shrink-0 h-20 w-20 rounded-xl overflow-hidden bg-black ring-1 ring-white/5">
             <img src={logoUrl} alt="JTD" className="h-full w-full object-cover" />
           </div>
         </header>
+
 
         {/* Quick Actions */}
         <div className="flex flex-wrap items-center gap-3 mb-8">
