@@ -11,7 +11,15 @@ import {
   TrendingUp,
   Sparkles,
   Film,
+  Box,
+  Megaphone,
+  Briefcase,
+  History,
+  Target,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
+
 import { useStore } from "@/lib/store";
 import { brl } from "@/lib/pricing";
 import { evaluateProduct, STATUS_META, type ProductSignal } from "@/lib/product-signal";
@@ -82,32 +90,18 @@ export function HomeScreen() {
     return list;
   }, [decorated, statusFilter, query]);
 
-  const stats = useMemo(() => {
-    const total = decorated.length;
-    const risk = decorated.filter((d) => d.signal.status === "risk").length;
-    const attention = decorated.filter(
-      (d) => d.signal.status === "attention",
-    ).length;
-    const incomplete = decorated.filter(
-      (d) => d.signal.status === "incomplete",
-    ).length;
-    const healthy = decorated.filter((d) => d.signal.status === "healthy")
-      .length;
-    return { total, risk, attention, incomplete, healthy };
-  }, [decorated]);
-
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto bg-[#fafafa] dark:bg-[#050505]">
       <div className="mx-auto max-w-[1280px] px-10 py-12">
         {/* Brand strip */}
         <header className="flex items-end justify-between gap-8 border-b border-border/60 pb-8 mb-8">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-3">
               <span className="h-px w-8 bg-primary" />
-              JTD · Peças para motores
+              JTD · Centro de Operações
             </div>
             <h1 className="text-[44px] font-semibold tracking-tight leading-[1.02]">
-              Centro de <span className="text-primary">operações</span>
+              Dashboard <span className="text-primary">E-commerce</span>
             </h1>
           </div>
           <div className="hidden md:block shrink-0 h-20 w-20 rounded-xl overflow-hidden bg-black ring-1 ring-white/5">
@@ -115,60 +109,69 @@ export function HomeScreen() {
           </div>
         </header>
 
-        {/* Search + quick actions row */}
-        <div className="flex items-stretch gap-3 mb-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar em tudo — produtos, SKUs, keywords, concorrentes…"
-              className="w-full h-12 rounded-xl bg-surface border border-border pl-11 pr-4 text-[15px] outline-none placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition"
-            />
-          </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-wrap items-center gap-3 mb-8">
           <button
             onClick={() => createProduct()}
-            className="h-12 px-5 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition shadow-[var(--shadow-red)]"
+            className="h-11 px-5 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition shadow-[var(--shadow-red)]"
           >
             <Plus className="h-4 w-4" /> Novo produto
           </button>
-          <button
-            onClick={openViral}
-            className="h-12 px-4 inline-flex items-center gap-2 rounded-xl bg-surface border border-border text-sm font-medium hover:bg-surface-elevated transition"
-          >
-            <Film className="h-4 w-4" /> Biblioteca
-          </button>
+          
+          <div className="h-11 px-1 flex items-center gap-1 rounded-xl bg-surface border border-border">
+            <button
+              onClick={() => {
+                // To show all products, we just need to ensure filters are cleared
+                setQuery("");
+                setStatusFilter("all");
+                // The list is already visible below
+                const listEl = document.getElementById("product-list-container");
+                if (listEl) listEl.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-surface-elevated rounded-lg transition"
+            >
+              Ver todos os produtos
+            </button>
+            <div className="w-px h-4 bg-border" />
+            <button
+              onClick={openViral}
+              className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-surface-elevated rounded-lg transition flex items-center gap-2"
+            >
+              <Film className="h-3.5 w-3.5" /> Biblioteca Viral
+            </button>
+          </div>
+
+          <div className="flex-1 min-w-[240px] relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Pesquisar produtos..."
+              className="w-full h-11 rounded-xl bg-surface border border-border pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition"
+            />
+          </div>
         </div>
 
-        {/* Operational pulse */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-px rounded-xl overflow-hidden border border-border bg-border mb-10">
-          <PulseCell label="Total" value={stats.total} tone="metal" />
-          <PulseCell
-            label="Saudáveis"
-            value={stats.healthy}
-            tone="success"
-            icon={<TrendingUp className="h-3.5 w-3.5" />}
-          />
-          <PulseCell
-            label="Atenção"
-            value={stats.attention}
-            tone="warning"
-            icon={<AlertTriangle className="h-3.5 w-3.5" />}
-          />
-          <PulseCell
-            label="Risco"
-            value={stats.risk}
-            tone="primary"
-            icon={<AlertTriangle className="h-3.5 w-3.5" />}
-          />
-          <PulseCell
-            label="Incompletos"
-            value={stats.incomplete}
-            tone="muted"
-            icon={<Sparkles className="h-3.5 w-3.5" />}
-          />
+        <DashboardStats />
+
+
+        {/* Middle Section: Daily Goal + Recent Products */}
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
+          <DailyGoal />
+          <RecentProducts />
         </div>
+
+        {/* Separator / Header for product list */}
+        <div id="product-list-container" className="flex items-center gap-4 mb-6">
+          <div className="h-px flex-1 bg-border" />
+          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60 whitespace-nowrap">
+            Inventário operacional
+          </h2>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+
 
         {/* Filter chips + view mode */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
@@ -265,6 +268,213 @@ export function HomeScreen() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+function DashboardStats() {
+  const { products } = useStore();
+  
+  const stats = useMemo(() => {
+    const totalProducts = products.length;
+    
+    let totalAnnouncements = 0;
+    let totalKits = 0;
+    
+    products.forEach(p => {
+      // Check for announcements in any marketplace or global custom fields
+      // Assuming announcements/kits might be in marketplace extras or specific fields
+      // Request says "product.announcements?.length" or equivalent
+      // We'll check common names in custom fields as well
+      const announcements = (p as any).announcements;
+      if (Array.isArray(announcements)) totalAnnouncements += announcements.length;
+      
+      const kits = (p as any).kits;
+      if (Array.isArray(kits)) totalKits += kits.length;
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const createdToday = products.filter(p => {
+      const date = new Date(p.createdAt).toISOString().slice(0, 10);
+      return date === today;
+    }).length;
+
+    return { totalProducts, totalAnnouncements, totalKits, createdToday };
+  }, [products]);
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      <StatCard 
+        label="Produtos cadastrados" 
+        value={stats.totalProducts} 
+        icon={<Box className="h-5 w-5" />} 
+      />
+      <StatCard 
+        label="Anúncios criados" 
+        value={stats.totalAnnouncements} 
+        icon={<Megaphone className="h-5 w-5" />} 
+      />
+      <StatCard 
+        label="Kits criados" 
+        value={stats.totalKits} 
+        icon={<Briefcase className="h-5 w-5" />} 
+      />
+      <StatCard 
+        label="Criados hoje" 
+        value={stats.createdToday} 
+        icon={<TrendingUp className="h-5 w-5" />} 
+      />
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+  return (
+    <div className="bg-surface border border-border rounded-xl p-5 flex items-center gap-4">
+      <div className="h-12 w-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+        {icon}
+      </div>
+      <div>
+        <div className="text-2xl font-bold tabular-nums leading-none mb-1">
+          {value}
+        </div>
+        <div className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+          {label}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DailyGoal() {
+  const { products } = useStore();
+  const [goal, setGoal] = useState<number>(() => {
+    const saved = localStorage.getItem("jtd:daily-goal");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  const todayCount = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return products.filter(p => new Date(p.createdAt).toISOString().slice(0, 10) === today).length;
+  }, [products]);
+
+  const updateGoal = (val: string) => {
+    const n = val === "" ? 0 : parseInt(val, 10);
+    setGoal(n);
+    localStorage.setItem("jtd:daily-goal", n.toString());
+  };
+
+  const percent = goal > 0 ? Math.min(100, (todayCount / goal) * 100) : 0;
+  const reached = goal > 0 && todayCount >= goal;
+
+  return (
+    <div className="bg-surface border border-border rounded-xl p-6 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="font-semibold text-lg flex items-center gap-2">
+          <Target className="h-5 w-5 text-primary" /> Meta diária
+        </h3>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Meta:</span>
+          <input
+            type="number"
+            value={goal || ""}
+            onChange={(e) => updateGoal(e.target.value)}
+            placeholder="Ex: 5"
+            className="w-16 h-8 px-2 rounded-lg bg-surface-elevated border border-border text-sm outline-none focus:border-primary/50 transition"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="flex items-end justify-between mb-2">
+          <div className="text-3xl font-bold tabular-nums">
+            {todayCount} <span className="text-sm font-normal text-muted-foreground uppercase tracking-wider">de {goal || "—"} produtos</span>
+          </div>
+          {reached && (
+            <div className="flex items-center gap-1.5 text-success text-sm font-semibold animate-in fade-in slide-in-from-right-2">
+              <CheckCircle2 className="h-4 w-4" /> Meta atingida!
+            </div>
+          )}
+        </div>
+        
+        <div className="h-2 w-full bg-border rounded-full overflow-hidden">
+          <div 
+            className={cn(
+              "h-full transition-all duration-500",
+              reached ? "bg-success" : "bg-primary"
+            )}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        
+        {!goal && (
+          <p className="mt-4 text-sm text-muted-foreground italic">
+            Defina uma meta diária para acompanhar seu progresso.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RecentProducts() {
+  const { products, openProduct, createProduct, ui } = useStore();
+  
+  const recent = useMemo(() => {
+    return [...products]
+      .sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))
+      .slice(0, 5);
+  }, [products]);
+
+  if (products.length === 0) {
+    return (
+      <div className="bg-surface border border-border rounded-xl p-8 text-center flex flex-col items-center justify-center h-full">
+        <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center mb-4">
+          <Package2 className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground mb-4">Nenhum produto criado ainda. Comece criando seu primeiro produto.</p>
+        <button
+          onClick={() => createProduct()}
+          className="h-10 px-4 inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition shadow-[var(--shadow-red)]"
+        >
+          <Plus className="h-4 w-4" /> Criar produto
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-surface border border-border rounded-xl flex flex-col h-full overflow-hidden">
+      <div className="px-6 py-5 border-b border-border flex items-center justify-between">
+        <h3 className="font-semibold text-lg flex items-center gap-2">
+          <History className="h-5 w-5 text-primary" /> Acesso rápido
+        </h3>
+        <button 
+          onClick={() => {}} // This should ideally trigger view switch to home but with a specific filter or just scrolling to list
+          className="text-xs text-muted-foreground hover:text-foreground transition flex items-center gap-1 uppercase tracking-wider font-semibold"
+        >
+          Ver todos <ArrowRight className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="divide-y divide-border">
+        {recent.map(p => (
+          <div 
+            key={p.id}
+            onClick={() => openProduct(p.id)}
+            className="px-6 py-4 hover:bg-surface-elevated cursor-pointer transition flex items-center justify-between group"
+          >
+            <div className="min-w-0">
+              <div className="font-medium truncate group-hover:text-primary transition">{p.name || "Sem nome"}</div>
+              <div className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-2">
+                {p.sku && <span>SKU: {p.sku}</span>}
+                {p.sku && <span className="h-0.5 w-0.5 rounded-full bg-muted-foreground/40" />}
+                <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PulseCell({
   label,
   value,
@@ -295,6 +505,7 @@ function PulseCell({
     </div>
   );
 }
+
 
 function ProductRow({
   p,
