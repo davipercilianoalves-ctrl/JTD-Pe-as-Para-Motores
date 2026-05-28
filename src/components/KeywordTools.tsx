@@ -18,7 +18,11 @@ export function FloatingKeywordInput({
 }) {
   const [text, setText] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
 
   const [pos, setPos] = useState(() => ({
     x: position.left,
