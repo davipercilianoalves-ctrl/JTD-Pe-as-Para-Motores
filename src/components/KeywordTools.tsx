@@ -20,16 +20,51 @@ export function FloatingKeywordInput({
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
-  const handleAdd = () => {
-    if (!text.trim()) return;
-    onAdd(text.trim());
-    setText("");
+  const [pos, setPos] = useState(() => ({
+    x: position.left,
+    y: position.top,
+  }));
+  const dragging = useRef(false);
+  const offset = useRef({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return;
+    dragging.current = true;
+    offset.current = {
+      x: e.clientX - pos.x,
+      y: e.clientY - pos.y,
+    };
   };
 
   useEffect(() => {
     if (isMobile) return;
+    const handleMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      const WINDOW_W = 288;
+      const WINDOW_H = 360;
+      const newX = e.clientX - offset.current.x;
+      const newY = e.clientY - offset.current.y;
+
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - WINDOW_W, newX)),
+        y: Math.max(0, Math.min(window.innerHeight - WINDOW_H, newY)),
+      });
+    };
+    const handleUp = () => {
+      dragging.current = false;
+    };
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile) return;
     const handleOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node) && !dragging.current) {
         onClose();
       }
     };
@@ -74,9 +109,12 @@ export function FloatingKeywordInput({
     <div
       ref={containerRef}
       className="fixed z-50 w-72 bg-popover border border-border rounded-xl shadow-xl p-4 flex flex-col gap-3"
-      style={{ top: position.top, left: position.left }}
+      style={{ top: pos.y, left: pos.x }}
     >
-      <div className="flex items-center justify-between">
+      <div 
+        className="flex items-center justify-between cursor-grab active:cursor-grabbing"
+        onMouseDown={handleMouseDown}
+      >
         <span className="text-sm font-medium">Palavras-chave</span>
         <button onClick={onClose}><X className="h-4 w-4 text-muted-foreground" /></button>
       </div>
