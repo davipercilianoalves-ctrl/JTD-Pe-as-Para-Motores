@@ -68,6 +68,15 @@ export function ProductWorkspace() {
   const confirm = useConfirm();
   const [market, setMarket] = useState<MK>("mercadoLivre");
   const [showMeta, setShowMeta] = useState(false);
+  const [showCloud, setShowCloud] = useState(false);
+
+  const allKeywords = useMemo(() => {
+    const list: { text: string; source: string }[] = [];
+    product.competitors.forEach((c) => {
+      c.keywordsFound.forEach((kw) => list.push({ text: kw, source: c.title || "Concorrente" }));
+    });
+    return list;
+  }, [product.competitors]);
 
   if (!product) {
     return (
