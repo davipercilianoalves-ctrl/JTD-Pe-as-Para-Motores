@@ -10,9 +10,11 @@ import {
   ExternalLink,
   ChevronDown,
   X,
-  
   GripVertical,
+  Cloud,
 } from "lucide-react";
+import { FloatingKeywordInput, FloatingKeywordCloud } from "./KeywordTools";
+import { brl } from "@/lib/pricing";
 import { useStore, useSelectedProduct } from "@/lib/store";
 import { useConfirm } from "@/components/ConfirmProvider";
 import {
