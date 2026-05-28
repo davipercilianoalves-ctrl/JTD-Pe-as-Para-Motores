@@ -71,12 +71,13 @@ export function ProductWorkspace() {
   const [showCloud, setShowCloud] = useState(false);
 
   const allKeywords = useMemo(() => {
+    if (!product) return [];
     const list: { text: string; source: string }[] = [];
     product.competitors.forEach((c) => {
       c.keywordsFound.forEach((kw) => list.push({ text: kw, source: c.title || "Concorrente" }));
     });
     return list;
-  }, [product.competitors]);
+  }, [product?.competitors]);
 
   if (!product) {
     return (
