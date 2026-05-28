@@ -48,6 +48,7 @@ import {
   Field,
   SectionTitle,
   TextInput,
+  AutoTextArea,
 } from "@/components/ui-kit";
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
