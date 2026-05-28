@@ -1295,7 +1295,7 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
             </button>
           </div>
           <div className="rounded-xl bg-background/50 border border-border/40 focus-within:border-primary/40 focus-within:bg-background/70 transition-colors px-5 py-4">
-            <AutoTextArea
+            <AutoResizeTextarea
               value={data.shortDescription}
               onChange={(e) => set("shortDescription", e.target.value)}
               placeholder="Uma ou duas frases que resumem o produto incluindo as palavras-chave principais..."
@@ -1346,7 +1346,7 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
                 </p>
               </div>
             )}
-            <AutoTextArea
+            <AutoResizeTextarea
               value={data.description}
               onChange={(e) => set("description", e.target.value)}
               placeholder="Continue a descrição a partir do resumo..."
@@ -1360,7 +1360,7 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
 
       <div className="mt-6 grid lg:grid-cols-2 gap-5">
         <SoftBlock label="Bullet points / ficha técnica">
-          <AutoTextArea
+          <AutoResizeTextarea
             value={data.media}
             onChange={(e) => set("media", e.target.value)}
             placeholder={"• Item 1\n• Item 2"}
@@ -1368,21 +1368,21 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
           />
         </SoftBlock>
         <SoftBlock label="SEO complementar">
-          <AutoTextArea
+          <AutoResizeTextarea
             value={data.seo}
             onChange={(e) => set("seo", e.target.value)}
             minRows={4}
           />
         </SoftBlock>
         <SoftBlock label="Estratégia / copy viral">
-          <AutoTextArea
+          <AutoResizeTextarea
             value={data.strategies}
             onChange={(e) => set("strategies", e.target.value)}
             minRows={4}
           />
         </SoftBlock>
         <SoftBlock label="Notas">
-          <AutoTextArea
+          <AutoResizeTextarea
             value={data.notes}
             onChange={(e) => set("notes", e.target.value)}
             minRows={4}
@@ -2515,7 +2515,7 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Roteiro</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoTextArea
+                          <AutoResizeTextarea
                             value={v.script}
                             onChange={(e) => upd(v.id, { script: e.target.value })}
                             placeholder="Estrutura do vídeo cena a cena..."
@@ -2526,7 +2526,7 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Falas</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoTextArea
+                          <AutoResizeTextarea
                             value={v.speech}
                             onChange={(e) => upd(v.id, { speech: e.target.value })}
                             placeholder="Texto exato a ser falado..."
@@ -2557,7 +2557,7 @@ function VideosSection({ product }: { product: Product }) {
                       <div>
                         <SubLabel>Notas gerais</SubLabel>
                         <div className="rounded-lg bg-background/40 px-4 py-3">
-                          <AutoTextArea
+                          <AutoResizeTextarea
                             value={v.notes}
                             onChange={(e) => upd(v.id, { notes: e.target.value })}
                             placeholder="Ganchos, observações, ideias..."
