@@ -534,6 +534,95 @@ function KeywordsSection({ product }: { product: Product }) {
   );
 }
 
+function ConsolidatedKeywords({ product }: { product: Product }) {
+  const { removeKeyword } = useStore();
+  const [copied, setCopied] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const copyAll = () => {
+    navigator.clipboard.writeText(product.keywords.map((k) => k.display).join(", "));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copySelected = () => {
+    const text = product.keywords
+      .filter((k) => selected.has(k.id))
+      .map((k) => k.display)
+      .join(", ");
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="mt-16">
+      <SectionTitle
+        hint="Lista mestre consolidada de todas as palavras encontradas."
+        action={
+          <div className="flex gap-2">
+            <Btn variant="soft" size="sm" onClick={copySelected} disabled={selected.size === 0}>
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              Copiar selecionadas
+            </Btn>
+            <Btn variant="soft" size="sm" onClick={copyAll} disabled={product.keywords.length === 0}>
+              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              Copiar todas
+            </Btn>
+          </div>
+        }
+      >
+        Palavras-chave encontradas
+      </SectionTitle>
+
+      <div className="rounded-2xl bg-surface p-6">
+        {product.keywords.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhuma palavra-chave adicionada ainda.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {product.keywords.map((k) => {
+              const isSelected = selected.has(k.id);
+              return (
+                <div
+                  key={k.id}
+                  onClick={() => toggleSelect(k.id)}
+                  className={cn(
+                    "group flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all cursor-pointer select-none",
+                    isSelected
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-background/40 border-border/60 hover:border-primary/40",
+                  )}
+                >
+                  <span className="text-sm">{k.display}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeKeyword(product.id, k.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 /* ============================================================
    2. COMPETITORS — fast inline blocks; keywords feed back into main list
