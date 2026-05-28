@@ -80,7 +80,7 @@ function AutoResizeTextarea({
       placeholder={placeholder}
       rows={minRows}
       style={{ resize: "none", overflow: "hidden" }}
-      className={className}
+      className={cn("w-full bg-transparent text-base leading-relaxed outline-none placeholder:text-muted-foreground/45 resize-none overflow-hidden break-words [overflow-wrap:anywhere] whitespace-pre-wrap", className)}
     />
   );
 }
