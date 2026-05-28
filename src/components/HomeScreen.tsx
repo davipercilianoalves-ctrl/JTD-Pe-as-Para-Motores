@@ -11,7 +11,15 @@ import {
   TrendingUp,
   Sparkles,
   Film,
+  Box,
+  Megaphone,
+  Briefcase,
+  History,
+  Target,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
+
 import { useStore } from "@/lib/store";
 import { brl } from "@/lib/pricing";
 import { evaluateProduct, STATUS_META, type ProductSignal } from "@/lib/product-signal";
