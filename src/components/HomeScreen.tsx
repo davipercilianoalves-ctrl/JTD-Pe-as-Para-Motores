@@ -123,34 +123,67 @@ export function HomeScreen() {
           </div>
         </header>
 
-        {/* Search + quick actions row */}
-        <div className="flex items-stretch gap-3 mb-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar em tudo — produtos, SKUs, keywords, concorrentes…"
-              className="w-full h-12 rounded-xl bg-surface border border-border pl-11 pr-4 text-[15px] outline-none placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition"
-            />
-          </div>
+        {/* Quick Actions */}
+        <div className="flex flex-wrap items-center gap-3 mb-8">
           <button
             onClick={() => createProduct()}
-            className="h-12 px-5 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition shadow-[var(--shadow-red)]"
+            className="h-11 px-5 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition shadow-[var(--shadow-red)]"
           >
             <Plus className="h-4 w-4" /> Novo produto
           </button>
-          <button
-            onClick={openViral}
-            className="h-12 px-4 inline-flex items-center gap-2 rounded-xl bg-surface border border-border text-sm font-medium hover:bg-surface-elevated transition"
-          >
-            <Film className="h-4 w-4" /> Biblioteca
-          </button>
+          
+          <div className="h-11 px-1 flex items-center gap-1 rounded-xl bg-surface border border-border">
+            <button
+              onClick={() => {
+                // To show all products, we just need to ensure filters are cleared
+                setQuery("");
+                setStatusFilter("all");
+                // The list is already visible below
+                const listEl = document.getElementById("product-list-container");
+                if (listEl) listEl.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-surface-elevated rounded-lg transition"
+            >
+              Ver todos os produtos
+            </button>
+            <div className="w-px h-4 bg-border" />
+            <button
+              onClick={openViral}
+              className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-surface-elevated rounded-lg transition flex items-center gap-2"
+            >
+              <Film className="h-3.5 w-3.5" /> Biblioteca Viral
+            </button>
+          </div>
+
+          <div className="flex-1 min-w-[240px] relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Pesquisar produtos..."
+              className="w-full h-11 rounded-xl bg-surface border border-border pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition"
+            />
+          </div>
         </div>
 
-        {/* Operational Stats */}
+        {/* Operational Stats Grid */}
         <DashboardStats />
+
+        {/* Middle Section: Daily Goal + Recent Products */}
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
+          <DailyGoal />
+          <RecentProducts />
+        </div>
+
+        {/* Separator / Header for product list */}
+        <div id="product-list-container" className="flex items-center gap-4 mb-6">
+          <div className="h-px flex-1 bg-border" />
+          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60 whitespace-nowrap">
+            Inventário operacional
+          </h2>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
 
 
         {/* Filter chips + view mode */}
