@@ -44,7 +44,6 @@ import {
   type PriceStatus,
 } from "@/lib/pricing";
 import {
-  AutoTextArea,
   Btn,
   Field,
   SectionTitle,
@@ -52,6 +51,39 @@ import {
 } from "@/components/ui-kit";
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
+
+function AutoResizeTextarea({
+  value,
+  onChange,
+  placeholder,
+  className,
+  minRows = 3,
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
+  className?: string;
+  minRows?: number;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.style.height = "auto";
+    ref.current.style.height = ref.current.scrollHeight + "px";
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={minRows}
+      style={{ resize: "none", overflow: "hidden" }}
+      className={className}
+    />
+  );
+}
 
 type MK = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
 const MARKETS: { key: MK; label: string }[] = [
@@ -256,10 +288,10 @@ export function ProductWorkspace() {
                   />
                 </Field>
                 <Field label="Notas internas">
-                  <AutoTextArea
+                  <AutoResizeTextarea
                     value={product.internalNotes}
                     onChange={(e) => set("internalNotes", e.target.value)}
-                    className="rounded-lg bg-input/40 px-3.5 py-2.5"
+                    className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-base outline-none focus:bg-input/70 transition-colors placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-ring/40"
                     minRows={2}
                   />
                 </Field>
@@ -272,11 +304,11 @@ export function ProductWorkspace() {
           {/* 8 — FAQ */}
           <div className="mt-20">
             <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
-            <AutoTextArea
+            <AutoResizeTextarea
               value={product.niche_faqs || ""}
               onChange={(e) => set("niche_faqs", e.target.value)}
               placeholder="Ex: Serve para modelo X? Tem garantia? Qual o prazo de entrega?"
-              className="mt-2 rounded-xl bg-surface px-5 py-4 text-[15px] border border-border/40 focus:border-primary/40 transition-colors"
+              className="mt-2 w-full rounded-xl bg-surface px-5 py-4 text-[15px] border border-border/40 focus:border-primary/40 transition-colors outline-none"
               minRows={4}
             />
           </div>
@@ -307,7 +339,19 @@ function KeywordsSection({ product }: { product: Product }) {
   const commit = () => {
     const toks = parseKeywordTokens(draft);
     if (!toks.length) return;
-    addKeywordTokens(product.id, toks);
+
+    const currentList = product.keywords.map(k => k.display);
+    const uniqueToks = toks.filter(word => {
+      const normalized = word.trim().toLowerCase();
+      const alreadyExists = currentList.some(
+        k => k.trim().toLowerCase() === normalized
+      );
+      return !alreadyExists && normalized;
+    });
+
+    if (uniqueToks.length > 0) {
+      addKeywordTokens(product.id, uniqueToks);
+    }
     setDraft("");
   };
 
@@ -761,12 +805,12 @@ function CompetitorsSection({ product }: { product: Product }) {
 
                     <div>
                       <SubLabel>Descrição</SubLabel>
-                      <AutoTextArea
+                      <AutoResizeTextarea
                         value={c.description}
                         onChange={(e) => upd(c.id, { description: e.target.value })}
                         placeholder="Cole a descrição completa..."
                         minRows={4}
-                        className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none resize-none overflow-hidden"
+                        className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none transition-colors"
                       />
                     </div>
 
@@ -775,9 +819,13 @@ function CompetitorsSection({ product }: { product: Product }) {
                         <TextInput
                           value={c.price?.toString() || ""}
                           onChange={(e) => {
-                            const raw = e.target.value.replace(",", ".");
-                            const val = parseFloat(raw);
-                            upd(c.id, { price: isNaN(val) ? undefined : val });
+                            const value = e.target.value;
+                            const price = parseFloat(
+                              value
+                                .replace(/[^\d,.-]/g, "")
+                                .replace(",", ".")
+                            );
+                            upd(c.id, { price: isNaN(price) ? undefined : price });
                           }}
                           placeholder="0,00"
                         />
@@ -792,12 +840,12 @@ function CompetitorsSection({ product }: { product: Product }) {
 
                     <div>
                       <SubLabel>Notas internas</SubLabel>
-                      <AutoTextArea
+                      <AutoResizeTextarea
                         value={c.notes}
                         onChange={(e) => upd(c.id, { notes: e.target.value })}
                         placeholder="O que faz bem? O que dá pra superar?"
                         minRows={3}
-                        className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none resize-none overflow-hidden"
+                        className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none transition-colors"
                       />
                     </div>
                   </div>
@@ -813,40 +861,46 @@ function CompetitorsSection({ product }: { product: Product }) {
 }
 
 function PriceAnalysisSummary({ competitors }: { competitors: CompetitorBlock[] }) {
-  const prices = competitors
-    .map((c) => c.price)
-    .filter((p): p is number => typeof p === "number" && p > 0);
+  const valid = competitors
+    .map(c => parseFloat(
+      String(c.price ?? "").replace(",", ".")
+    ))
+    .filter(p => p > 0 && Number.isFinite(p));
 
-  if (prices.length === 0) {
-    return (
-      <div className="rounded-xl border border-border/40 bg-surface px-6 py-5">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-4">
-          Análise de Preços dos Concorrentes
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Mínimo</div><div className="text-lg font-medium">—</div></div>
-          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Máximo</div><div className="text-lg font-medium">—</div></div>
-          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Médio</div><div className="text-lg font-medium">—</div></div>
-          <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Base</div><div className="text-lg font-medium">0 anúncios</div></div>
-        </div>
-      </div>
-    );
-  }
-
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const min = valid.length > 0 ? Math.min(...valid) : null;
+  const max = valid.length > 0 ? Math.max(...valid) : null;
+  const avg = valid.length > 0
+    ? valid.reduce((a, b) => a + b, 0) / valid.length
+    : null;
 
   return (
-    <div className="rounded-xl border border-primary/20 bg-primary/5 px-6 py-5">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/80 mb-4">
+    <div className={cn(
+      "rounded-xl border px-6 py-5",
+      valid.length > 0 ? "border-primary/20 bg-primary/5" : "border-border/40 bg-surface"
+    )}>
+      <div className={cn(
+        "text-[10px] font-semibold uppercase tracking-[0.18em] mb-4",
+        valid.length > 0 ? "text-primary/80" : "text-muted-foreground"
+      )}>
         Análise de Preços dos Concorrentes
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Mínimo</div><div className="text-lg font-medium text-foreground">{brl(min)}</div></div>
-        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Máximo</div><div className="text-lg font-medium text-foreground">{brl(max)}</div></div>
-        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Médio</div><div className="text-lg font-medium text-primary">{brl(avg)}</div></div>
-        <div><div className="text-[10px] text-muted-foreground uppercase mb-1">Base</div><div className="text-lg font-medium text-foreground">{prices.length} {prices.length === 1 ? 'anúncio' : 'anúncios'}</div></div>
+        <div>
+          <div className="text-[10px] text-muted-foreground uppercase mb-1">Mínimo</div>
+          <div className="text-lg font-medium">{min !== null ? brl(min) : "—"}</div>
+        </div>
+        <div>
+          <div className="text-[10px] text-muted-foreground uppercase mb-1">Máximo</div>
+          <div className="text-lg font-medium">{max !== null ? brl(max) : "—"}</div>
+        </div>
+        <div>
+          <div className="text-[10px] text-muted-foreground uppercase mb-1">Médio</div>
+          <div className="text-lg font-medium text-primary">{avg !== null ? brl(avg) : "—"}</div>
+        </div>
+        <div>
+          <div className="text-[10px] text-muted-foreground uppercase mb-1">Base</div>
+          <div className="text-lg font-medium">{valid.length} {valid.length === 1 ? 'anúncio' : 'anúncios'}</div>
+        </div>
       </div>
     </div>
   );
@@ -871,13 +925,17 @@ function CompetitorKeywords({
   };
 
   const addWord = (word: string) => {
-    const key = canonKeyword(word);
-    if (!key) return;
-    if (!block.keywordsFound.some((w) => canonKeyword(w) === key)) {
+    const normalized = word.trim().toLowerCase();
+    const currentList = block.keywordsFound;
+    const alreadyExists = currentList.some(
+      k => k.trim().toLowerCase() === normalized
+    );
+    
+    if (!alreadyExists && normalized) {
       onChange([...block.keywordsFound, word]);
+      onCommit([word]);
+      flashOk();
     }
-    onCommit([word]);
-    flashOk();
   };
 
   const removeWord = (word: string) => {
