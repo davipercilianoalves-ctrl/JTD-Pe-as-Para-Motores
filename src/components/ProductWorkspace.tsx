@@ -675,7 +675,22 @@ function CompetitorsSection({ product }: { product: Product }) {
                         onChange={(e) => upd(c.id, { description: e.target.value })}
                         placeholder="Cole a descrição completa..."
                         minRows={4}
+                        className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none resize-none overflow-hidden"
                       />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Field label="Preço (R$)">
+                        <TextInput
+                          value={c.price?.toString() || ""}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(",", ".");
+                            const val = parseFloat(raw);
+                            upd(c.id, { price: isNaN(val) ? undefined : val });
+                          }}
+                          placeholder="0,00"
+                        />
+                      </Field>
                     </div>
 
                     <CompetitorKeywords
