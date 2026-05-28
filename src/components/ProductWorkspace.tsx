@@ -700,12 +700,13 @@ function CompetitorsSection({ product }: { product: Product }) {
                     />
 
                     <div>
-                      <SubLabel>Observações</SubLabel>
+                      <SubLabel>Notas internas</SubLabel>
                       <AutoTextArea
                         value={c.notes}
                         onChange={(e) => upd(c.id, { notes: e.target.value })}
                         placeholder="O que faz bem? O que dá pra superar?"
                         minRows={3}
+                        className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:bg-input/70 border-none resize-none overflow-hidden"
                       />
                     </div>
                   </div>
