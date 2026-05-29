@@ -12,6 +12,17 @@ import {
   X,
   GripVertical,
   Cloud,
+  RefreshCw,
+  Save,
+  Calculator,
+  ArrowRight,
+  TrendingUp,
+  AlertTriangle,
+  MinusCircle,
+  PlusCircle,
+  Hash,
+  DollarSign,
+  Percent,
 } from "lucide-react";
 import { FloatingKeywordInput, FloatingKeywordCloud } from "./KeywordTools";
 import { useStore, useSelectedProduct } from "@/lib/store";
@@ -20,13 +31,14 @@ import {
   parseSingleWords,
   parseKeywordTokens,
   canonKeyword,
+  emptyPricing,
   type Product,
   type Keyword,
-  type TitleEntry,
   type TitleVariant,
   type PricingData,
   type CompetitorBlock,
   type MarketplaceData,
+  type MarketplaceId,
   type ProductVideo,
   type CostItem,
   type CostGroup,
@@ -52,15 +64,23 @@ import {
 } from "@/components/ui-kit";
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 
-type MK = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
+type MK = MarketplaceId;
 const MARKETS: { key: MK; label: string }[] = [
   { key: "mercadoLivre", label: "Mercado Livre" },
   { key: "shopee", label: "Shopee" },
   { key: "amazon", label: "Amazon" },
   { key: "tiktok", label: "TikTok" },
 ];
+
+const DEFAULT_LIMITS: Record<MK, number> = {
+  mercadoLivre: 60,
+  shopee: 120,
+  amazon: 200,
+  tiktok: 80,
+};
 const TITLE_VARIANTS: TitleVariant[] = ["SEO Forte", "Conversão", "Mobile", "Curto", "Completo"];
 
 export function ProductWorkspace() {
