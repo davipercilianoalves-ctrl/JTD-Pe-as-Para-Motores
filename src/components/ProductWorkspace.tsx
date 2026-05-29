@@ -117,8 +117,9 @@ export function ProductWorkspace() {
     );
   }
 
-  const set = <K extends keyof Product>(key: K, value: Product[K]) =>
-    updateProduct(product.id, { [key]: value } as Partial<Product>);
+  function set<K extends keyof Product>(key: K, value: Product[K]) {
+    updateProduct(product!.id, { [key]: value } as Partial<Product>);
+  }
 
   return (
     <div className="flex h-screen flex-1 flex-col overflow-hidden">
@@ -298,6 +299,8 @@ export function ProductWorkspace() {
       )}
     </div>
   );
+}
+
 function SubLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground mb-2">
@@ -861,4 +864,3 @@ function VideosSection({ product }: { product: Product }) {
     </section>
   );
 }
-
