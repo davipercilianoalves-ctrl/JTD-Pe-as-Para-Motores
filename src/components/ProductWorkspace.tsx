@@ -1287,8 +1287,10 @@ function AITemplateModal({
   market: MK; 
   onClose: () => void 
 }) {
+  const { updateProduct } = useStore();
   const [copied, setCopied] = useState(false);
   const data = product[market];
+  const confirm = useConfirm();
 
   const marketRange = useMemo(() => {
     const prices = product.competitors.map(c => c.price).filter((p): p is number => !!p && p > 0);
@@ -1298,7 +1300,7 @@ function AITemplateModal({
     return `${min.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} a ${max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
   }, [product.competitors]);
 
-  const template = `Você é um especialista em copywriting para marketplace.
+  const generateDefault = () => `Você é um especialista em copywriting para marketplace.
 Crie uma descrição completa para o seguinte produto:
 
 Produto: ${product.name}
@@ -1315,8 +1317,29 @@ A descrição deve:
 - Terminar com chamada para ação
 - Tom: direto, confiante e informativo`;
 
+  const [currentText, setCurrentText] = useState(data.aiTemplate || generateDefault());
+
+  const save = () => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      [market]: { ...p[market], aiTemplate: currentText }
+    }));
+    toast.success("Template salvo!");
+  };
+
+  const restore = async () => {
+    if (await confirm({
+      title: "Restaurar padrão?",
+      message: "Isso vai apagar suas edições. Confirmar?",
+      confirmLabel: "Restaurar",
+      tone: "danger"
+    })) {
+      setCurrentText(generateDefault());
+    }
+  };
+
   const copy = () => {
-    navigator.clipboard.writeText(template);
+    navigator.clipboard.writeText(currentText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -1327,34 +1350,50 @@ A descrição deve:
       onClick={onClose}
     >
       <div 
-        className="relative bg-background border border-border w-full max-w-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative bg-background border border-border w-full max-w-[800px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-5 border-b border-border/40 flex items-center justify-between bg-surface/30">
           <div>
             <h3 className="text-lg font-bold">Template para IA externa</h3>
-            <p className="text-xs text-muted-foreground">Copie este prompt e cole no ChatGPT ou Claude</p>
+            <p className="text-xs text-muted-foreground">Edite o template e use para gerar sua descrição</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
         
-        <div className="p-6 overflow-y-auto max-h-[60vh] bg-background">
-          <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono bg-surface p-5 rounded-xl border border-border/40 text-foreground/80">
-            {template}
-          </pre>
+        <div className="p-6 bg-background">
+          <div className="rounded-xl border border-border/40 bg-surface/30 overflow-hidden">
+            <AutoTextArea
+              value={currentText}
+              onChange={(e) => setCurrentText(e.target.value)}
+              className="w-full bg-transparent p-5 text-sm leading-relaxed font-mono text-foreground/80 outline-none"
+              minRows={12}
+              maxRows={20}
+            />
+          </div>
         </div>
 
-        <div className="p-6 border-t border-border/40 bg-surface/30 flex items-center justify-end gap-3">
-          <Btn variant="ghost" onClick={onClose}>Fechar</Btn>
-          <Btn variant="primary" onClick={copy} className="min-w-[140px]">
-            {copied ? (
-              <><Check className="h-4 w-4 mr-2" /> Copiado!</>
-            ) : (
-              <><Copy className="h-4 w-4 mr-2" /> Copiar template</>
-            )}
-          </Btn>
+        <div className="p-6 border-t border-border/40 bg-surface/30 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Btn variant="ghost" size="sm" onClick={restore}>
+              <RefreshCw className="h-3.5 w-3.5 mr-2" /> Restaurar padrão
+            </Btn>
+            <Btn variant="soft" size="sm" onClick={save}>
+              <Save className="h-3.5 w-3.5 mr-2" /> Salvar template
+            </Btn>
+          </div>
+          <div className="flex items-center gap-3">
+            <Btn variant="ghost" onClick={onClose}>Fechar</Btn>
+            <Btn variant="primary" onClick={copy} className="min-w-[140px]">
+              {copied ? (
+                <><Check className="h-4 w-4 mr-2" /> Copiado!</>
+              ) : (
+                <><Copy className="h-4 w-4 mr-2" /> Copiar template</>
+              )}
+            </Btn>
+          </div>
         </div>
       </div>
     </div>
