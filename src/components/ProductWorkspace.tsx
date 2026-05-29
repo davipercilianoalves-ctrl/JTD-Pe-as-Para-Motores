@@ -12,6 +12,17 @@ import {
   X,
   GripVertical,
   Cloud,
+  RefreshCw,
+  Save,
+  Calculator,
+  ArrowRight,
+  TrendingUp,
+  AlertTriangle,
+  MinusCircle,
+  PlusCircle,
+  Hash,
+  DollarSign,
+  Percent,
 } from "lucide-react";
 import { FloatingKeywordInput, FloatingKeywordCloud } from "./KeywordTools";
 import { useStore, useSelectedProduct } from "@/lib/store";
@@ -20,17 +31,15 @@ import {
   parseSingleWords,
   parseKeywordTokens,
   canonKeyword,
+  emptyPricing,
   type Product,
   type Keyword,
-  type TitleEntry,
   type TitleVariant,
   type PricingData,
   type CompetitorBlock,
   type MarketplaceData,
+  type MarketplaceId,
   type ProductVideo,
-  type CostItem,
-  type CostGroup,
-  type CostKind,
 } from "@/lib/types";
 import {
   computePricing,
@@ -42,6 +51,7 @@ import {
   type Alert as PricingAlert,
   type PriceAnalysis,
   type PriceStatus,
+  type BreakdownLine,
 } from "@/lib/pricing";
 import {
   Btn,
@@ -52,16 +62,22 @@ import {
 } from "@/components/ui-kit";
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-
-type MK = "mercadoLivre" | "shopee" | "amazon" | "tiktok";
+type MK = MarketplaceId;
 const MARKETS: { key: MK; label: string }[] = [
   { key: "mercadoLivre", label: "Mercado Livre" },
   { key: "shopee", label: "Shopee" },
   { key: "amazon", label: "Amazon" },
   { key: "tiktok", label: "TikTok" },
 ];
-const TITLE_VARIANTS: TitleVariant[] = ["SEO Forte", "Conversão", "Mobile", "Curto", "Completo"];
+
+const DEFAULT_LIMITS: Record<MK, number> = {
+  mercadoLivre: 60,
+  shopee: 120,
+  amazon: 200,
+  tiktok: 80,
+};
 
 export function ProductWorkspace() {
   const product = useSelectedProduct();
@@ -104,7 +120,6 @@ export function ProductWorkspace() {
     <div className="flex h-screen flex-1 flex-col overflow-hidden">
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-[1100px] px-12 pt-12 pb-32">
-          {/* HEADER */}
           <div className="flex items-start justify-between gap-6 mb-3">
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               Workspace
@@ -159,17 +174,14 @@ export function ProductWorkspace() {
             <span className="text-success ml-1">salvo automaticamente</span>
           </div>
 
-          {/* 1 — KEYWORDS */}
           <div className="mt-12">
             <KeywordsSection product={product} />
           </div>
 
-          {/* 2 — COMPETITORS */}
           <div className="mt-16">
             <CompetitorsSection product={product} />
           </div>
 
-          {/* Marketplace switcher (applies to títulos + descrição) */}
           <div className="mt-20 flex items-center gap-1 rounded-xl bg-surface p-1 w-fit">
             {MARKETS.map((m) => (
               <button
@@ -188,32 +200,23 @@ export function ProductWorkspace() {
           </div>
 
           <div className="mt-8 space-y-16">
-            {/* 1. Consolidated Keywords */}
             <ConsolidatedKeywords product={product} />
-
-            {/* 2. Titles */}
             <TitlesSection product={product} market={market} />
-
-            {/* 3. Description (Short + Full) */}
             <DescriptionSection product={product} market={market} />
           </div>
 
-          {/* 4 — PRICING */}
           <div className="mt-16">
             <PricingSection product={product} />
           </div>
 
-          {/* 5 — IMAGES */}
           <div className="mt-16">
             <ImagesSection product={product} />
           </div>
 
-          {/* 6 — VIDEOS */}
           <div className="mt-16">
             <VideosSection product={product} />
           </div>
 
-          {/* 7 — CUSTOM FIELDS (one unified panel for the whole product) */}
           <div className="mt-20">
             <CustomFieldsPanel
               title="Campos do produto"
@@ -224,7 +227,6 @@ export function ProductWorkspace() {
             />
           </div>
 
-          {/* META */}
           <div className="mt-20">
             <button
               onClick={() => setShowMeta((v) => !v)}
@@ -271,8 +273,6 @@ export function ProductWorkspace() {
             )}
           </div>
 
-
-          {/* 8 — FAQ */}
           <div className="mt-20">
             <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
             <AutoTextArea
@@ -296,9 +296,6 @@ export function ProductWorkspace() {
   );
 }
 
-/* ============================================================
-   1. KEYWORDS — vertical list + selected column for partial copy
-============================================================ */
 function KeywordsSection({ product }: { product: Product }) {
   const { addKeywordTokens, removeKeyword, toggleKeywordFavorite } = useStore();
   const [draft, setDraft] = useState("");
@@ -638,10 +635,6 @@ function ConsolidatedKeywords({ product }: { product: Product }) {
   );
 }
 
-
-/* ============================================================
-   2. COMPETITORS — fast inline blocks; keywords feed back into main list
-============================================================ */
 function CompetitorsSection({ product }: { product: Product }) {
   const { updateProduct, addKeywordTokens } = useStore();
   const confirm = useConfirm();
@@ -987,8 +980,6 @@ function CompetitorKeywords({
   );
 }
 
-
-
 function SubLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground mb-2">
@@ -997,14 +988,12 @@ function SubLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ============================================================
-   3a. TITLES — multiple variants with floating keyword box
-============================================================ */
 function TitlesSection({ product, market }: { product: Product; market: MK }) {
   const { updateProduct } = useStore();
   const data = product[market];
   const [showKeywordBox, setShowKeywordBox] = useState(false);
 
+  const limit = data.titleLimit ?? DEFAULT_LIMITS[market];
   const titles = (data.titles ?? []).length > 0 ? data.titles : [""];
 
   const upd = (idx: number, newValue: string) => {
@@ -1013,8 +1002,18 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
       [market]: {
         ...p[market],
         titles: (p[market].titles ?? []).map((t, i) =>
-          i === idx ? newValue.slice(0, 60) : t
+          i === idx ? newValue.slice(0, limit) : t
         ),
+      },
+    }));
+  };
+
+  const setLimit = (val: number) => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      [market]: {
+        ...p[market],
+        titleLimit: val,
       },
     }));
   };
@@ -1085,14 +1084,26 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
         Títulos
       </SectionTitle>
 
+      <div className="mb-4 flex items-center gap-3">
+        <Field label="Limite de caracteres">
+          <input
+            type="number"
+            value={limit}
+            onChange={(e) => setLimit(parseInt(e.target.value) || 0)}
+            className="w-24 rounded-lg bg-input/40 px-3 py-2 text-sm outline-none"
+          />
+        </Field>
+      </div>
+
       <div className="space-y-3">
         {titles.map((text, i) => (
-          <TitleField
+         <TitleField
             key={i}
             value={text}
             onChange={(val) => upd(i, val)}
             onRemove={() => rm(i)}
             autoFocus={i === titles.length - 1 && i > 0 && !text}
+            limit={limit}
           />
         ))}
 
@@ -1121,18 +1132,20 @@ function TitleField({
   value, 
   onChange, 
   onRemove,
-  autoFocus
+  autoFocus,
+  limit
 }: { 
   value: string; 
   onChange: (v: string) => void; 
   onRemove: () => void;
   autoFocus?: boolean;
+  limit: number;
 }) {
   const count = value.length;
   const counterClass =
-    count >= 60
+    count >= limit
       ? "text-red-500"
-      : count >= 55
+      : count >= limit * 0.9
         ? "text-yellow-500"
         : "text-muted-foreground";
 
@@ -1140,19 +1153,19 @@ function TitleField({
     <div className="group relative">
       <div className={cn(
         "flex items-center gap-3 bg-surface px-5 py-3.5 rounded-xl border transition-all",
-        count >= 60 ? "border-red-500 ring-1 ring-red-500/20" : "border-border/40 focus-within:border-primary/40"
+        count >= limit ? "border-red-500 ring-1 ring-red-500/20" : "border-border/40 focus-within:border-primary/40"
       )}>
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Digite o título do anúncio..."
-          maxLength={60}
+          maxLength={limit}
           autoFocus={autoFocus}
           className="flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/30"
         />
         <div className="flex items-center gap-3">
           <span className={cn("text-[11px] font-bold tabular-nums tracking-wider", counterClass)}>
-            {count}/60
+            {count}/{limit}
           </span>
           <button
             onClick={onRemove}
@@ -1185,7 +1198,6 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
 
   return (
     <div className="space-y-12">
-      {/* Short Description */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <SectionTitle hint="Uma ou duas frases resumindo o produto com as palavras-chave principais.">
@@ -1208,7 +1220,6 @@ function DescriptionSection({ product, market }: { product: Product; market: MK 
 
       <div className="h-px bg-border/40" />
 
-      {/* Full Description */}
       <section>
         <SectionTitle hint="Descrição detalhada do produto. Use o template para gerar com IA externa.">
           Descrição completa
@@ -1253,8 +1264,10 @@ function AITemplateModal({
   market: MK; 
   onClose: () => void 
 }) {
+  const { updateProduct } = useStore();
   const [copied, setCopied] = useState(false);
   const data = product[market];
+  const confirm = useConfirm();
 
   const marketRange = useMemo(() => {
     const prices = product.competitors.map(c => c.price).filter((p): p is number => !!p && p > 0);
@@ -1264,7 +1277,7 @@ function AITemplateModal({
     return `${min.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} a ${max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
   }, [product.competitors]);
 
-  const template = `Você é um especialista em copywriting para marketplace.
+  const generateDefault = () => `Você é um especialista em copywriting para marketplace.
 Crie uma descrição completa para o seguinte produto:
 
 Produto: ${product.name}
@@ -1281,8 +1294,29 @@ A descrição deve:
 - Terminar com chamada para ação
 - Tom: direto, confiante e informativo`;
 
+  const [currentText, setCurrentText] = useState(data.aiTemplate || generateDefault());
+
+  const save = () => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      [market]: { ...p[market], aiTemplate: currentText }
+    }));
+    toast.success("Template salvo!");
+  };
+
+  const restore = async () => {
+    if (await confirm({
+      title: "Restaurar padrão?",
+      message: "Isso vai apagar suas edições. Confirmar?",
+      confirmLabel: "Restaurar",
+      tone: "danger"
+    })) {
+      setCurrentText(generateDefault());
+    }
+  };
+
   const copy = () => {
-    navigator.clipboard.writeText(template);
+    navigator.clipboard.writeText(currentText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -1293,87 +1327,71 @@ A descrição deve:
       onClick={onClose}
     >
       <div 
-        className="relative bg-background border border-border w-full max-w-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative bg-background border border-border w-full max-w-[800px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-5 border-b border-border/40 flex items-center justify-between bg-surface/30">
           <div>
             <h3 className="text-lg font-bold">Template para IA externa</h3>
-            <p className="text-xs text-muted-foreground">Copie este prompt e cole no ChatGPT ou Claude</p>
+            <p className="text-xs text-muted-foreground">Edite o template e use para gerar sua descrição</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-accent rounded-full transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
         
-        <div className="p-6 overflow-y-auto max-h-[60vh] bg-background">
-          <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono bg-surface p-5 rounded-xl border border-border/40 text-foreground/80">
-            {template}
-          </pre>
+        <div className="p-6 bg-background">
+          <div className="rounded-xl border border-border/40 bg-surface/30 overflow-hidden">
+            <AutoTextArea
+              value={currentText}
+              onChange={(e) => setCurrentText(e.target.value)}
+              className="w-full bg-transparent p-5 text-sm leading-relaxed font-mono text-foreground/80 outline-none"
+              minRows={12}
+            />
+          </div>
         </div>
 
-        <div className="p-6 border-t border-border/40 bg-surface/30 flex items-center justify-end gap-3">
-          <Btn variant="ghost" onClick={onClose}>Fechar</Btn>
-          <Btn variant="primary" onClick={copy} className="min-w-[140px]">
-            {copied ? (
-              <><Check className="h-4 w-4 mr-2" /> Copiado!</>
-            ) : (
-              <><Copy className="h-4 w-4 mr-2" /> Copiar template</>
-            )}
-          </Btn>
+        <div className="p-6 border-t border-border/40 bg-surface/30 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Btn variant="ghost" size="sm" onClick={restore}>
+              <RefreshCw className="h-3.5 w-3.5 mr-2" /> Restaurar padrão
+            </Btn>
+            <Btn variant="soft" size="sm" onClick={save}>
+              <Save className="h-3.5 w-3.5 mr-2" /> Salvar template
+            </Btn>
+          </div>
+          <div className="flex items-center gap-3">
+            <Btn variant="ghost" onClick={onClose}>Fechar</Btn>
+            <Btn variant="primary" onClick={copy} className="min-w-[140px]">
+              {copied ? (
+                <><Check className="h-4 w-4 mr-2" /> Copiado!</>
+              ) : (
+                <><Copy className="h-4 w-4 mr-2" /> Copiar template</>
+              )}
+            </Btn>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-
-/* ============================================================
-   4. PRICING — strategic cockpit
-============================================================ */
-
-
 function PricingSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
-  const p = product.pricing;
+  const p = product.pricing ?? emptyPricing();
 
-  const patch = (patchFn: (prev: typeof p) => typeof p) =>
-    updateProduct(product.id, (prod) => ({ ...prod, pricing: patchFn(prod.pricing) }));
+  const patch = (patchFn: (prev: PricingData) => PricingData) =>
+    updateProduct(product.id, (prod) => ({ ...prod, pricing: patchFn(prod.pricing ?? emptyPricing()) }));
 
-  const setItem = (id: string, change: Partial<CostItem>) =>
+  const setItem = (id: string, change: any) =>
     patch((prev) => ({
       ...prev,
-      items: prev.items.map((it) => (it.id === id ? { ...it, ...change } : it)),
+      [id]: change.value,
     }));
-  const removeItem = (id: string) =>
-    patch((prev) => ({ ...prev, items: prev.items.filter((it) => it.id !== id) }));
-  const addItem = (group: CostGroup) =>
-    patch((prev) => ({
-      ...prev,
-      items: [
-        ...prev.items,
-        {
-          id: crypto.randomUUID(),
-          label: "Novo custo",
-          kind: "currency",
-          value: 0,
-          group,
-        },
-      ],
-    }));
+  const removeItem = (id: string) => {};
+  const addItem = (group: string) => {};
 
   const result = useMemo(() => computePricing(p), [p]);
-
-
-  const priceAnalyses: { key: string; label: string; pa: PriceAnalysis }[] = useMemo(
-    () => [
-      { key: "ideal", label: "Preço ideal", pa: analyzePrice(p, result.idealPrice, "ideal") },
-      { key: "psych", label: "Psicológico", pa: analyzePrice(p, result.psychological, "psych") },
-      { key: "min", label: "Mínimo seguro", pa: analyzePrice(p, result.minSafePrice, "min") },
-      { key: "aggressive", label: "Agressivo", pa: analyzePrice(p, result.aggressivePrice, "aggressive") },
-    ],
-    [p, result.idealPrice, result.psychological, result.minSafePrice, result.aggressivePrice],
-  );
 
   return (
     <section className="space-y-5">
@@ -1381,7 +1399,6 @@ function PricingSection({ product }: { product: Product }) {
         Precificação
       </SectionTitle>
 
-      {/* HERO — preço final massivo + slider de desconto */}
       <div className="rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 p-7">
         <div className="grid lg:grid-cols-[1.4fr_1fr_1fr] gap-8 items-end">
           <div className="min-w-0">
@@ -1391,24 +1408,6 @@ function PricingSection({ product }: { product: Product }) {
             <div className="text-6xl font-semibold tabular-nums tracking-tight leading-none">
               {brl(result.finalPrice)}
             </div>
-            {p.visibleDiscount > 0 && p.compensateDiscount && (
-              <div className="mt-2 text-sm text-muted-foreground">
-                De{" "}
-                <span className="line-through tabular-nums">
-                  {brl(result.displayedPrice)}
-                </span>{" "}
-                por{" "}
-                <span className="text-foreground font-medium tabular-nums">
-                  {brl(result.finalPrice)}
-                </span>{" "}
-                ({p.visibleDiscount}% OFF — lucro preservado)
-              </div>
-            )}
-            {p.visibleDiscount > 0 && !p.compensateDiscount && (
-              <div className="mt-2 text-sm text-muted-foreground">
-                Desconto sai do seu lucro.
-              </div>
-            )}
           </div>
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">
@@ -1437,94 +1436,10 @@ function PricingSection({ product }: { product: Product }) {
             </div>
           </div>
         </div>
-
-        {/* Slider desconto */}
-        <div className="mt-7 pt-6 border-t border-border/50 grid md:grid-cols-[1fr_auto] gap-6 items-center">
-          <div>
-            <div className="flex items-baseline justify-between mb-2">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Mostrar desconto
-              </div>
-              <div className="text-lg font-semibold tabular-nums">
-                {p.visibleDiscount}% OFF
-              </div>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(50, p.maxDiscount)}
-              step={1}
-              value={p.visibleDiscount}
-              onChange={(e) =>
-                patch((prev) => ({ ...prev, visibleDiscount: +e.target.value }))
-              }
-              className="w-full accent-primary"
-            />
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1">
-              <span>0%</span>
-              <span>
-                Limite seguro:{" "}
-                <input
-                  type="number"
-                  value={p.maxDiscount}
-                  onChange={(e) =>
-                    patch((prev) => ({ ...prev, maxDiscount: +e.target.value || 0 }))
-                  }
-                  className="w-12 bg-transparent text-foreground tabular-nums outline-none border-b border-border focus:border-primary"
-                />
-                %
-              </span>
-              <span>{Math.max(50, p.maxDiscount)}%</span>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-xs cursor-pointer select-none whitespace-nowrap">
-            <input
-              type="checkbox"
-              checked={p.compensateDiscount}
-              onChange={(e) =>
-                patch((prev) => ({ ...prev, compensateDiscount: e.target.checked }))
-              }
-              className="accent-primary w-4 h-4"
-            />
-            Compensar no preço de
-            <span className="text-muted-foreground">(lucro intacto)</span>
-          </label>
-        </div>
       </div>
 
-      {/* LINHA: custos | 4 cards de análise */}
       <div className="grid lg:grid-cols-[320px_minmax(0,1fr)] gap-5 items-start">
-        {/* CUSTOS */}
         <div className="rounded-2xl bg-surface p-5 space-y-5">
-          <div className="rounded-xl bg-primary/10 border border-primary/20 p-4">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/80 mb-2">
-              Quanto de lucro você quer ter?
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                step="0.1"
-                value={p.desiredProfit || ""}
-                onChange={(e) =>
-                  patch((prev) => ({ ...prev, desiredProfit: +e.target.value || 0 }))
-                }
-                className="w-full bg-transparent outline-none text-3xl font-semibold tabular-nums tracking-tight"
-                placeholder="0"
-              />
-              <KindToggle
-                kind={p.desiredProfitKind}
-                onChange={(k) =>
-                  patch((prev) => ({ ...prev, desiredProfitKind: k }))
-                }
-              />
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1">
-              {p.desiredProfitKind === "percent"
-                ? "% sobre cada venda."
-                : "valor fixo por venda."}
-            </div>
-          </div>
-
           {GROUP_ORDER.map((group) => {
             const items = p.items.filter((it) => it.group === group);
             return (
@@ -1541,11 +1456,6 @@ function PricingSection({ product }: { product: Product }) {
                   </button>
                 </div>
                 <div className="space-y-1.5">
-                  {items.length === 0 && (
-                    <div className="text-[11px] text-muted-foreground/60 italic px-2 py-1">
-                      vazio
-                    </div>
-                  )}
                   {items.map((it) => (
                     <CostRow
                       key={it.id}
@@ -1560,43 +1470,9 @@ function PricingSection({ product }: { product: Product }) {
           })}
         </div>
 
-        {/* PREÇOS RECOMENDADOS — hierarquia: ideal em destaque + 3 alternativas */}
         <div className="rounded-2xl bg-surface p-5 space-y-4">
-          <div className="flex items-baseline justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Preços recomendados
-              </div>
-              <div className="text-sm text-muted-foreground mt-0.5">
-                Compare quatro estratégias antes de decidir. O destaque é o seu alvo; os demais mostram seus limites.
-              </div>
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-[1.25fr_minmax(0,1fr)] gap-4">
-            {(() => {
-              const ideal = priceAnalyses.find((x) => x.key === "ideal")!;
-              const others = priceAnalyses.filter((x) => x.key !== "ideal");
-              return (
-                <>
-                  <PriceAnalysisCard label={ideal.label} pa={ideal.pa} featured />
-                  <div className="grid gap-2.5">
-                    {others.map(({ key, label, pa }) => (
-                      <PriceAnalysisCard key={key} label={label} pa={pa} compact />
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      </div>
-
-      {/* PRA ONDE VAI O DINHEIRO + ALERTAS */}
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5">
-        <div className="rounded-2xl bg-surface p-6">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-4">
-            Pra onde vai seu dinheiro
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Breakdown de custos
           </div>
           <div className="space-y-2.5">
             {result.breakdown
@@ -1605,292 +1481,18 @@ function PricingSection({ product }: { product: Product }) {
               .map((b) => (
                 <div key={b.item.id}>
                   <div className="flex items-baseline justify-between text-xs mb-1">
-                    <span className="text-muted-foreground truncate">
-                      {b.item.label}
-                    </span>
-                    <span className="tabular-nums">
-                      {brl(b.amount)}{" "}
-                      <span className="text-muted-foreground">
-                        ({b.pctOfFinal.toFixed(1)}%)
-                      </span>
-                    </span>
+                    <span className="text-muted-foreground truncate">{b.item.label}</span>
+                    <span className="tabular-nums">{brl(b.amount)} ({b.pctOfFinal.toFixed(1)}%)</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-background/80 overflow-hidden">
-                    <div
-                      className="h-full bg-primary/60"
-                      style={{
-                        width: `${Math.min(100, Math.max(0, b.pctOfFinal))}%`,
-                      }}
-                    />
+                    <div className="h-full bg-primary/60" style={{ width: `${Math.min(100, Math.max(0, b.pctOfFinal))}%` }} />
                   </div>
                 </div>
               ))}
-            {result.breakdown.every((b) => b.amount === 0) && (
-              <div className="text-xs text-muted-foreground/70 italic">
-                preencha os custos para ver o fluxo do dinheiro
-              </div>
-            )}
           </div>
-          <div className="mt-5 pt-4 border-t border-border/50 space-y-1.5 text-sm leading-relaxed">
-            <p className="text-muted-foreground">
-              Custo base:{" "}
-              <span className="text-foreground font-medium tabular-nums">
-                {brl(result.baseCost)}
-              </span>{" "}
-              · Taxas %:{" "}
-              <span className="text-foreground font-medium">
-                {(result.feesPct * 100).toFixed(1)}%
-              </span>
-            </p>
-            <p
-              className={cn(
-                result.netProfit >= 0 ? "text-success" : "text-destructive",
-              )}
-            >
-              Você fica com{" "}
-              <span className="font-semibold tabular-nums">
-                {brl(result.netProfit)}
-              </span>{" "}
-              ({result.marginPct.toFixed(1)}%) depois de tudo.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground mb-1">
-            Alertas estratégicos
-          </div>
-          {result.alerts.length === 0 ? (
-            <div className="rounded-xl border border-border bg-surface px-4 py-6 text-sm text-muted-foreground text-center">
-              Nada para alertar agora.
-            </div>
-          ) : (
-            result.alerts.map((a) => <AlertCard key={a.id} alert={a} />)
-          )}
-        </div>
-      </div>
-
-      {/* SIMULADOR DE CENÁRIOS */}
-      <div className="rounded-2xl bg-surface p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Simulador de cenários
-            </div>
-            <div className="text-sm text-muted-foreground mt-0.5">
-              Veja como cada nível de desconto impacta seu lucro real.
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {p.scenarios.map((pct) => {
-            const r = simulateScenario(p, pct);
-            const tone =
-              r.netProfit < 0 ? "danger" : r.marginPct < 10 ? "warning" : "success";
-            return (
-              <button
-                key={pct}
-                onClick={() => patch((prev) => ({ ...prev, visibleDiscount: pct }))}
-                className={cn(
-                  "text-left rounded-xl border p-4 transition-colors hover:bg-accent/40",
-                  tone === "danger" && "border-destructive/40",
-                  tone === "warning" && "border-warning/40",
-                  tone === "success" && "border-success/40",
-                )}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {pct}% OFF
-                  </span>
-                  <span
-                    className={cn(
-                      "w-2 h-2 rounded-full",
-                      tone === "danger" && "bg-destructive",
-                      tone === "warning" && "bg-warning",
-                      tone === "success" && "bg-success",
-                    )}
-                  />
-                </div>
-                <div className="text-xl font-semibold tabular-nums">
-                  {brl(r.finalPrice)}
-                </div>
-                {p.compensateDiscount && (
-                  <div className="text-[11px] text-muted-foreground line-through tabular-nums">
-                    {brl(r.displayedPrice)}
-                  </div>
-                )}
-                <div className="mt-2 text-xs flex items-center justify-between">
-                  <span className="text-muted-foreground">Lucro</span>
-                  <span
-                    className={cn(
-                      "tabular-nums font-medium",
-                      r.netProfit >= 0 ? "text-success" : "text-destructive",
-                    )}
-                  >
-                    {brl(r.netProfit)}
-                  </span>
-                </div>
-                <div className="text-xs flex items-center justify-between">
-                  <span className="text-muted-foreground">Margem</span>
-                  <span className="tabular-nums">
-                    {r.marginPct.toFixed(1)}%
-                  </span>
-                </div>
-              </button>
-            );
-          })}
         </div>
       </div>
     </section>
-  );
-}
-
-function PriceAnalysisCard({
-  label,
-  pa,
-  featured,
-  compact,
-}: {
-  label: string;
-  pa: PriceAnalysis;
-  featured?: boolean;
-  compact?: boolean;
-}) {
-  const toneByStatus: Record<
-    PriceStatus,
-    { ring: string; dot: string; text: string; soft: string }
-  > = {
-    healthy: {
-      ring: "border-success/40",
-      dot: "bg-success",
-      text: "Saudável",
-      soft: "bg-success/10",
-    },
-    attention: {
-      ring: "border-warning/40",
-      dot: "bg-warning",
-      text: "Atenção",
-      soft: "bg-warning/10",
-    },
-    risk: {
-      ring: "border-warning/50",
-      dot: "bg-warning",
-      text: "Risco",
-      soft: "bg-warning/10",
-    },
-    loss: {
-      ring: "border-destructive/50",
-      dot: "bg-destructive",
-      text: "Prejuízo",
-      soft: "bg-destructive/10",
-    },
-  };
-  const tone = toneByStatus[pa.status];
-
-  if (compact) {
-    return (
-      <div
-        className={cn(
-          "rounded-xl border bg-background/40 p-3 flex items-center gap-3",
-          tone.ring,
-        )}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            <span className={cn("w-1.5 h-1.5 rounded-full", tone.dot)} />
-            {label}
-          </div>
-          <div className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight leading-tight">
-            {brl(pa.price)}
-          </div>
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">
-            {pa.reason}
-          </p>
-        </div>
-        <div className="text-right shrink-0">
-          <div
-            className={cn(
-              "text-sm font-semibold tabular-nums",
-              pa.netProfit >= 0 ? "text-success" : "text-destructive",
-            )}
-          >
-            {brl(pa.netProfit)}
-          </div>
-          <div
-            className={cn(
-              "text-[11px] tabular-nums",
-              pa.marginPct >= 0 ? "text-success/80" : "text-destructive/80",
-            )}
-          >
-            {pa.marginPct.toFixed(1)}%
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border p-5",
-        tone.ring,
-        featured
-          ? "bg-gradient-to-br from-primary/10 via-primary/[0.04] to-transparent ring-1 ring-primary/30"
-          : "bg-surface",
-      )}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            {label}
-          </div>
-          {featured && (
-            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary">
-              Recomendado
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          <span className={cn("w-1.5 h-1.5 rounded-full", tone.dot)} />
-          {tone.text}
-        </div>
-      </div>
-      <div
-        className={cn(
-          "font-semibold tabular-nums tracking-tight leading-none",
-          featured ? "text-4xl" : "text-3xl",
-        )}
-      >
-        {brl(pa.price)}
-      </div>
-      <div className="mt-3 flex items-baseline gap-4 text-xs">
-        <div>
-          <span className="text-muted-foreground">Lucro </span>
-          <span
-            className={cn(
-              "tabular-nums font-medium",
-              pa.netProfit >= 0 ? "text-success" : "text-destructive",
-            )}
-          >
-            {brl(pa.netProfit)}
-          </span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">Margem </span>
-          <span
-            className={cn(
-              "tabular-nums font-medium",
-              pa.marginPct >= 0 ? "text-success" : "text-destructive",
-            )}
-          >
-            {pa.marginPct.toFixed(1)}%
-          </span>
-        </div>
-      </div>
-      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-        {pa.reason}
-      </p>
-    </div>
   );
 }
 
@@ -1928,17 +1530,6 @@ function CostRow({
           })
         }
       />
-      {item.kind === "percent" && (
-        <button
-          onClick={() =>
-            onChange({ base: item.base === "cost" ? "final" : "cost" })
-          }
-          title={item.base === "cost" ? "% sobre o custo" : "% sobre o preço final"}
-          className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-foreground px-1"
-        >
-          {item.base === "cost" ? "/c" : "/p"}
-        </button>
-      )}
       <button
         onClick={onRemove}
         className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
@@ -1967,53 +1558,6 @@ function KindToggle({
   );
 }
 
-function MiniStat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1">
-        {label}
-      </div>
-      <div
-        className={cn(
-          "text-lg font-semibold tabular-nums tracking-tight",
-          accent && "text-primary",
-        )}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function AlertCard({ alert }: { alert: PricingAlert }) {
-  const tones = {
-    danger: "border-destructive/40 bg-destructive/10 text-destructive",
-    warning: "border-warning/40 bg-warning/10 text-warning",
-    success: "border-success/40 bg-success/10 text-success",
-    info: "border-border bg-surface text-foreground",
-  } as const;
-  return (
-    <div className={cn("rounded-xl border px-4 py-3 text-sm", tones[alert.tone])}>
-      <div className="font-semibold">{alert.title}</div>
-      {alert.detail && (
-        <div className="text-xs opacity-80 mt-0.5">{alert.detail}</div>
-      )}
-    </div>
-  );
-}
-
-
-/* ============================================================
-   5. IMAGES — large gallery, drag-reorder, main image, lightbox
-============================================================ */
 function ImagesSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -2261,9 +1805,6 @@ function IconChip({
   );
 }
 
-/* ============================================================
-   6. VIDEOS — two-column card per video (media | content)
-============================================================ */
 function VideosSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
   const confirm = useConfirm();
@@ -2501,8 +2042,6 @@ function VideosSection({ product }: { product: Product }) {
     </section>
   );
 }
-
-
 
 function FileSlot({
   label,

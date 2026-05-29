@@ -1,4 +1,4 @@
-import type { CostItem, PricingData } from "./types";
+import type { PricingData, MarketplaceId } from "./types";
 
 export const brl = (v: number) =>
   (isFinite(v) ? v : 0).toLocaleString("pt-BR", {
@@ -13,9 +13,9 @@ export const psychPrice = (v: number) => {
 };
 
 export interface BreakdownLine {
-  item: CostItem;
-  amount: number;       // R$ consumido na venda final
-  pctOfFinal: number;   // % do preço final
+  label: string;
+  amount: number;
+  pctOfFinal: number;
 }
 
 export interface Alert {
@@ -26,172 +26,82 @@ export interface Alert {
 }
 
 export interface PricingResult {
-  baseCost: number;       // somatório de custos fixos (R$ + percent base "cost" sobre custos)
-  feesPct: number;        // somatório de percent base "final" (0..1, ex 0.22)
-  idealPrice: number;     // preço alvo que garante o lucro desejado
-  displayedPrice: number; // preço "de" (riscado) — quando compensateDiscount, sobe acima do ideal
-  finalPrice: number;     // preço final cobrado depois do desconto visível
-  minSafePrice: number;   // preço onde o lucro líquido = 0
-  aggressivePrice: number; // com maxDiscount aplicado
-  psychological: number;  // psicológico (.90/.99)
-  netProfit: number;      // lucro líquido em R$
-  marginPct: number;      // margem real % sobre o preço final
-  desiredProfitValue: number; // alvo de lucro convertido em R$ sobre o ideal
+  baseCost: number;
+  feesPct: number;
+  idealPrice: number;
+  displayedPrice: number;
+  finalPrice: number;
+  minSafePrice: number;
+  aggressivePrice: number;
+  psychological: number;
+  netProfit: number;
+  marginPct: number;
+  desiredProfitValue: number;
   breakdown: BreakdownLine[];
   alerts: Alert[];
+  scenarios: number[];
+  maxDiscount: number;
 }
 
-const clamp = (n: number, min: number, max: number) =>
-  Math.min(Math.max(n, min), max);
-
 export function computePricing(p: PricingData): PricingResult {
-  // 1) base cost = todos R$ + percent com base "cost"
-  let baseCost = 0;
-  let feesPct = 0;
-  for (const it of p.items) {
-    if (it.kind === "currency") baseCost += Number(it.value) || 0;
-    else if (it.base === "cost") baseCost += baseCost * ((Number(it.value) || 0) / 100);
-    else feesPct += (Number(it.value) || 0) / 100;
-  }
-  feesPct = clamp(feesPct, 0, 0.95);
+  const num = (v: any) => Number(v) || 0;
+  const productCost = num(p.productCost);
+  const salePrice = num(p.salePrice);
+  
+  const getVal = (val: number, type: "R$" | "%", base: number) => {
+    return type === "R$" ? val : (val / 100) * base;
+  };
 
-  // 2) lucro alvo (sobre o preço final ideal). Resolve algebricamente:
-  //    ideal = baseCost + lucro + ideal * feesPct + (lucro se % do ideal)
-  // Caso percent: ideal*(1 - feesPct - desired/100) = baseCost
-  // Caso currency: ideal*(1 - feesPct) = baseCost + desired
-  let idealPrice = 0;
-  let desiredProfitValue = 0;
-  if (p.desiredProfitKind === "percent") {
-    const d = clamp((Number(p.desiredProfit) || 0) / 100, 0, 0.95);
-    const denom = 1 - feesPct - d;
-    idealPrice = denom > 0 ? baseCost / denom : baseCost / Math.max(1 - feesPct, 0.01);
-    desiredProfitValue = idealPrice * d;
-  } else {
-    const lucro = Number(p.desiredProfit) || 0;
-    idealPrice = (baseCost + lucro) / Math.max(1 - feesPct, 0.01);
-    desiredProfitValue = lucro;
-  }
+  const marketplaceFeeR = getVal(num(p.marketplaceFee), p.marketplaceFeeType, salePrice);
+  const shippingR = getVal(num(p.shipping), p.shippingType, salePrice);
+  const packagingR = getVal(num(p.packaging), p.packagingType, salePrice);
+  const transportR = getVal(num(p.transport), p.transportType, salePrice);
+  const taxR = getVal(num(p.tax), p.taxType, salePrice);
 
-  // 3) desconto visível e compensação
-  const d = clamp((Number(p.visibleDiscount) || 0) / 100, 0, 0.95);
-  let displayedPrice = idealPrice;
-  let finalPrice = idealPrice;
-  if (d > 0) {
-    if (p.compensateDiscount) {
-      // sobe o "de" para que o "por" continue exatamente igual ao ideal
-      displayedPrice = idealPrice / (1 - d);
-      finalPrice = displayedPrice * (1 - d); // == idealPrice
-    } else {
-      displayedPrice = idealPrice;
-      finalPrice = idealPrice * (1 - d);
-    }
-  }
+  const totalCosts = productCost + marketplaceFeeR + shippingR + packagingR + transportR + taxR;
+  const netProfit = salePrice - totalCosts;
+  const marginPct = salePrice > 0 ? (netProfit / salePrice) * 100 : 0;
 
-  // 4) lucro real sobre finalPrice
-  const feesValueFinal = finalPrice * feesPct;
-  const netProfit = finalPrice - baseCost - feesValueFinal;
-  const marginPct = finalPrice > 0 ? (netProfit / finalPrice) * 100 : 0;
+  const breakdown: BreakdownLine[] = [
+    { label: "Custo do produto", amount: productCost, pctOfFinal: salePrice > 0 ? (productCost / salePrice) * 100 : 0 },
+    { label: "Taxa marketplace", amount: marketplaceFeeR, pctOfFinal: salePrice > 0 ? (marketplaceFeeR / salePrice) * 100 : 0 },
+    { label: "Frete", amount: shippingR, pctOfFinal: salePrice > 0 ? (shippingR / salePrice) * 100 : 0 },
+    { label: "Embalagem", amount: packagingR, pctOfFinal: salePrice > 0 ? (packagingR / salePrice) * 100 : 0 },
+    { label: "Transporte", amount: transportR, pctOfFinal: salePrice > 0 ? (transportR / salePrice) * 100 : 0 },
+    { label: "Imposto", amount: taxR, pctOfFinal: salePrice > 0 ? (taxR / salePrice) * 100 : 0 },
+  ];
 
-  // 5) preço mínimo seguro (lucro = 0)
-  const minSafePrice = baseCost / Math.max(1 - feesPct, 0.01);
-
-  // 6) preço agressivo (max discount aplicado sobre o ideal — sem compensar)
-  const md = clamp((Number(p.maxDiscount) || 0) / 100, 0, 0.95);
-  const aggressivePrice = idealPrice * (1 - md);
-
-  // 7) breakdown por item sobre o finalPrice
-  const breakdown: BreakdownLine[] = p.items.map((it) => {
-    let amount = 0;
-    if (it.kind === "currency") amount = Number(it.value) || 0;
-    else if (it.base === "cost") amount = baseCost * ((Number(it.value) || 0) / 100);
-    else amount = finalPrice * ((Number(it.value) || 0) / 100);
-    return {
-      item: it,
-      amount,
-      pctOfFinal: finalPrice > 0 ? (amount / finalPrice) * 100 : 0,
-    };
-  });
-
-  // 8) alertas
   const alerts: Alert[] = [];
-  if (baseCost > 0 && netProfit < 0) {
+  if (salePrice > 0 && netProfit < 0) {
     alerts.push({
       id: "loss",
       tone: "danger",
-      title: "Você está vendendo no prejuízo.",
-      detail: `Falta ${brl(-netProfit)} para empatar.`,
-    });
-  } else if (finalPrice > 0 && netProfit / finalPrice < 0.1 && baseCost > 0) {
-    alerts.push({
-      id: "thin",
-      tone: "warning",
-      title: "Margem muito apertada.",
-      detail: "Menos de 10% sobra depois de todos os custos.",
-    });
-  }
-  const adsLine = breakdown.find((b) => /ads|an[uú]ncio/i.test(b.item.label));
-  if (adsLine && adsLine.pctOfFinal > 15) {
-    alerts.push({
-      id: "ads",
-      tone: "warning",
-      title: "Seus anúncios estão consumindo lucro demais.",
-      detail: `Ads = ${adsLine.pctOfFinal.toFixed(1)}% da venda.`,
-    });
-  }
-  const feesValue = feesValueFinal;
-  if (finalPrice > 0 && feesValue / finalPrice > 0.25) {
-    alerts.push({
-      id: "fees",
-      tone: "warning",
-      title: "Taxas do marketplace acima do saudável.",
-      detail: `Total de taxas % consome ${(feesPct * 100).toFixed(1)}% da venda.`,
-    });
-  }
-  const shipLine = breakdown.find((b) => /frete/i.test(b.item.label));
-  if (shipLine && shipLine.pctOfFinal > 20) {
-    alerts.push({
-      id: "ship",
-      tone: "warning",
-      title: "Frete está pesando na competitividade.",
-      detail: `Frete = ${shipLine.pctOfFinal.toFixed(1)}% do preço final.`,
-    });
-  }
-  if ((Number(p.visibleDiscount) || 0) > (Number(p.maxDiscount) || 0)) {
-    alerts.push({
-      id: "maxd",
-      tone: "danger",
-      title: "Desconto acima do seu limite seguro.",
-      detail: `Limite ${p.maxDiscount}%, aplicado ${p.visibleDiscount}%.`,
-    });
-  }
-  if (baseCost > 0 && netProfit > 0 && marginPct >= 25 && alerts.length === 0) {
-    alerts.push({
-      id: "ok",
-      tone: "success",
-      title: "Operação saudável.",
-      detail: `Margem real ${marginPct.toFixed(1)}%.`,
+      title: "Prejuízo detectado",
+      detail: `Você está perdendo ${brl(-netProfit)} por venda.`,
     });
   }
 
   return {
-    baseCost,
-    feesPct,
-    idealPrice,
-    displayedPrice,
-    finalPrice,
-    minSafePrice,
-    aggressivePrice,
-    psychological: psychPrice(displayedPrice || idealPrice),
+    baseCost: totalCosts,
+    feesPct: salePrice > 0 ? ((marketplaceFeeR + taxR) / salePrice) : 0,
+    idealPrice: salePrice,
+    displayedPrice: salePrice / (1 - (num(p.fakeDiscountPercent) / 100) || 1),
+    finalPrice: salePrice,
+    minSafePrice: totalCosts,
+    aggressivePrice: salePrice,
+    psychological: psychPrice(salePrice),
     netProfit,
     marginPct,
-    desiredProfitValue,
+    desiredProfitValue: netProfit,
     breakdown,
     alerts,
+    scenarios: [10, 20, 30, 40],
+    maxDiscount: 50
   };
 }
 
 export function simulateScenario(p: PricingData, discountPct: number): PricingResult {
-  return computePricing({ ...p, visibleDiscount: discountPct });
+  return computePricing(p);
 }
 
 export type PriceStatus = "healthy" | "attention" | "risk" | "loss";
@@ -204,62 +114,19 @@ export interface PriceAnalysis {
   reason: string;
 }
 
-/** Evaluate any arbitrary price against the current cost structure. */
 export function analyzePrice(
   p: PricingData,
   price: number,
-  kind: "ideal" | "min" | "psych" | "aggressive",
+  kind: string,
 ): PriceAnalysis {
-  // base cost recompute (same as computePricing first pass)
-  let baseCost = 0;
-  let feesPct = 0;
-  for (const it of p.items) {
-    if (it.kind === "currency") baseCost += Number(it.value) || 0;
-    else if (it.base === "cost") baseCost += baseCost * ((Number(it.value) || 0) / 100);
-    else feesPct += (Number(it.value) || 0) / 100;
-  }
-  feesPct = Math.min(Math.max(feesPct, 0), 0.95);
-  const fees = price * feesPct;
-  const netProfit = price - baseCost - fees;
-  const marginPct = price > 0 ? (netProfit / price) * 100 : 0;
-
+  const res = computePricing({ ...p, salePrice: price });
   let status: PriceStatus = "healthy";
-  if (netProfit < 0) status = "loss";
-  else if (marginPct < 5) status = "risk";
-  else if (marginPct < 15) status = "attention";
+  if (res.netProfit < 0) status = "loss";
+  else if (res.marginPct < 10) status = "risk";
+  else if (res.marginPct < 20) status = "attention";
 
-  const profitTxt = `${brl(netProfit)} (${marginPct.toFixed(1)}%)`;
-  let reason = "";
-  switch (kind) {
-    case "ideal":
-      reason =
-        netProfit > 0
-          ? `Preço alvo. Entrega ${profitTxt} de lucro líquido sem desconto.`
-          : `Preço alvo definido, mas seus custos consomem tudo. Revise.`;
-      break;
-    case "min":
-      reason =
-        marginPct <= 1
-          ? "Empate. Aqui você não ganha nem perde — use só para queima de estoque."
-          : `Limite absoluto. Abaixo disso é prejuízo. Sobra apenas ${profitTxt}.`;
-      break;
-    case "psych":
-      reason =
-        netProfit > 0
-          ? `Termina em .99/.90 — converte mais. Lucro real: ${profitTxt}.`
-          : `Psicológico abaixo do custo. Não use.`;
-      break;
-    case "aggressive":
-      reason =
-        netProfit > 0
-          ? `Limite agressivo (${p.maxDiscount}% OFF). Ainda lucra ${profitTxt}.`
-          : `Desconto agressivo derruba o lucro. Não recomendado.`;
-      break;
-  }
-
-  return { price, netProfit, marginPct, status, reason };
+  return { price, netProfit: res.netProfit, marginPct: res.marginPct, status, reason: kind };
 }
-
 
 export const GROUP_LABELS: Record<string, string> = {
   produto: "Produto",
@@ -269,10 +136,4 @@ export const GROUP_LABELS: Record<string, string> = {
   outros: "Outros",
 };
 
-export const GROUP_ORDER: Array<keyof typeof GROUP_LABELS> = [
-  "produto",
-  "logistica",
-  "marketing",
-  "taxas",
-  "outros",
-];
+export const GROUP_ORDER = ["produto", "logistica", "marketing", "taxas", "outros"];
