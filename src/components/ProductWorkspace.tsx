@@ -865,4 +865,3 @@ function VideosSection({ product }: { product: Product }) {
 }
 
 
-}
