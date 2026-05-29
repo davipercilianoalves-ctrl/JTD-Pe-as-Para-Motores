@@ -1025,6 +1025,7 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
   const data = product[market];
   const [showKeywordBox, setShowKeywordBox] = useState(false);
 
+  const limit = data.titleLimit ?? DEFAULT_LIMITS[market];
   const titles = (data.titles ?? []).length > 0 ? data.titles : [""];
 
   const upd = (idx: number, newValue: string) => {
@@ -1033,8 +1034,18 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
       [market]: {
         ...p[market],
         titles: (p[market].titles ?? []).map((t, i) =>
-          i === idx ? newValue.slice(0, 60) : t
+          i === idx ? newValue.slice(0, limit) : t
         ),
+      },
+    }));
+  };
+
+  const setLimit = (val: number) => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      [market]: {
+        ...p[market],
+        titleLimit: val,
       },
     }));
   };
@@ -1141,18 +1152,20 @@ function TitleField({
   value, 
   onChange, 
   onRemove,
-  autoFocus
+  autoFocus,
+  limit
 }: { 
   value: string; 
   onChange: (v: string) => void; 
   onRemove: () => void;
   autoFocus?: boolean;
+  limit: number;
 }) {
   const count = value.length;
   const counterClass =
-    count >= 60
+    count >= limit
       ? "text-red-500"
-      : count >= 55
+      : count >= limit * 0.9
         ? "text-yellow-500"
         : "text-muted-foreground";
 
@@ -1160,19 +1173,19 @@ function TitleField({
     <div className="group relative">
       <div className={cn(
         "flex items-center gap-3 bg-surface px-5 py-3.5 rounded-xl border transition-all",
-        count >= 60 ? "border-red-500 ring-1 ring-red-500/20" : "border-border/40 focus-within:border-primary/40"
+        count >= limit ? "border-red-500 ring-1 ring-red-500/20" : "border-border/40 focus-within:border-primary/40"
       )}>
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Digite o título do anúncio..."
-          maxLength={60}
+          maxLength={limit}
           autoFocus={autoFocus}
           className="flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/30"
         />
         <div className="flex items-center gap-3">
           <span className={cn("text-[11px] font-bold tabular-nums tracking-wider", counterClass)}>
-            {count}/60
+            {count}/{limit}
           </span>
           <button
             onClick={onRemove}
