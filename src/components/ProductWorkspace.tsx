@@ -118,7 +118,7 @@ export function ProductWorkspace() {
   }
 
   function set<K extends keyof Product>(key: K, value: Product[K]) {
-    updateProduct(product.id, { [key]: value } as Partial<Product>);
+    updateProduct(product!.id, { [key]: value } as Partial<Product>);
   }
 
   return (
