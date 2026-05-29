@@ -1005,42 +1005,56 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
   const data = product[market];
   const [showKeywordBox, setShowKeywordBox] = useState(false);
 
-  const titles = data.titles && data.titles.length > 0 ? data.titles : [""];
+  const titles = (data.titles ?? []).length > 0 ? data.titles : [""];
 
-  const upd = (idx: number, text: string) => {
-    updateProduct(product.id, (p) => {
-      const nextTitles = [...(p[market].titles || [""])];
-      nextTitles[idx] = text.slice(0, 60);
-      return { ...p, [market]: { ...p[market], titles: nextTitles } };
-    });
+  const upd = (idx: number, newValue: string) => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      [market]: {
+        ...p[market],
+        titles: (p[market].titles ?? []).map((t, i) =>
+          i === idx ? newValue.slice(0, 60) : t
+        ),
+      },
+    }));
   };
 
   const add = () => {
-    updateProduct(product.id, (p) => {
-      const nextTitles = [...(p[market].titles || [""]), ""];
-      return { ...p, [market]: { ...p[market], titles: nextTitles } };
-    });
+    updateProduct(product.id, (p) => ({
+      ...p,
+      [market]: {
+        ...p[market],
+        titles: [...(p[market].titles ?? []), ""],
+      },
+    }));
   };
 
   const rm = (idx: number) => {
     updateProduct(product.id, (p) => {
-      let nextTitles = (p[market].titles || [""]).filter((_, i) => i !== idx);
+      let nextTitles = (p[market].titles ?? []).filter((_, i) => i !== idx);
       if (nextTitles.length === 0) nextTitles = [""];
-      return { ...p, [market]: { ...p[market], titles: nextTitles } };
+      return {
+        ...p,
+        [market]: {
+          ...p[market],
+          titles: nextTitles,
+        },
+      };
     });
   };
 
   const usedWords = useMemo(() => {
     return new Set(
-      titles
+      (product[market].titles ?? [])
         .join(" ")
         .toLowerCase()
-        .split(/[\s,\n]+/)
+        .split(/\s+/)
         .filter(Boolean)
     );
-  }, [titles]);
+  }, [product[market].titles]);
 
-  const isUsed = (word: string) => usedWords.has(word.toLowerCase().trim());
+  const isUsed = (word: string) =>
+    usedWords.has(word.toLowerCase().trim());
 
   const copyUnused = () => {
     const unused = product.keywords
@@ -1071,7 +1085,7 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
         Títulos
       </SectionTitle>
 
-      <div className="flex flex-col gap-4">
+      <div className="space-y-3">
         {titles.map((text, i) => (
           <TitleField
             key={i}
@@ -1114,15 +1128,19 @@ function TitleField({
   onRemove: () => void;
   autoFocus?: boolean;
 }) {
-  const len = value.length;
-  const isRed = len === 60;
-  const isYellow = len > 55 && len < 60;
+  const count = value.length;
+  const counterClass =
+    count >= 60
+      ? "text-red-500"
+      : count >= 55
+        ? "text-yellow-500"
+        : "text-muted-foreground";
 
   return (
     <div className="group relative">
       <div className={cn(
         "flex items-center gap-3 bg-surface px-5 py-3.5 rounded-xl border transition-all",
-        isRed ? "border-destructive ring-1 ring-destructive/20" : "border-border/40 focus-within:border-primary/40"
+        count >= 60 ? "border-red-500 ring-1 ring-red-500/20" : "border-border/40 focus-within:border-primary/40"
       )}>
         <input
           value={value}
@@ -1133,11 +1151,8 @@ function TitleField({
           className="flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/30"
         />
         <div className="flex items-center gap-3">
-          <span className={cn(
-            "text-[11px] font-bold tabular-nums tracking-wider",
-            isRed ? "text-destructive" : isYellow ? "text-warning" : "text-muted-foreground/40"
-          )}>
-            {len}/60
+          <span className={cn("text-[11px] font-bold tabular-nums tracking-wider", counterClass)}>
+            {count}/60
           </span>
           <button
             onClick={onRemove}
@@ -1274,12 +1289,12 @@ A descrição deve:
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <div 
-        className="bg-background border border-border w-full max-w-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
-        onClick={e => e.stopPropagation()}
+        className="relative bg-background border border-border w-full max-w-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-5 border-b border-border/40 flex items-center justify-between bg-surface/30">
           <div>

@@ -319,7 +319,7 @@ export function migrateProduct(raw: any): Product {
     if (Array.isArray(data.titles) && data.titles.length > 0 && typeof data.titles[0] === "object") {
       data.titles = (data.titles as any).map((t: any) => t.text || "");
     }
-    if (!Array.isArray(data.titles) || data.titles.length === 0) {
+    if (!Array.isArray(data.titles)) {
       data.titles = [""];
     }
     return data;
