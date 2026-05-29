@@ -1,4 +1,4 @@
-import type { CostItem, PricingData } from "./types";
+import type { PricingData, MarketplaceId } from "./types";
 
 export const brl = (v: number) =>
   (isFinite(v) ? v : 0).toLocaleString("pt-BR", {
@@ -13,7 +13,7 @@ export const psychPrice = (v: number) => {
 };
 
 export interface BreakdownLine {
-  item: CostItem;
+  label: string;
   amount: number;       // R$ consumido na venda final
   pctOfFinal: number;   // % do preço final
 }
@@ -26,68 +26,79 @@ export interface Alert {
 }
 
 export interface PricingResult {
-  baseCost: number;       // somatório de custos fixos (R$ + percent base "cost" sobre custos)
-  feesPct: number;        // somatório de percent base "final" (0..1, ex 0.22)
-  idealPrice: number;     // preço alvo que garante o lucro desejado
-  displayedPrice: number; // preço "de" (riscado) — quando compensateDiscount, sobe acima do ideal
-  finalPrice: number;     // preço final cobrado depois do desconto visível
-  minSafePrice: number;   // preço onde o lucro líquido = 0
-  aggressivePrice: number; // com maxDiscount aplicado
-  psychological: number;  // psicológico (.90/.99)
-  netProfit: number;      // lucro líquido em R$
-  marginPct: number;      // margem real % sobre o preço final
-  desiredProfitValue: number; // alvo de lucro convertido em R$ sobre o ideal
+  baseCost: number;
+  feesPct: number;
+  idealPrice: number;
+  displayedPrice: number;
+  finalPrice: number;
+  minSafePrice: number;
+  aggressivePrice: number;
+  psychological: number;
+  netProfit: number;
+  marginPct: number;
+  desiredProfitValue: number;
   breakdown: BreakdownLine[];
   alerts: Alert[];
 }
 
-const clamp = (n: number, min: number, max: number) =>
-  Math.min(Math.max(n, min), max);
-
 export function computePricing(p: PricingData): PricingResult {
-  const breakdown: BreakdownLine[] = [];
-  const alerts: Alert[] = [];
-
-  // Helper to ensure we have numbers
   const num = (v: any) => Number(v) || 0;
-
-  // CUSTOS
+  
   const productCost = num(p.productCost);
+  const salePrice = num(p.salePrice);
   
   const getVal = (val: number, type: "R$" | "%", base: number) => {
     return type === "R$" ? val : (val / 100) * base;
   };
 
-  const marketplaceFeeR = getVal(num(p.marketplaceFee), p.marketplaceFeeType, p.salePrice);
-  const shippingR = getVal(num(p.shipping), p.shippingType, p.salePrice);
-  const packagingR = getVal(num(p.packaging), p.packagingType, p.salePrice);
-  const transportR = getVal(num(p.transport), p.transportType, p.salePrice);
-  const taxR = getVal(num(p.tax), p.taxType, p.salePrice);
+  const marketplaceFeeR = getVal(num(p.marketplaceFee), p.marketplaceFeeType, salePrice);
+  const shippingR = getVal(num(p.shipping), p.shippingType, salePrice);
+  const packagingR = getVal(num(p.packaging), p.packagingType, salePrice);
+  const transportR = getVal(num(p.transport), p.transportType, salePrice);
+  const taxR = getVal(num(p.tax), p.taxType, salePrice);
 
   const totalCosts = productCost + marketplaceFeeR + shippingR + packagingR + transportR + taxR;
-  const netProfit = num(p.salePrice) - totalCosts;
-  const marginPct = num(p.salePrice) > 0 ? (netProfit / p.salePrice) * 100 : 0;
+  const netProfit = salePrice - totalCosts;
+  const marginPct = salePrice > 0 ? (netProfit / salePrice) * 100 : 0;
 
-  // This is a simplified version to fix build errors while we implement the full UI
+  const breakdown: BreakdownLine[] = [
+    { label: "Custo do produto", amount: productCost, pctOfFinal: salePrice > 0 ? (productCost / salePrice) * 100 : 0 },
+    { label: "Taxa marketplace", amount: marketplaceFeeR, pctOfFinal: salePrice > 0 ? (marketplaceFeeR / salePrice) * 100 : 0 },
+    { label: "Frete", amount: shippingR, pctOfFinal: salePrice > 0 ? (shippingR / salePrice) * 100 : 0 },
+    { label: "Embalagem", amount: packagingR, pctOfFinal: salePrice > 0 ? (packagingR / salePrice) * 100 : 0 },
+    { label: "Transporte", amount: transportR, pctOfFinal: salePrice > 0 ? (transportR / salePrice) * 100 : 0 },
+    { label: "Imposto", amount: taxR, pctOfFinal: salePrice > 0 ? (taxR / salePrice) * 100 : 0 },
+  ];
+
+  const alerts: Alert[] = [];
+  if (salePrice > 0 && netProfit < 0) {
+    alerts.push({
+      id: "loss",
+      tone: "danger",
+      title: "Prejuízo detectado",
+      detail: `Você está perdendo ${brl(-netProfit)} por venda.`,
+    });
+  }
+
   return {
     baseCost: totalCosts,
-    feesPct: 0,
-    idealPrice: p.salePrice,
-    displayedPrice: p.salePrice,
-    finalPrice: p.salePrice,
+    feesPct: salePrice > 0 ? ((marketplaceFeeR + taxR) / salePrice) : 0,
+    idealPrice: salePrice,
+    displayedPrice: salePrice / (1 - (num(p.fakeDiscountPercent) / 100) || 1),
+    finalPrice: salePrice,
     minSafePrice: totalCosts,
-    aggressivePrice: p.salePrice,
-    psychological: psychPrice(p.salePrice),
+    aggressivePrice: salePrice,
+    psychological: psychPrice(salePrice),
     netProfit,
     marginPct,
-    desiredProfitValue: p.desiredProfit,
+    desiredProfitValue: netProfit,
     breakdown,
     alerts,
   };
 }
 
 export function simulateScenario(p: PricingData, discountPct: number): PricingResult {
-  return computePricing(p); // Placeholder
+  return computePricing(p);
 }
 
 export type PriceStatus = "healthy" | "attention" | "risk" | "loss";
@@ -100,15 +111,25 @@ export interface PriceAnalysis {
   reason: string;
 }
 
-/** Evaluate any arbitrary price against the current cost structure. */
 export function analyzePrice(
   p: PricingData,
   price: number,
   kind: "ideal" | "min" | "psych" | "aggressive",
 ): PriceAnalysis {
-  return { price, netProfit: 0, marginPct: 0, status: "healthy", reason: "" }; // Placeholder
-}
+  const res = computePricing({ ...p, salePrice: price });
+  let status: PriceStatus = "healthy";
+  if (res.netProfit < 0) status = "loss";
+  else if (res.marginPct < 10) status = "risk";
+  else if (res.marginPct < 20) status = "attention";
 
+  return { 
+    price, 
+    netProfit: res.netProfit, 
+    marginPct: res.marginPct, 
+    status, 
+    reason: kind 
+  };
+}
 
 export const GROUP_LABELS: Record<string, string> = {
   produto: "Produto",
@@ -118,7 +139,7 @@ export const GROUP_LABELS: Record<string, string> = {
   outros: "Outros",
 };
 
-export const GROUP_ORDER: Array<keyof typeof GROUP_LABELS> = [
+export const GROUP_ORDER = [
   "produto",
   "logistica",
   "marketing",
