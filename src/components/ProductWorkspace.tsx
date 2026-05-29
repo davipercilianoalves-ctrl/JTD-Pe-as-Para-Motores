@@ -1370,7 +1370,7 @@ A descrição deve:
               onChange={(e) => setCurrentText(e.target.value)}
               className="w-full bg-transparent p-5 text-sm leading-relaxed font-mono text-foreground/80 outline-none"
               minRows={12}
-              maxRows={20}
+              // maxRows removed to fix build error
             />
           </div>
         </div>
