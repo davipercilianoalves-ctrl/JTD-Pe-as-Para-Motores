@@ -79,6 +79,20 @@ export interface CustomField {
   marketplaces?: MarketplaceId[];
 }
 
+export type CostKind = "currency" | "percent";
+export type PercentBase = "final" | "cost";
+export type CostGroup = "produto" | "logistica" | "marketing" | "taxas" | "outros";
+
+export interface CostItem {
+  id: string;
+  label: string;
+  kind: CostKind;
+  value: number;
+  base?: PercentBase;
+  group: CostGroup;
+  note?: string;
+}
+
 export interface PricingData {
   productCost: number;
   marketplaceFee: number;
@@ -96,6 +110,13 @@ export interface PricingData {
   desiredProfit: number;
   desiredMargin: number;
   fakeDiscountPercent: number;
+  // Temporary compatibility fields to fix build errors in ProductWorkspace.tsx
+  items: CostItem[];
+  visibleDiscount: number;
+  compensateDiscount: boolean;
+  maxDiscount: number;
+  scenarios: number[];
+  desiredProfitKind: CostKind;
 }
 
 export interface ProductImage {
@@ -204,6 +225,12 @@ export const emptyPricing = (): PricingData => ({
   desiredProfit: 0,
   desiredMargin: 0,
   fakeDiscountPercent: 0,
+  items: [],
+  visibleDiscount: 0,
+  compensateDiscount: false,
+  maxDiscount: 50,
+  scenarios: [10, 20, 30, 40],
+  desiredProfitKind: "percent",
 });
 
 export const newProduct = (name = "Novo produto"): Product => ({

@@ -16,6 +16,7 @@ export interface BreakdownLine {
   label: string;
   amount: number;
   pctOfFinal: number;
+  item: any; // Compatibility field
 }
 
 export interface Alert {
@@ -69,7 +70,7 @@ export function computePricing(p: PricingData): PricingResult {
     { label: "Embalagem", amount: packagingR, pctOfFinal: salePrice > 0 ? (packagingR / salePrice) * 100 : 0 },
     { label: "Transporte", amount: transportR, pctOfFinal: salePrice > 0 ? (transportR / salePrice) * 100 : 0 },
     { label: "Imposto", amount: taxR, pctOfFinal: salePrice > 0 ? (taxR / salePrice) * 100 : 0 },
-  ];
+  ].map(b => ({ ...b, item: { id: b.label, label: b.label, value: b.amount, kind: "currency", group: "outros" } }));
 
   const alerts: Alert[] = [];
   if (salePrice > 0 && netProfit < 0) {

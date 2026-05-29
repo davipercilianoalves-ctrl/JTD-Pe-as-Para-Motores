@@ -1,69 +1,49 @@
-import { computePricing } from "./pricing";
-import type { Product } from "./types";
+import { type Product, emptyPricing } from "./types";
 
-export type ProductStatus = "healthy" | "attention" | "risk" | "incomplete";
-
-export interface ProductSignal {
-  status: ProductStatus;
-  margin: number;
-  finalPrice: number;
-  netProfit: number;
-  completeness: number; // 0..1
-  missing: string[];
-}
-
-export function evaluateProduct(p: Product): ProductSignal {
-  const pricing = computePricing(p.pricing);
-  const missing: string[] = [];
-  if (!p.name?.trim()) missing.push("Nome");
-  if (!p.sku?.trim()) missing.push("SKU");
-  if (!p.images?.length) missing.push("Imagens");
-  if (!p.keywords?.length) missing.push("Keywords");
-  if (!p.competitors?.length) missing.push("Concorrentes");
-  if (!pricing.baseCost) missing.push("Custos");
-  const completeness = 1 - missing.length / 6;
-
-  let status: ProductStatus = "healthy";
-  if (missing.length >= 3) status = "incomplete";
-  else if (pricing.baseCost > 0 && pricing.netProfit < 0) status = "risk";
-  else if (pricing.baseCost > 0 && pricing.marginPct < 15) status = "attention";
-
+/**
+ * Extract just the core "signal" fields from a product to determine
+ * its competitive stance and pricing health.
+ */
+export function getProductSignal(p: Product) {
   return {
-    status,
-    margin: pricing.marginPct,
-    finalPrice: pricing.finalPrice,
-    netProfit: pricing.netProfit,
-    completeness,
-    missing,
+    id: p.id,
+    name: p.name,
+    pricing: p.pricing || emptyPricing(),
+    keywordsCount: p.keywords.length,
+    competitorsCount: p.competitors.length,
+    imagesCount: p.images.length,
+    updatedAt: p.updatedAt,
   };
 }
 
-export const STATUS_META: Record<
-  ProductStatus,
-  { label: string; dot: string; ring: string; text: string }
-> = {
-  healthy: {
-    label: "Saudável",
-    dot: "bg-success",
-    ring: "ring-success/30",
-    text: "text-success",
-  },
-  attention: {
-    label: "Atenção",
-    dot: "bg-warning",
-    ring: "ring-warning/40",
-    text: "text-warning",
-  },
-  risk: {
-    label: "Risco",
-    dot: "bg-primary",
-    ring: "ring-primary/40",
-    text: "text-primary",
-  },
-  incomplete: {
-    label: "Incompleto",
-    dot: "bg-muted-foreground",
-    ring: "ring-border",
-    text: "text-muted-foreground",
-  },
+export type ProductStatus = "incomplete" | "healthy" | "danger" | "warning";
+
+export interface ProductSignal {
+  status: ProductStatus;
+  score: number;
+  label: string;
+  finalPrice: number;
+  margin: number;
+  completeness: number;
+}
+
+export const STATUS_META: Record<ProductStatus, { label: string; color: string; dot: string; ring: string; text: string }> = {
+  incomplete: { label: "Incompleto", color: "text-muted-foreground bg-muted", dot: "bg-muted-foreground", ring: "border-muted", text: "text-muted-foreground" },
+  healthy: { label: "Saudável", color: "text-success bg-success/10", dot: "bg-success", ring: "border-success/40", text: "text-success" },
+  danger: { label: "Crítico", color: "text-destructive bg-destructive/10", dot: "bg-destructive", ring: "border-destructive/40", text: "text-destructive" },
+  warning: { label: "Atenção", color: "text-warning bg-warning/10", dot: "bg-warning", ring: "border-warning/40", text: "text-warning" },
 };
+
+export function evaluateProduct(p: Product): ProductSignal {
+  const pricing = p.pricing || emptyPricing();
+  const completeness = Math.min(100, (p.keywords.length * 10) + (p.competitors.length * 20));
+  
+  return { 
+    status: completeness < 50 ? "incomplete" : "healthy", 
+    score: completeness, 
+    label: completeness < 50 ? "Incompleto" : "Saudável",
+    finalPrice: pricing.salePrice || 0,
+    margin: pricing.desiredMargin || 0,
+    completeness
+  };
+}
