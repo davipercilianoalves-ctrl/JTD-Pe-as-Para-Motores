@@ -40,9 +40,6 @@ import {
   type MarketplaceData,
   type MarketplaceId,
   type ProductVideo,
-  type CostItem,
-  type CostGroup,
-  type CostKind,
 } from "@/lib/types";
 import {
   computePricing,
@@ -1386,27 +1383,13 @@ function PricingSection({ product }: { product: Product }) {
   const patch = (patchFn: (prev: PricingData) => PricingData) =>
     updateProduct(product.id, (prod) => ({ ...prod, pricing: patchFn(prod.pricing ?? emptyPricing()) }));
 
-  const setItem = (id: string, change: Partial<CostItem>) =>
+  const setItem = (id: string, change: any) =>
     patch((prev) => ({
       ...prev,
-      items: Array.isArray(prev.items) ? prev.items.map((it) => (it.id === id ? { ...it, ...change } : it)) : [],
+      [id]: change.value,
     }));
-  const removeItem = (id: string) =>
-    patch((prev) => ({ ...prev, items: Array.isArray(prev.items) ? prev.items.filter((it) => it.id !== id) : [] }));
-  const addItem = (group: CostGroup) =>
-    patch((prev) => ({
-      ...prev,
-      items: [
-        ...(Array.isArray(prev.items) ? prev.items : []),
-        {
-          id: crypto.randomUUID(),
-          label: "Novo custo",
-          kind: "currency",
-          value: 0,
-          group,
-        },
-      ],
-    }));
+  const removeItem = (id: string) => {};
+  const addItem = (group: string) => {};
 
   const result = useMemo(() => computePricing(p), [p]);
 
