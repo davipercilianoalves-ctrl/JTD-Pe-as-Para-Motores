@@ -39,6 +39,8 @@ export interface TitleEntry {
 
 export interface MarketplaceData {
   titles: string[];
+  titleLimit?: number;
+  aiTemplate?: string;
   shortDescription: string;
   description: string;
   seo: string;
@@ -48,6 +50,7 @@ export interface MarketplaceData {
   extras: Record<string, string>;
   /** Optional user-defined fields scoped to this marketplace. */
   customFields?: CustomField[];
+  pricing?: PricingData;
 }
 
 // ─── Custom Field Engine ──────────────────────────────────────────────────
@@ -98,13 +101,22 @@ export interface CostItem {
 }
 
 export interface PricingData {
-  items: CostItem[];
+  productCost: number;
+  marketplaceFee: number;
+  marketplaceFeeType: "R$" | "%";
+  shipping: number;
+  shippingType: "R$" | "%";
+  packaging: number;
+  packagingType: "R$" | "%";
+  transport: number;
+  transportType: "R$" | "%";
+  tax: number;
+  taxType: "R$" | "%";
+  calcMode: "price" | "profit" | "margin";
+  salePrice: number;
   desiredProfit: number;
-  desiredProfitKind: CostKind;
-  visibleDiscount: number;
-  maxDiscount: number;
-  compensateDiscount: boolean;
-  scenarios: number[];
+  desiredMargin: number;
+  fakeDiscountPercent: number;
 }
 
 export interface ProductImage {
@@ -171,7 +183,7 @@ export interface Product {
   amazon: MarketplaceData;
   tiktok: MarketplaceData;
 
-  pricing: PricingData;
+  pricing?: PricingData; // Kept for global/legacy if needed, but marketplace-specific preferred
   images: ProductImage[];
   videos: ProductVideo[];
 
@@ -209,13 +221,22 @@ export const defaultCostItems = (): CostItem[] => [
 ];
 
 export const emptyPricing = (): PricingData => ({
-  items: defaultCostItems(),
-  desiredProfit: 30,
-  desiredProfitKind: "percent",
-  visibleDiscount: 0,
-  maxDiscount: 15,
-  compensateDiscount: true,
-  scenarios: [10, 15, 20, 25],
+  productCost: 0,
+  marketplaceFee: 0,
+  marketplaceFeeType: "%",
+  shipping: 0,
+  shippingType: "R$",
+  packaging: 0,
+  packagingType: "R$",
+  transport: 0,
+  transportType: "R$",
+  tax: 0,
+  taxType: "%",
+  calcMode: "price",
+  salePrice: 0,
+  desiredProfit: 0,
+  desiredMargin: 0,
+  fakeDiscountPercent: 0,
 });
 
 export const newProduct = (name = "Novo produto"): Product => ({
