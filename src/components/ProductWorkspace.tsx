@@ -1504,8 +1504,8 @@ function CostRow({
   onChange,
   onRemove,
 }: {
-  item: CostItem;
-  onChange: (c: Partial<CostItem>) => void;
+  item: any;
+  onChange: (c: any) => void;
   onRemove: () => void;
 }) {
   return (
@@ -1547,8 +1547,8 @@ function KindToggle({
   kind,
   onChange,
 }: {
-  kind: CostKind;
-  onChange: (k: CostKind) => void;
+  kind: "currency" | "percent";
+  onChange: (k: "currency" | "percent") => void;
 }) {
   return (
     <button
