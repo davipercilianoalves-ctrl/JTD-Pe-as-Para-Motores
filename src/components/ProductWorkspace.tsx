@@ -117,8 +117,9 @@ export function ProductWorkspace() {
     );
   }
 
-  const set = <K extends keyof Product>(key: K, value: Product[K]) =>
+  function set<K extends keyof Product>(key: K, value: Product[K]) {
     updateProduct(product.id, { [key]: value } as Partial<Product>);
+  }
 
   return (
     <div className="flex h-screen flex-1 flex-col overflow-hidden">
