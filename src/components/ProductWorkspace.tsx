@@ -298,7 +298,14 @@ export function ProductWorkspace() {
       )}
     </div>
   );
+function SubLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground mb-2">
+      {children}
+    </div>
+  );
 }
+
 
 function ConsolidatedKeywords({ product }: { product: Product }) {
   const { updateProduct } = useStore();
