@@ -298,4 +298,18 @@ export function ProductWorkspace() {
     </div>
   );
 }
-
+function KeywordsSection() { return null; }
+function CompetitorsSection() { return null; }
+function ConsolidatedKeywords() { return null; }
+function TitlesSection() { return null; }
+function DescriptionSection() { return null; }
+function PricingSection() { return null; }
+function ImagesSection() { return null; }
+function VideosSection() { return null; }
+function SubLabel({ children }: { children: React.ReactNode }) { return null; }
+function TitleField() { return null; }
+function AITemplateModal() { return null; }
+function KindToggle() { return null; }
+function CostRow() { return null; }
+function AlertCard() { return null; }
+function PriceAnalysisCard() { return null; }
