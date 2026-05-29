@@ -85,6 +85,8 @@ export function computePricing(p: PricingData): PricingResult {
     feesPct: salePrice > 0 ? ((marketplaceFeeR + taxR) / salePrice) : 0,
     idealPrice: salePrice,
     displayedPrice: salePrice / (1 - (num(p.fakeDiscountPercent) / 100) || 1),
+    scenarios: [10, 20, 30, 40], // Adicionado para compatibilidade
+    maxDiscount: 50, // Adicionado para compatibilidade
     finalPrice: salePrice,
     minSafePrice: totalCosts,
     aggressivePrice: salePrice,

@@ -54,6 +54,7 @@ import {
   type Alert as PricingAlert,
   type PriceAnalysis,
   type PriceStatus,
+  type BreakdownLine,
 } from "@/lib/pricing";
 import {
   Btn,
