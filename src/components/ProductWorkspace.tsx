@@ -389,7 +389,17 @@ function CompetitorsSection({ product }: { product: Product }) {
   const add = (c: Partial<CompetitorBlock>) => {
     updateProduct(product.id, (p) => ({
       ...p,
-      competitors: [...p.competitors, { id: crypto.randomUUID(), title: "", link: "", description: "", notes: "", keywordsFound: [], updatedAt: Date.now(), ...c }]
+      competitors: [...p.competitors, { 
+        id: crypto.randomUUID(), 
+        title: "", 
+        link: "", 
+        description: "", 
+        notes: "", 
+        keywordsFound: [], 
+        marketplace: "mercadoLivre", // Required field
+        updatedAt: Date.now(), 
+        ...c 
+      }]
     }));
   };
 
@@ -738,7 +748,7 @@ function PricingSection({ product }: { product: Product }) {
 
   const setVal = (key: keyof PricingData, val: any) => {
     updateProduct(product.id, (prod) => ({
-      ...p,
+      ...prod,
       pricing: { ...(prod.pricing ?? emptyPricing()), [key]: val }
     }));
   };
