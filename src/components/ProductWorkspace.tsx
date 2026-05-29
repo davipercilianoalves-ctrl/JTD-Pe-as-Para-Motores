@@ -1392,7 +1392,7 @@ function PricingSection({ product }: { product: Product }) {
       [id]: change.value,
     }));
   const removeItem = (id: string) => {};
-  const addItem = (group: string) => {};
+  const addItem = (group: CostGroup) => {};
 
   const result = useMemo(() => computePricing(p), [p]);
 
