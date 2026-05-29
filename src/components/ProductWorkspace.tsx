@@ -306,7 +306,7 @@ function DescriptionSection() { return null; }
 function PricingSection() { return null; }
 function ImagesSection() { return null; }
 function VideosSection() { return null; }
-function SubLabel({ children }: { children: React.ReactNode }) { return null; }
+function SubLabel({ children }: { children: React.ReactNode }) { return ( <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground mb-2"> {children} </div> ); }
 function TitleField() { return null; }
 function AITemplateModal() { return null; }
 function KindToggle() { return null; }
