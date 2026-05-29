@@ -1289,12 +1289,12 @@ A descrição deve:
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <div 
-        className="bg-background border border-border w-full max-w-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
-        onClick={e => e.stopPropagation()}
+        className="relative bg-background border border-border w-full max-w-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-5 border-b border-border/40 flex items-center justify-between bg-surface/30">
           <div>
