@@ -298,6 +298,7 @@ export function ProductWorkspace() {
       )}
     </div>
   );
+}
 function SubLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground mb-2">
