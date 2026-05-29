@@ -388,20 +388,23 @@ function CompetitorsSection({ product }: { product: Product }) {
   const [showForm, setShowShowForm] = useState(false);
 
   const add = (c: Partial<CompetitorBlock>) => {
-    updateProduct(product.id, (p) => ({
-      ...p,
-      competitors: [...p.competitors, { 
-        id: crypto.randomUUID(), 
-        title: "", 
-        link: "", 
-        description: "", 
-        notes: "", 
-        keywordsFound: [], 
-        marketplace: "mercadoLivre", // Required field
-        updatedAt: Date.now(), 
-        ...c 
-      }]
-    }));
+    updateProduct(product.id, (prev) => {
+      const p = prev as Product;
+      return {
+        ...p,
+        competitors: [...p.competitors, { 
+          id: crypto.randomUUID(), 
+          title: "", 
+          link: "", 
+          description: "", 
+          notes: "", 
+          keywordsFound: [], 
+          marketplace: "mercadoLivre",
+          updatedAt: Date.now(), 
+          ...c 
+        }]
+      };
+    });
   };
 
   const remove = (id: string) => {
@@ -748,10 +751,13 @@ function PricingSection({ product }: { product: Product }) {
   const result = useMemo(() => computePricing(p), [p]);
 
   const setVal = (key: keyof PricingData, val: any) => {
-    updateProduct(product.id, (prod) => ({
-      ...prod,
-      pricing: { ...(prod.pricing ?? emptyPricing()), [key]: val }
-    }));
+    updateProduct(product.id, (prev) => {
+      const prod = prev as Product;
+      return {
+        ...prod,
+        pricing: { ...(prod.pricing ?? emptyPricing()), [key]: val }
+      };
+    });
   };
 
   return (
