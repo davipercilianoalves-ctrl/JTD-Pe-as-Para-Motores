@@ -14,8 +14,8 @@ export const psychPrice = (v: number) => {
 
 export interface BreakdownLine {
   label: string;
-  amount: number;       // R$ consumido na venda final
-  pctOfFinal: number;   // % do preço final
+  amount: number;
+  pctOfFinal: number;
 }
 
 export interface Alert {
@@ -39,11 +39,12 @@ export interface PricingResult {
   desiredProfitValue: number;
   breakdown: BreakdownLine[];
   alerts: Alert[];
+  scenarios: number[];
+  maxDiscount: number;
 }
 
 export function computePricing(p: PricingData): PricingResult {
   const num = (v: any) => Number(v) || 0;
-  
   const productCost = num(p.productCost);
   const salePrice = num(p.salePrice);
   
@@ -85,8 +86,6 @@ export function computePricing(p: PricingData): PricingResult {
     feesPct: salePrice > 0 ? ((marketplaceFeeR + taxR) / salePrice) : 0,
     idealPrice: salePrice,
     displayedPrice: salePrice / (1 - (num(p.fakeDiscountPercent) / 100) || 1),
-    scenarios: [10, 20, 30, 40], // Adicionado para compatibilidade
-    maxDiscount: 50, // Adicionado para compatibilidade
     finalPrice: salePrice,
     minSafePrice: totalCosts,
     aggressivePrice: salePrice,
@@ -96,6 +95,8 @@ export function computePricing(p: PricingData): PricingResult {
     desiredProfitValue: netProfit,
     breakdown,
     alerts,
+    scenarios: [10, 20, 30, 40],
+    maxDiscount: 50
   };
 }
 
@@ -116,7 +117,7 @@ export interface PriceAnalysis {
 export function analyzePrice(
   p: PricingData,
   price: number,
-  kind: "ideal" | "min" | "psych" | "aggressive",
+  kind: string,
 ): PriceAnalysis {
   const res = computePricing({ ...p, salePrice: price });
   let status: PriceStatus = "healthy";
@@ -124,13 +125,7 @@ export function analyzePrice(
   else if (res.marginPct < 10) status = "risk";
   else if (res.marginPct < 20) status = "attention";
 
-  return { 
-    price, 
-    netProfit: res.netProfit, 
-    marginPct: res.marginPct, 
-    status, 
-    reason: kind 
-  };
+  return { price, netProfit: res.netProfit, marginPct: res.marginPct, status, reason: kind };
 }
 
 export const GROUP_LABELS: Record<string, string> = {
@@ -141,10 +136,4 @@ export const GROUP_LABELS: Record<string, string> = {
   outros: "Outros",
 };
 
-export const GROUP_ORDER = [
-  "produto",
-  "logistica",
-  "marketing",
-  "taxas",
-  "outros",
-];
+export const GROUP_ORDER = ["produto", "logistica", "marketing", "taxas", "outros"];
