@@ -1408,10 +1408,10 @@ A descrição deve:
 
 function PricingSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
-  const p = product.pricing;
+  const p = product.pricing ?? emptyPricing();
 
-  const patch = (patchFn: (prev: typeof p) => typeof p) =>
-    updateProduct(product.id, (prod) => ({ ...prod, pricing: patchFn(prod.pricing) }));
+  const patch = (patchFn: (prev: PricingData) => PricingData) =>
+    updateProduct(product.id, (prod) => ({ ...prod, pricing: patchFn(prod.pricing ?? emptyPricing()) }));
 
   const setItem = (id: string, change: Partial<CostItem>) =>
     patch((prev) => ({
