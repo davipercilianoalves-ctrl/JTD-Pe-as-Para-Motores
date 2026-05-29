@@ -298,4 +298,4 @@ export function ProductWorkspace() {
     </div>
   );
 }
-export function ProductWorkspace() { return null; }
+
