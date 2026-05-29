@@ -66,3 +66,5 @@ import {
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+export function ProductWorkspace() { return null; }
