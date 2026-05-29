@@ -1118,12 +1118,13 @@ function TitlesSection({ product, market }: { product: Product; market: MK }) {
 
       <div className="space-y-3">
         {titles.map((text, i) => (
-          <TitleField
+         <TitleField
             key={i}
             value={text}
             onChange={(val) => upd(i, val)}
             onRemove={() => rm(i)}
             autoFocus={i === titles.length - 1 && i > 0 && !text}
+            limit={limit}
           />
         ))}
 
