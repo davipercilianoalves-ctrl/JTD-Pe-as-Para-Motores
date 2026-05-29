@@ -1416,15 +1416,15 @@ function PricingSection({ product }: { product: Product }) {
   const setItem = (id: string, change: Partial<CostItem>) =>
     patch((prev) => ({
       ...prev,
-      items: prev.items.map((it) => (it.id === id ? { ...it, ...change } : it)),
+      items: Array.isArray(prev.items) ? prev.items.map((it) => (it.id === id ? { ...it, ...change } : it)) : [],
     }));
   const removeItem = (id: string) =>
-    patch((prev) => ({ ...prev, items: prev.items.filter((it) => it.id !== id) }));
+    patch((prev) => ({ ...prev, items: Array.isArray(prev.items) ? prev.items.filter((it) => it.id !== id) : [] }));
   const addItem = (group: CostGroup) =>
     patch((prev) => ({
       ...prev,
       items: [
-        ...prev.items,
+        ...(Array.isArray(prev.items) ? prev.items : []),
         {
           id: crypto.randomUUID(),
           label: "Novo custo",
