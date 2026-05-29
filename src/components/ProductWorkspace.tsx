@@ -67,4 +67,303 @@ import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export function ProductWorkspace() { return null; }
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import {
+  Star,
+  Trash2,
+  Copy,
+  Check,
+  Plus,
+  Upload,
+  Download,
+  ExternalLink,
+  ChevronDown,
+  X,
+  GripVertical,
+  Cloud,
+  RefreshCw,
+  Save,
+  Calculator,
+  ArrowRight,
+  TrendingUp,
+  AlertTriangle,
+  MinusCircle,
+  PlusCircle,
+  Hash,
+  DollarSign,
+  Percent,
+} from "lucide-react";
+import { FloatingKeywordInput, FloatingKeywordCloud } from "./KeywordTools";
+import { useStore, useSelectedProduct } from "@/lib/store";
+import { useConfirm } from "@/components/ConfirmProvider";
+import {
+  parseSingleWords,
+  parseKeywordTokens,
+  canonKeyword,
+  emptyPricing,
+  type Product,
+  type Keyword,
+  type TitleVariant,
+  type PricingData,
+  type CompetitorBlock,
+  type MarketplaceData,
+  type MarketplaceId,
+  type ProductVideo,
+  type CostItem,
+  type CostGroup,
+  type CostKind,
+} from "@/lib/types";
+import {
+  computePricing,
+  simulateScenario,
+  analyzePrice,
+  brl,
+  GROUP_LABELS,
+  GROUP_ORDER,
+  type Alert as PricingAlert,
+  type PriceAnalysis,
+  type PriceStatus,
+  type BreakdownLine,
+} from "@/lib/pricing";
+import {
+  Btn,
+  Field,
+  SectionTitle,
+  TextInput,
+  AutoTextArea,
+} from "@/components/ui-kit";
+import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+type MK = MarketplaceId;
+const MARKETS: { key: MK; label: string }[] = [
+  { key: "mercadoLivre", label: "Mercado Livre" },
+  { key: "shopee", label: "Shopee" },
+  { key: "amazon", label: "Amazon" },
+  { key: "tiktok", label: "TikTok" },
+];
+
+const DEFAULT_LIMITS: Record<MK, number> = {
+  mercadoLivre: 60,
+  shopee: 120,
+  amazon: 200,
+  tiktok: 80,
+};
+
+export function ProductWorkspace() {
+  const product = useSelectedProduct();
+  const { updateProduct, toggleFavorite, deleteProduct, goHome } = useStore();
+  const confirm = useConfirm();
+  const [market, setMarket] = useState<MK>("mercadoLivre");
+  const [showMeta, setShowMeta] = useState(false);
+  const [showCloud, setShowCloud] = useState(false);
+
+  const allKeywords = useMemo(() => {
+    if (!product) return [];
+    const list: { text: string; source: string }[] = [];
+    product.competitors.forEach((c) => {
+      c.keywordsFound.forEach((kw) => list.push({ text: kw, source: c.title || "Concorrente" }));
+    });
+    return list;
+  }, [product?.competitors]);
+
+  if (!product) {
+    return (
+      <div className="flex h-full flex-1 flex-col items-center justify-center text-center px-10">
+        <h2 className="text-2xl font-semibold">Nenhum produto selecionado</h2>
+        <p className="text-base text-muted-foreground mt-3 max-w-md">
+          Volte para o início para escolher ou criar um produto.
+        </p>
+        <button
+          onClick={goHome}
+          className="mt-6 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+        >
+          Ir para o início
+        </button>
+      </div>
+    );
+  }
+
+  const set = <K extends keyof Product>(key: K, value: Product[K]) =>
+    updateProduct(product.id, { [key]: value } as Partial<Product>);
+
+  return (
+    <div className="flex h-screen flex-1 flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-[1100px] px-12 pt-12 pb-32">
+          <div className="flex items-start justify-between gap-6 mb-3">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Workspace
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCloud(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border/40"
+              >
+                <Cloud className="h-3.5 w-3.5" /> Ver todas as palavras
+              </button>
+              <button
+                onClick={() => toggleFavorite(product.id)}
+                className="rounded-lg p-2 hover:bg-accent"
+                title="Favoritar"
+              >
+                <Star
+                  className={cn(
+                    "h-4 w-4",
+                    product.favorite ? "fill-warning text-warning" : "text-muted-foreground",
+                  )}
+                />
+              </button>
+              <button
+                onClick={async () => {
+                  if (
+                    await confirm({
+                      title: `Excluir "${product.name || "este produto"}"?`,
+                      message: "Esta ação remove o produto e tudo dentro dele. Não pode ser desfeita.",
+                      confirmLabel: "Excluir produto",
+                      tone: "danger",
+                    })
+                  )
+                    deleteProduct(product.id);
+                }}
+                className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                title="Excluir"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <input
+            value={product.name}
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="Nome do produto"
+            className="w-full bg-transparent text-5xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/30 mb-2"
+          />
+          <div className="text-xs text-muted-foreground">
+            Atualizado {product.updatedAt > 0 ? new Date(product.updatedAt).toLocaleDateString("pt-BR") : "agora"} ·
+            <span className="text-success ml-1">salvo automaticamente</span>
+          </div>
+
+          <div className="mt-12">
+            <KeywordsSection product={product} />
+          </div>
+
+          <div className="mt-16">
+            <CompetitorsSection product={product} />
+          </div>
+
+          <div className="mt-20 flex items-center gap-1 rounded-xl bg-surface p-1 w-fit">
+            {MARKETS.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setMarket(m.key)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm transition-colors",
+                  market === m.key
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-8 space-y-16">
+            <ConsolidatedKeywords product={product} />
+            <TitlesSection product={product} market={market} />
+            <DescriptionSection product={product} market={market} />
+          </div>
+
+          <div className="mt-16">
+            <PricingSection product={product} />
+          </div>
+
+          <div className="mt-16">
+            <ImagesSection product={product} />
+          </div>
+
+          <div className="mt-16">
+            <VideosSection product={product} />
+          </div>
+
+          <div className="mt-20">
+            <CustomFieldsPanel
+              title="Campos do produto"
+              hint="Um único motor de campos para o produto inteiro. Marque cada campo com os marketplaces onde ele aparece — ou deixe como Global. O filtro segue o marketplace selecionado acima."
+              fields={product.customFields ?? []}
+              onChange={(fields) => set("customFields", fields)}
+              currentMarket={market}
+            />
+          </div>
+
+          <div className="mt-20">
+            <button
+              onClick={() => setShowMeta((v) => !v)}
+              className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
+            >
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMeta && "rotate-180")} />
+              Informações do produto
+            </button>
+            {showMeta && (
+              <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <Field label="SKU">
+                  <TextInput value={product.sku} onChange={(e) => set("sku", e.target.value)} />
+                </Field>
+                <Field label="Código original">
+                  <TextInput
+                    value={product.originalCode}
+                    onChange={(e) => set("originalCode", e.target.value)}
+                  />
+                </Field>
+                <Field label="Marca">
+                  <TextInput value={product.brand} onChange={(e) => set("brand", e.target.value)} />
+                </Field>
+                <Field label="Categoria">
+                  <TextInput
+                    value={product.category}
+                    onChange={(e) => set("category", e.target.value)}
+                  />
+                </Field>
+                <Field label="Fornecedor">
+                  <TextInput
+                    value={product.supplier}
+                    onChange={(e) => set("supplier", e.target.value)}
+                  />
+                </Field>
+                <Field label="Notas internas">
+                  <AutoTextArea
+                    value={product.internalNotes}
+                    onChange={(e) => set("internalNotes", e.target.value)}
+                    className="w-full bg-input/40 rounded-lg px-3.5 py-2.5 text-base outline-none focus:bg-input/70 transition-colors placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-ring/40"
+                    minRows={2}
+                  />
+                </Field>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-20">
+            <SubLabel>Dúvidas frequentes (perguntas que aparecem em outros anúncios)</SubLabel>
+            <AutoTextArea
+              value={product.niche_faqs || ""}
+              onChange={(e) => set("niche_faqs", e.target.value)}
+              placeholder="Ex: Serve para modelo X? Tem garantia? Qual o prazo de entrega?"
+              className="mt-2 w-full rounded-xl bg-surface px-5 py-4 text-[15px] border border-border/40 focus:border-primary/40 transition-colors outline-none"
+              minRows={4}
+            />
+          </div>
+        </div>
+      </div>
+      {showCloud && (
+        <FloatingKeywordCloud
+          keywords={allKeywords}
+          onClose={() => setShowCloud(false)}
+          productName={product.name}
+        />
+      )}
+    </div>
+  );
+}
