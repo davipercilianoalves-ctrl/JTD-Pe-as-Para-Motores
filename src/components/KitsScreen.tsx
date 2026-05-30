@@ -184,12 +184,24 @@ function KitEditor({ kit }: { kit: Kit }) {
     }
   }, [totalCost, kit.id, kit.pricing.productCost]);
 
+  const [market, setMarket] = useState<MK>("mercadoLivre");
+  const [showCloud, setShowCloud] = useState(false);
+
+  const allKeywords = useMemo(() => {
+    const list: { text: string; source: string }[] = [];
+    inheritedKeywords.forEach(g => {
+      g.keywords.forEach(kw => list.push({ text: kw.display, source: `Produto: ${g.product}` }));
+    });
+    kit.keywords.forEach(kw => list.push({ text: kw.display, source: "Exclusiva Kit" }));
+    return list;
+  }, [inheritedKeywords, kit.keywords]);
+
   return (
     <div className="flex h-screen flex-1 flex-col overflow-hidden">
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-[1100px] px-12 pt-12 pb-32">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-3">
             <button
               onClick={openKits}
               className="group flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -199,68 +211,81 @@ function KitEditor({ kit }: { kit: Kit }) {
               </div>
               <span className="text-sm font-medium">Voltar para lista</span>
             </button>
-            <Btn
-              variant="soft"
-              className="text-destructive hover:bg-destructive/10"
-              onClick={async () => {
-                if (await confirm({
-                  title: "Excluir Kit?",
-                  message: "Esta ação não pode ser desfeita.",
-                  confirmLabel: "Excluir kit",
-                  tone: "danger"
-                })) {
-                  deleteKit(kit.id);
-                  openKits();
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Excluir Kit
-            </Btn>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCloud(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border/40"
+              >
+                <Cloud className="h-3.5 w-3.5" /> Ver todas as palavras
+              </button>
+              <Btn
+                variant="soft"
+                className="text-destructive hover:bg-destructive/10"
+                onClick={async () => {
+                  if (await confirm({
+                    title: "Excluir Kit?",
+                    message: "Esta ação não pode ser desfeita.",
+                    confirmLabel: "Excluir kit",
+                    tone: "danger"
+                  })) {
+                    deleteKit(kit.id);
+                    openKits();
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Btn>
+            </div>
           </div>
 
           <input
             value={kit.name}
             onChange={(e) => set({ name: e.target.value })}
             placeholder="Nome do Kit"
-            className="w-full bg-transparent text-5xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/30 mb-8"
+            className="w-full bg-transparent text-5xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/30 mb-2"
           />
-
-          {/* Seção 1: Identidade */}
-          <section className="mb-16">
-            <SectionTitle>Identidade do Kit</SectionTitle>
-            <div className="grid gap-6 sm:grid-cols-2">
-              <Field label="SKU do Kit">
-                <TextInput value={kit.sku} onChange={(e) => set({ sku: e.target.value })} />
-              </Field>
-              <Field label="Tipo de Kit">
-                <div className="flex gap-2 p-1 rounded-xl bg-surface border border-border/40 w-fit">
-                  <button
-                    onClick={() => set({ type: "identical" })}
-                    className={cn(
-                      "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                      kit.type === "identical" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Produtos idênticos
-                  </button>
-                  <button
-                    onClick={() => set({ type: "composed" })}
-                    className={cn(
-                      "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                      kit.type === "composed" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Composição
-                  </button>
-                </div>
-              </Field>
+          <div className="flex items-center gap-4 mb-12">
+            <div className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg border border-border/40">
+              <span className="text-[10px] font-bold uppercase text-muted-foreground">SKU</span>
+              <input
+                value={kit.sku}
+                onChange={(e) => set({ sku: e.target.value })}
+                className="bg-transparent text-sm font-bold outline-none w-24"
+                placeholder="SKU-KIT"
+              />
             </div>
-          </section>
+            <div className="flex gap-1 p-1 rounded-xl bg-surface border border-border/40">
+              <button
+                onClick={() => set({ type: "identical" })}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  kit.type === "identical" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Produtos idênticos
+              </button>
+              <button
+                onClick={() => set({ type: "composed" })}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  kit.type === "composed" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Composição
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-12">
+            <KitKeywordsSection kit={kit} inheritedKeywords={inheritedKeywords} />
+          </div>
 
           {/* Seção 2: Produtos */}
-          <section className="mb-16">
+          <section className="mt-16">
             <div className="flex items-center justify-between mb-4">
-              <SectionTitle>Produtos que compõem este kit</SectionTitle>
+              <SectionTitle hint="Produtos que compõem este kit e seus respectivos custos unitários.">
+                Produtos do Kit
+              </SectionTitle>
               <Btn size="sm" onClick={() => setShowSelector(true)}>
                 <Plus className="h-4 w-4 mr-1" /> Adicionar produto
               </Btn>
@@ -340,11 +365,43 @@ function KitEditor({ kit }: { kit: Kit }) {
                   Nenhum produto adicionado. Clique no botão acima para começar.
                 </div>
               )}
+
+              {kit.items.length > 0 && (
+                <div className="flex justify-end pt-4 border-t border-border/40">
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase text-muted-foreground mb-1">Custo total dos itens</div>
+                    <div className="text-2xl font-bold">{brl(totalCost)}</div>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
-          {/* Seção 3: Precificação */}
-          <section className="mb-16">
+          <div className="mt-20 flex items-center gap-1 rounded-xl bg-surface p-1 w-fit">
+            {MARKETS.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setMarket(m.key)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm transition-colors",
+                  market === m.key
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-8 space-y-16">
+            <KitConsolidatedKeywords kit={kit} inheritedKeywords={inheritedKeywords} />
+            <KitTitlesSection kit={kit} market={market} inheritedKeywords={inheritedKeywords} />
+            <KitDescriptionSection kit={kit} market={market} />
+          </div>
+
+          {/* Seção 5: Precificação */}
+          <section className="mt-16">
             <PricingSection
               pricing={kit.pricing}
               onUpdate={(patch) =>
@@ -356,54 +413,14 @@ function KitEditor({ kit }: { kit: Kit }) {
             />
           </section>
 
-          {/* Seção 4: Keywords */}
-          <section className="mb-16">
-            <SectionTitle>Palavras-chave</SectionTitle>
-            <div className="space-y-6">
-              {inheritedKeywords.map((group) => (
-                <div key={group.product}>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-                    <Info className="h-3 w-3" /> Origem: {group.product}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {group.keywords.map((kw) => (
-                      <span key={kw.id} className="px-3 py-1 rounded-full bg-accent/50 text-xs font-medium border border-border/40">
-                        {kw.display}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              
-              <Field label="Palavras exclusivas do kit">
-                <AutoTextArea
-                  value={kit.keywords.map(k => k.display).join(", ")}
-                  onChange={(e) => {
-                    const displays = e.target.value.split(",").map(s => s.trim()).filter(Boolean);
-                    set({
-                      keywords: displays.map(d => ({
-                        id: crypto.randomUUID(),
-                        display: d,
-                        text: canonKeyword(d),
-                        favorite: false,
-                        uses: 1
-                      }))
-                    });
-                  }}
-                  placeholder="palavra 1, palavra 2, ..."
-                  minRows={2}
-                />
-              </Field>
-            </div>
-          </section>
-
-          {/* Seção 5: Notas */}
-          <section className="mb-16">
-            <SectionTitle>Notas Internas</SectionTitle>
+          {/* Seção 6: Notas */}
+          <section className="mt-16">
+            <SectionTitle hint="Observações gerais sobre este kit.">Notas Internas</SectionTitle>
             <AutoTextArea
               value={kit.notes}
               onChange={(e) => set({ notes: e.target.value })}
               placeholder="Observações sobre este kit..."
+              className="bg-surface p-5 rounded-2xl border border-border/40"
               minRows={3}
             />
           </section>
@@ -422,6 +439,14 @@ function KitEditor({ kit }: { kit: Kit }) {
             setShowSelector(false);
           }}
           selectedIds={kit.items.map(i => i.productId)}
+        />
+      )}
+
+      {showCloud && (
+        <FloatingKeywordCloud
+          keywords={allKeywords}
+          onClose={() => setShowCloud(false)}
+          productName={kit.name}
         />
       )}
     </div>
