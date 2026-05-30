@@ -22,7 +22,7 @@ const HOVER_CLOSE_DELAY = 240;
 const RECENT_LIMIT = 8;
 
 export function AppSidebar() {
-  const { products, ui, openProduct, createProduct, goHome, openViral, openSettings } =
+  const { products, ui, openProduct, createProduct, goHome, openViral, openSettings, openKits, kits } =
     useStore();
   const openPalette = useCommandPalette();
 
@@ -196,9 +196,17 @@ export function AppSidebar() {
             icon={Package2}
             label="Produtos"
             badge={products.length || undefined}
-            active={ui.view === "product"}
+            active={ui.view === "home" || ui.view === "product"}
             collapsed={!expanded}
             onClick={goHome}
+          />
+          <NavItem
+            icon={Search}
+            label="Kits"
+            badge={kits?.length || undefined}
+            active={ui.view === "kits"}
+            collapsed={!expanded}
+            onClick={openKits}
           />
           <NavItem
             icon={Film}

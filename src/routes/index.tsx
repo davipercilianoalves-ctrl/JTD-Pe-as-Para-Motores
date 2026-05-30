@@ -8,6 +8,7 @@ import { SettingsScreen } from "@/components/SettingsScreen";
 import { StorageBanner } from "@/components/StorageBanner";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
 import { CommandPaletteProvider } from "@/components/CommandPalette";
+import { KitsScreen } from "@/components/KitsScreen";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,5 +47,6 @@ function Main() {
   if (ui.view === "home") return <HomeScreen />;
   if (ui.view === "viral") return <ViralLibraryScreen />;
   if (ui.view === "settings") return <SettingsScreen />;
+  if (ui.view === "kits") return <KitsScreen />;
   return <ProductWorkspace />;
 }

@@ -13,21 +13,26 @@ import {
   type Product,
   type Keyword,
   type ViralClip,
+  type Kit,
+  emptyPricing,
 } from "./types";
 
 const STORAGE_KEY = "jtd-motors-hub:v3";
+const KITS_KEY = "jtd:kits";
 const LEGACY_KEY = "jtd-motors-hub:v2";
 
-export type View = "home" | "product" | "viral" | "settings";
+export type View = "home" | "product" | "viral" | "settings" | "kits";
 
 interface UIState {
   view: View;
   selectedId: string | null;
+  kitId: string | null;
 }
 
 interface StoreState {
   products: Product[];
   viralLibrary: ViralClip[];
+  kits: Kit[];
   ui: UIState;
 }
 
@@ -36,6 +41,8 @@ interface StoreContextValue extends StoreState {
   openProduct: (id: string) => void;
   openViral: () => void;
   openSettings: () => void;
+  openKits: () => void;
+  openKit: (id: string) => void;
 
   createProduct: () => string;
   updateProduct: (id: string, patch: Partial<Product> | ((p: Product) => Product)) => void;
@@ -51,27 +58,36 @@ interface StoreContextValue extends StoreState {
   addViral: (clip?: Partial<ViralClip>) => string;
   updateViral: (id: string, patch: Partial<ViralClip>) => void;
   deleteViral: (id: string) => void;
+
+  // Kits
+  createKit: () => string;
+  updateKit: (id: string, patch: Partial<Kit> | ((k: Kit) => Kit)) => void;
+  deleteKit: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
-const initialUI: UIState = { view: "home", selectedId: null };
+const initialUI: UIState = { view: "home", selectedId: null, kitId: null };
 
 function loadState(): StoreState {
   if (typeof window === "undefined")
-    return { products: [], viralLibrary: [], ui: initialUI };
+    return { products: [], viralLibrary: [], kits: [], ui: initialUI };
   try {
     const raw =
       localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY);
-    if (!raw) return { products: [], viralLibrary: [], ui: initialUI };
-    const parsed = JSON.parse(raw) as Partial<StoreState>;
+    const kitsRaw = localStorage.getItem(KITS_KEY);
+    
+    const parsed = raw ? (JSON.parse(raw) as Partial<StoreState>) : {};
+    const parsedKits = kitsRaw ? (JSON.parse(kitsRaw) as Kit[]) : [];
+    
     return {
       products: (parsed.products ?? []).map(migrateProduct),
       viralLibrary: parsed.viralLibrary ?? [],
+      kits: parsedKits,
       ui: { ...initialUI, ...(parsed.ui ?? {}) },
     };
   } catch {
-    return { products: [], viralLibrary: [], ui: initialUI };
+    return { products: [], viralLibrary: [], kits: [], ui: initialUI };
   }
 }
 
@@ -79,6 +95,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<StoreState>({
     products: [],
     viralLibrary: [],
+    kits: [],
     ui: initialUI,
   });
   const [hydrated, setHydrated] = useState(false);
@@ -91,7 +108,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, kits: undefined }));
+      localStorage.setItem(KITS_KEY, JSON.stringify(state.kits));
     } catch {
       /* ignore */
     }
@@ -108,6 +126,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
   const openViral = useCallback(() => setUI({ view: "viral" }), [setUI]);
   const openSettings = useCallback(() => setUI({ view: "settings" }), [setUI]);
+  const openKits = useCallback(() => setUI({ view: "kits", kitId: null }), [setUI]);
+  const openKit = useCallback(
+    (id: string) => setUI({ view: "kits", kitId: id }),
+    [setUI],
+  );
 
   const createProduct = useCallback(() => {
     const p = newProduct();
@@ -243,6 +266,57 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const createKit = useCallback(() => {
+    const k: Kit = {
+      id: crypto.randomUUID(),
+      name: "Novo Kit",
+      sku: "",
+      type: "identical",
+      items: [],
+      keywords: [],
+      titles: [""],
+      shortDescription: "",
+      description: "",
+      aiTemplate: "",
+      images: [],
+      pricing: emptyPricing(),
+      notes: "",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    setState((s) => ({
+      ...s,
+      kits: [k, ...s.kits],
+      ui: { ...s.ui, view: "kits", kitId: k.id },
+    }));
+    return k.id;
+  }, []);
+
+  const updateKit = useCallback(
+    (id: string, patch: Partial<Kit> | ((k: Kit) => Kit)) => {
+      setState((s) => ({
+        ...s,
+        kits: s.kits.map((k) => {
+          if (k.id !== id) return k;
+          const updated = typeof patch === "function" ? patch(k) : { ...k, ...patch };
+          return { ...updated, updatedAt: Date.now() };
+        }),
+      }));
+    },
+    [],
+  );
+
+  const deleteKit = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      kits: s.kits.filter((k) => k.id !== id),
+      ui: {
+        ...s.ui,
+        kitId: s.ui.kitId === id ? null : s.ui.kitId,
+      },
+    }));
+  }, []);
+
   return (
     <StoreContext.Provider
       value={{
@@ -251,6 +325,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         openProduct,
         openViral,
         openSettings,
+        openKits,
+        openKit,
         createProduct,
         updateProduct,
         deleteProduct,
@@ -261,6 +337,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         addViral,
         updateViral,
         deleteViral,
+        createKit,
+        updateKit,
+        deleteKit,
       }}
     >
       {children}
@@ -277,6 +356,11 @@ export function useStore() {
 export function useSelectedProduct() {
   const { products, ui } = useStore();
   return products.find((p) => p.id === ui.selectedId) ?? null;
+}
+
+export function useSelectedKit() {
+  const { kits, ui } = useStore();
+  return kits.find((k) => k.id === ui.kitId) ?? null;
 }
 
 export type { Keyword };

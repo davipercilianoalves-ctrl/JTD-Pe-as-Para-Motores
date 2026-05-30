@@ -150,6 +150,29 @@ export interface ViralClip {
   createdAt: number;
 }
 
+export interface KitItem {
+  productId: string;
+  quantity: number;
+}
+
+export interface Kit {
+  id: string;
+  name: string;
+  sku: string;
+  type: "identical" | "composed";
+  items: KitItem[];
+  keywords: Keyword[];
+  titles: string[];
+  shortDescription: string;
+  description: string;
+  aiTemplate: string;
+  images: ProductImage[];
+  pricing: PricingData;
+  notes: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Product {
   id: string;
   name: string;
