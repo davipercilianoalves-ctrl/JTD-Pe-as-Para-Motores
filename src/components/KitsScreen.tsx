@@ -542,4 +542,401 @@ function ProductSelectorModal({ onClose, onSelect, selectedIds }: { onClose: () 
   );
 }
 
-// Custom AlertTriangle removed in favor of lucide-react
+function KitKeywordsSection({ kit, inheritedKeywords }: { kit: Kit; inheritedKeywords: { product: string; keywords: Keyword[] }[] }) {
+  const { updateKit } = useStore();
+  const [draft, setDraft] = useState("");
+
+  const commit = () => {
+    const toks = draft
+      .split(/[\s,\n]+/)
+      .map(t => t.trim())
+      .filter(Boolean);
+    
+    if (!toks.length) return;
+
+    const existing = new Set(kit.keywords.map(k => canonKeyword(k.display)));
+    inheritedKeywords.forEach(g => g.keywords.forEach(kw => existing.add(canonKeyword(kw.display))));
+
+    const fresh = toks.filter(t => {
+      const key = canonKeyword(t);
+      return key && !existing.has(key);
+    });
+
+    if (fresh.length) {
+      updateKit(kit.id, (k) => ({
+        ...k,
+        keywords: [
+          ...k.keywords,
+          ...fresh.map(t => ({
+            id: crypto.randomUUID(),
+            display: t,
+            text: canonKeyword(t),
+            favorite: false,
+            uses: 1,
+          }))
+        ]
+      }));
+    }
+    setDraft("");
+  };
+
+  return (
+    <section>
+      <SectionTitle hint="Palavras-chave exclusivas do kit que complementam as herdadas.">
+        Palavras-chave exclusivas
+      </SectionTitle>
+      <div className="flex gap-2 mb-4">
+        <TextInput
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Adicionar palavras exclusivas (separe por vírgula ou Enter)..."
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+        />
+        <Btn onClick={commit} variant="primary">Adicionar</Btn>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+        {kit.keywords.map((k) => (
+          <div key={k.id} className="group flex items-center justify-between p-2 rounded-lg bg-surface border border-border/40 hover:border-primary/40 transition-colors">
+            <span className="text-sm truncate">{k.display}</span>
+            <button 
+              onClick={() => updateKit(kit.id, (prev) => ({ ...prev, keywords: prev.keywords.filter(kw => kw.id !== k.id) }))} 
+              className="p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function KitConsolidatedKeywords({ kit, inheritedKeywords }: { kit: Kit; inheritedKeywords: { product: string; keywords: Keyword[] }[] }) {
+  const copyAll = () => {
+    const all = [
+      ...inheritedKeywords.flatMap(g => g.keywords.map(k => k.display)),
+      ...kit.keywords.map(k => k.display)
+    ];
+    navigator.clipboard.writeText(all.join(", "));
+    toast.success("Todas as palavras copiadas!");
+  };
+
+  return (
+    <section>
+      <SectionTitle 
+        hint="Lista completa de palavras-chave (herdadas + exclusivas)."
+        action={<Btn size="sm" variant="soft" onClick={copyAll}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar todas</Btn>}
+      >
+        Nuvem de Palavras Consolidadas
+      </SectionTitle>
+      
+      <div className="space-y-4">
+        {inheritedKeywords.map((group) => (
+          <div key={group.product} className="bg-surface/30 p-4 rounded-xl border border-border/20">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+              <Package2 className="h-3 w-3" /> Herdadas de: {group.product}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {group.keywords.map((kw) => (
+                <span key={kw.id} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted/50 text-muted-foreground border border-border/40">
+                  {kw.display}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {kit.keywords.length > 0 && (
+          <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-3 flex items-center gap-2">
+              <Star className="h-3 w-3" /> Exclusivas do Kit
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {kit.keywords.map((kw) => (
+                <span key={kw.id} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                  {kw.display}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function KitTitlesSection({ kit, market, inheritedKeywords }: { kit: Kit; market: MK; inheritedKeywords: { product: string; keywords: Keyword[] }[] }) {
+  const { updateKit } = useStore();
+  const [showKeywordBox, setShowKeywordBox] = useState(false);
+  
+  const data = kit[market] || { titles: [""], titleLimit: DEFAULT_LIMITS[market] };
+  const limit = data.titleLimit || DEFAULT_LIMITS[market];
+  const titles = (data.titles ?? []).length > 0 ? data.titles : [""];
+
+  const upd = (idx: number, newValue: string) => {
+    updateKit(kit.id, (k) => ({
+      ...k,
+      [market]: {
+        ...(k[market] || {}),
+        titles: (titles).map((t, i) => i === idx ? newValue.slice(0, limit) : t),
+      },
+    }));
+  };
+
+  const setLimit = (val: number) => {
+    updateKit(kit.id, (k) => ({
+      ...k,
+      [market]: {
+        ...(k[market] || {}),
+        titleLimit: val,
+      },
+    }));
+  };
+
+  const add = () => {
+    updateKit(kit.id, (k) => ({
+      ...k,
+      [market]: {
+        ...(k[market] || {}),
+        titles: [...titles, ""],
+      },
+    }));
+  };
+
+  const rm = (idx: number) => {
+    updateKit(kit.id, (k) => {
+      let nextTitles = titles.filter((_, i) => i !== idx);
+      if (nextTitles.length === 0) nextTitles = [""];
+      return {
+        ...k,
+        [market]: {
+          ...(k[market] || {}),
+          titles: nextTitles,
+        },
+      };
+    });
+  };
+
+  const allKeywords = useMemo(() => {
+    const list: { text: string; source: string }[] = [];
+    inheritedKeywords.forEach(g => g.keywords.forEach(kw => list.push({ text: kw.display, source: g.product })));
+    kit.keywords.forEach(kw => list.push({ text: kw.display, source: "Exclusiva Kit" }));
+    return list;
+  }, [inheritedKeywords, kit.keywords]);
+
+  return (
+    <section>
+      <SectionTitle 
+        hint="Crie múltiplos títulos para o kit neste marketplace."
+        action={
+          <button
+            onClick={() => setShowKeywordBox(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Cloud className="h-3.5 w-3.5" /> Palavras disponíveis
+          </button>
+        }
+      >
+        Títulos
+      </SectionTitle>
+
+      <div className="mb-6 flex items-center gap-3 bg-surface/50 p-3 rounded-xl border border-border/40 w-fit">
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Limite</label>
+        <input
+          type="number"
+          value={limit}
+          onChange={(e) => setLimit(Number(e.target.value) || 0)}
+          className="w-16 bg-background border border-border/60 rounded-lg px-2 py-1 text-sm font-bold tabular-nums outline-none focus:border-primary/40"
+        />
+      </div>
+
+      <div className="space-y-3">
+        {titles.map((text, i) => (
+          <TitleField
+            key={i}
+            value={text}
+            onChange={(val) => upd(i, val)}
+            onRemove={() => rm(i)}
+            autoFocus={i === titles.length - 1 && i > 0 && !text}
+            limit={limit}
+          />
+        ))}
+        <button
+          onClick={add}
+          className="w-full py-3 rounded-xl border border-dashed border-border/60 text-sm font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-all flex items-center justify-center gap-2"
+        >
+          <Plus className="h-4 w-4" /> Adicionar título
+        </button>
+      </div>
+
+      {showKeywordBox && (
+        <FloatingKeywordCloud
+          keywords={allKeywords}
+          onClose={() => setShowKeywordBox(false)}
+          productName="Palavras do Kit"
+        />
+      )}
+    </section>
+  );
+}
+
+function TitleField({ 
+  value, 
+  onChange, 
+  onRemove,
+  autoFocus,
+  limit
+}: { 
+  value: string; 
+  onChange: (v: string) => void; 
+  onRemove: () => void;
+  autoFocus?: boolean;
+  limit: number;
+}) {
+  const count = (value || "").length;
+  const counterClass =
+    count >= limit
+      ? "text-red-500"
+      : count >= limit * 0.9
+        ? "text-yellow-500"
+        : "text-muted-foreground";
+
+  return (
+    <div className="group relative">
+      <div className={cn(
+        "flex items-center gap-3 bg-surface px-5 py-3.5 rounded-xl border transition-all",
+        count >= limit ? "border-red-500 ring-1 ring-red-500/20" : "border-border/40 focus-within:border-primary/40"
+      )}>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Digite o título do kit..."
+          maxLength={limit}
+          autoFocus={autoFocus}
+          className="flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-muted-foreground/30"
+        />
+        <div className="flex items-center gap-3">
+          <span className={cn("text-[11px] font-bold tabular-nums tracking-wider", counterClass)}>
+            {count}/{limit}
+          </span>
+          <button
+            onClick={onRemove}
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded transition-all"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KitDescriptionSection({ kit, market }: { kit: Kit; market: MK }) {
+  const { updateKit } = useStore();
+  const data = kit[market] || { shortDescription: "", description: "" };
+
+  const set = (patch: Partial<any>) => {
+    updateKit(kit.id, (k) => ({
+      ...k,
+      [market]: { ...(k[market] || {}), ...patch }
+    }));
+  };
+
+  const [showAI, setShowAI] = useState(false);
+
+  return (
+    <div className="space-y-12">
+      <section>
+        <SectionTitle hint="Resumo do kit para este marketplace.">
+          Breve descrição
+        </SectionTitle>
+        <div className="rounded-2xl bg-surface p-5 border border-border/40 focus-within:border-primary/40 transition-colors">
+          <AutoTextArea
+            value={data.shortDescription || ""}
+            onChange={(e) => set({ shortDescription: e.target.value })}
+            placeholder="Resumo do kit..."
+            className="text-[15px] leading-relaxed"
+            minRows={3}
+          />
+        </div>
+      </section>
+
+      <section>
+        <SectionTitle hint="Descrição completa do kit.">
+          Descrição completa
+        </SectionTitle>
+        <div className="space-y-4">
+          <Btn variant="soft" className="w-full py-4" onClick={() => setShowAI(true)}>
+            📋 Ver template de IA
+          </Btn>
+          <div className="rounded-2xl bg-surface p-6 border border-border/40 focus-within:border-primary/40 transition-colors">
+            <AutoTextArea
+              value={data.description || ""}
+              onChange={(e) => set({ description: e.target.value })}
+              placeholder="Descrição detalhada..."
+              className="text-[15px] leading-relaxed"
+              minRows={8}
+            />
+          </div>
+        </div>
+      </section>
+
+      {showAI && (
+        <KitAITemplateModal 
+          kit={kit} 
+          market={market} 
+          onClose={() => setShowAI(false)} 
+        />
+      )}
+    </div>
+  );
+}
+
+function KitAITemplateModal({ kit, market, onClose }: { kit: Kit; market: MK; onClose: () => void }) {
+  const { updateKit } = useStore();
+  const [copied, setCopied] = useState(false);
+  const data = kit[market] || {};
+
+  const generateDefault = () => `Kit: ${kit.name}\nComposição: ${kit.items.map(i => `${i.quantity}x ${i.productId}`).join(", ")}\nKeywords: ${kit.keywords.map(k => k.display).join(", ")}`;
+  const [currentText, setCurrentText] = useState(data.aiTemplate || generateDefault());
+
+  const save = () => {
+    updateKit(kit.id, (k) => ({
+      ...k,
+      [market]: {
+        ...(k[market] || {}),
+        aiTemplate: currentText,
+      },
+    }));
+    toast.success("Template salvo!");
+  };
+
+  const copy = () => {
+    navigator.clipboard.writeText(currentText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-6" onClick={onClose}>
+      <div className="relative bg-background border border-border w-full max-w-[800px] rounded-2xl shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-5 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-lg font-bold">Template de IA do Kit</h3>
+          <button onClick={onClose}><X className="h-5 w-5" /></button>
+        </div>
+        <div className="p-6">
+          <AutoTextArea
+            value={currentText}
+            onChange={(e) => setCurrentText(e.target.value)}
+            className="w-full bg-surface/30 p-4 rounded-xl border border-border/40 text-sm font-mono"
+            minRows={10}
+          />
+        </div>
+        <div className="p-6 border-t border-border/40 flex justify-end gap-3">
+          <Btn onClick={save} variant="soft">Salvar</Btn>
+          <Btn onClick={copy} variant="primary">{copied ? "Copiado!" : "Copiar"}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
