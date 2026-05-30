@@ -304,13 +304,7 @@ export function ProductWorkspace() {
   );
 }
 
-function SubLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground mb-2">
-      {children}
-    </div>
-  );
-}
+// SubLabel moved to PricingTools.tsx
 
 
 function ConsolidatedKeywords({ product }: { product: Product }) {
