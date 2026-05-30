@@ -13,12 +13,15 @@ import {
   type Product,
   type Keyword,
   type ViralClip,
+  type Kit,
+  emptyPricing,
 } from "./types";
 
 const STORAGE_KEY = "jtd-motors-hub:v3";
+const KITS_KEY = "jtd:kits";
 const LEGACY_KEY = "jtd-motors-hub:v2";
 
-export type View = "home" | "product" | "viral" | "settings";
+export type View = "home" | "product" | "viral" | "settings" | "kits";
 
 interface UIState {
   view: View;
@@ -79,6 +82,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<StoreState>({
     products: [],
     viralLibrary: [],
+    kits: [],
     ui: initialUI,
   });
   const [hydrated, setHydrated] = useState(false);
@@ -91,7 +95,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, kits: undefined }));
+      localStorage.setItem(KITS_KEY, JSON.stringify(state.kits));
     } catch {
       /* ignore */
     }
@@ -108,6 +113,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
   const openViral = useCallback(() => setUI({ view: "viral" }), [setUI]);
   const openSettings = useCallback(() => setUI({ view: "settings" }), [setUI]);
+  const openKits = useCallback(() => setUI({ view: "kits", kitId: null }), [setUI]);
+  const openKit = useCallback(
+    (id: string) => setUI({ view: "kits", kitId: id }),
+    [setUI],
+  );
 
   const createProduct = useCallback(() => {
     const p = newProduct();
@@ -243,6 +253,57 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const createKit = useCallback(() => {
+    const k: Kit = {
+      id: crypto.randomUUID(),
+      name: "Novo Kit",
+      sku: "",
+      type: "identical",
+      items: [],
+      keywords: [],
+      titles: [""],
+      shortDescription: "",
+      description: "",
+      aiTemplate: "",
+      images: [],
+      pricing: emptyPricing(),
+      notes: "",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    setState((s) => ({
+      ...s,
+      kits: [k, ...s.kits],
+      ui: { ...s.ui, view: "kits", kitId: k.id },
+    }));
+    return k.id;
+  }, []);
+
+  const updateKit = useCallback(
+    (id: string, patch: Partial<Kit> | ((k: Kit) => Kit)) => {
+      setState((s) => ({
+        ...s,
+        kits: s.kits.map((k) => {
+          if (k.id !== id) return k;
+          const updated = typeof patch === "function" ? patch(k) : { ...k, ...patch };
+          return { ...updated, updatedAt: Date.now() };
+        }),
+      }));
+    },
+    [],
+  );
+
+  const deleteKit = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      kits: s.kits.filter((k) => k.id !== id),
+      ui: {
+        ...s.ui,
+        kitId: s.ui.kitId === id ? null : s.ui.kitId,
+      },
+    }));
+  }, []);
+
   return (
     <StoreContext.Provider
       value={{
@@ -277,6 +338,11 @@ export function useStore() {
 export function useSelectedProduct() {
   const { products, ui } = useStore();
   return products.find((p) => p.id === ui.selectedId) ?? null;
+}
+
+export function useSelectedKit() {
+  const { kits, ui } = useStore();
+  return kits.find((k) => k.id === ui.kitId) ?? null;
 }
 
 export type { Keyword };
