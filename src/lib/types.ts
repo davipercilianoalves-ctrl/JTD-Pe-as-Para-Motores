@@ -122,10 +122,8 @@ export interface PricingData {
 export interface ProductImage {
   id: string;
   dataUrl: string;
-  name: string;
-  favorite: boolean;
-  isMain?: boolean;
-  notes: string;
+  order: number;
+  isCover: boolean;
 }
 
 export interface ProductVideo {
@@ -309,7 +307,12 @@ export function migrateProduct(raw: any): Product {
     shopee: ensureMK(raw?.shopee),
     amazon: ensureMK(raw?.amazon),
     tiktok: ensureMK(raw?.tiktok),
-    images: (raw?.images ?? []).map((i: any) => ({ ...i, isMain: i.isMain ?? false })),
+    images: (raw?.images ?? []).map((i: any, index: number) => ({
+      id: i.id || crypto.randomUUID(),
+      dataUrl: i.dataUrl || "",
+      order: i.order ?? index,
+      isCover: i.isCover ?? i.isMain ?? (index === 0),
+    })),
     videos: (raw?.videos ?? []).map((v: any) => ({
       speech: "",
       notes: "",
