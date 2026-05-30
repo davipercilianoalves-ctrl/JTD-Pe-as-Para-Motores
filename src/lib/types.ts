@@ -128,18 +128,11 @@ export interface ProductImage {
 
 export interface ProductVideo {
   id: string;
-  link: string;
-  videoDataUrl?: string;
-  videoName?: string;
-  audioDataUrl?: string;
-  audioName?: string;
+  name: string;
   script: string;
   speech: string;
-  audio: string;
-  description: string;
-  cta: string;
-  platform: string;
-  editingNotes: string;
+  youtubeUrl: string;
+  dataUrl?: string;
   notes: string;
 }
 
