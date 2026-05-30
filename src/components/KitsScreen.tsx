@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft,
   Plus,
@@ -9,6 +9,11 @@ import {
   ChevronDown,
   Info,
   Check,
+  AlertTriangle,
+  Cloud,
+  Copy,
+  Hash,
+  Star
 } from "lucide-react";
 import { useStore, useSelectedKit } from "@/lib/store";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -18,6 +23,7 @@ import {
   type KitItem,
   type Product,
   type Keyword,
+  type MarketplaceId,
 } from "@/lib/types";
 import {
   Btn,
@@ -28,6 +34,24 @@ import {
 } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 import { brl, computePricing } from "@/lib/pricing";
+import { PricingSection } from "./ProductWorkspace";
+import { FloatingKeywordCloud } from "./KeywordTools";
+import { toast } from "sonner";
+
+type MK = MarketplaceId;
+const MARKETS: { key: MK; label: string }[] = [
+  { key: "mercadoLivre", label: "Mercado Livre" },
+  { key: "shopee", label: "Shopee" },
+  { key: "amazon", label: "Amazon" },
+  { key: "tiktok", label: "TikTok" },
+];
+
+const DEFAULT_LIMITS: Record<MK, number> = {
+  mercadoLivre: 60,
+  shopee: 120,
+  amazon: 200,
+  tiktok: 80,
+};
 
 export function KitsScreen() {
   const { kits, ui, openKit, createKit, goHome } = useStore();
