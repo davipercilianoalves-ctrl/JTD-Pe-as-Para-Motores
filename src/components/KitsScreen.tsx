@@ -27,7 +27,7 @@ import {
   AutoTextArea,
 } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
-import { brl } from "@/lib/pricing";
+import { brl, computePricing } from "@/lib/pricing";
 
 export function KitsScreen() {
   const { kits, ui, openKit, createKit, goHome } = useStore();
