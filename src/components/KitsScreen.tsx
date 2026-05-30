@@ -1,3 +1,4 @@
+"use client";
 import React, { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 import { brl, computePricing } from "@/lib/pricing";
-import { PricingSection } from "./ProductWorkspace";
+import { PricingSection } from "./PricingTools";
 import { FloatingKeywordCloud } from "./KeywordTools";
 import { toast } from "sonner";
 
