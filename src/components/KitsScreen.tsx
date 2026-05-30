@@ -8,6 +8,7 @@ import {
   Package2,
   ChevronDown,
   Info,
+  Check,
 } from "lucide-react";
 import { useStore, useSelectedKit } from "@/lib/store";
 import { useConfirm } from "@/components/ConfirmProvider";
