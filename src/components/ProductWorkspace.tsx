@@ -1117,11 +1117,21 @@ function ImagesSection({ product }: { product: Product }) {
       tone: "danger"
     })) {
       updateProduct(product.id, (p) => {
-        const remaining = p.images.filter(img => img.id !== id);
-        // If we deleted the cover, set the first one as cover
-        if (remaining.length > 0 && !remaining.some(img => img.isCover)) {
-          remaining[0].isCover = true;
-        }
+        const filtered = p.images
+          .filter(img => img.id !== id)
+          .map(img => ({ ...img }));
+          
+        const needsNewCover =
+          filtered.length > 0 &&
+          !filtered.some(img => img.isCover);
+          
+        const remaining = needsNewCover
+          ? filtered.map((img, idx) => ({
+              ...img,
+              isCover: idx === 0 ? true : img.isCover,
+            }))
+          : filtered;
+          
         return { ...p, images: remaining };
       });
     }
