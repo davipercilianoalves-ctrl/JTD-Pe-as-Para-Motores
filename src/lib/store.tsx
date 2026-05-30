@@ -10,11 +10,12 @@ import {
   newProduct,
   migrateProduct,
   canonKeyword,
+  emptyMarketplace,
+  emptyPricing,
   type Product,
   type Keyword,
   type ViralClip,
   type Kit,
-  emptyPricing,
 } from "./types";
 
 const STORAGE_KEY = "jtd-motors-hub:v3";
@@ -274,10 +275,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       type: "identical",
       items: [],
       keywords: [],
-      titles: [""],
-      shortDescription: "",
-      description: "",
-      aiTemplate: "",
+      mercadoLivre: emptyMarketplace(),
+      shopee: emptyMarketplace(),
+      amazon: emptyMarketplace(),
+      tiktok: emptyMarketplace(),
       images: [],
       pricing: emptyPricing(),
       notes: "",

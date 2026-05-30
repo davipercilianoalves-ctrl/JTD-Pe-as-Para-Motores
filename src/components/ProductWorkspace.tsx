@@ -751,9 +751,17 @@ function AITemplateModal({ product, market, onClose }: { product: Product; marke
   );
 }
 
-function PricingSection({ product }: { product: Product }) {
+export function PricingSection({
+  product,
+  pricing: externalPricing,
+  onUpdate: externalOnUpdate,
+}: {
+  product?: Product;
+  pricing?: PricingData;
+  onUpdate?: (patch: Partial<PricingData>) => void;
+}) {
   const { updateProduct } = useStore();
-  const p = product.pricing ?? emptyPricing();
+  const p = externalPricing || (product?.pricing ?? emptyPricing());
 
   const result = useMemo(() => computePricing(p), [p]);
 
@@ -780,6 +788,13 @@ function PricingSection({ product }: { product: Product }) {
       const parsed = num(val);
       safeValue = Math.max(0, Math.min(99, parsed));
     }
+
+    if (externalOnUpdate) {
+      externalOnUpdate({ [key]: safeValue });
+      return;
+    }
+
+    if (!product) return;
 
     updateProduct(product.id, (prev) => {
       const prod = prev as Product;
