@@ -1,6 +1,6 @@
 PROJECT_STATE.md — Estado atual:
 
-# JTD MOTORS HUB | Última atualização: 29/05/2026
+# JTD MOTORS HUB | Última atualização: 30/05/2026
 
 ## Etapas
 - [x] Etapa 0: Backup e Segurança de Dados — CONCLUÍDA
@@ -10,8 +10,8 @@ PROJECT_STATE.md — Estado atual:
 - [x] Etapa 4: Precificação refinada — CONCLUÍDA
 - [x] Etapa 5: Imagens — CONCLUÍDA
 - [x] Etapa 6: Vídeo — CONCLUÍDA
-- [ ] Etapa 7: Módulo de Kits — PRÓXIMA
-- [ ] Etapa 8: Sidebar definitiva + Configurações completas
+- [x] Etapa 7: Módulo de Kits — CONCLUÍDA
+- [ ] Etapa 8: Sidebar definitiva + Configurações completas — PRÓXIMA
 
 ## Ferramentas configuradas
 - [x] Lovable (editor principal)
@@ -26,15 +26,16 @@ PROJECT_STATE.md — Estado atual:
 - TitlesSection: 7 correções
 - Precificação: 6 correções
 - Imagens: 2 mutações corrigidas
-- Vídeo: validação YouTube endurecida
+- Vídeo: validação YouTube
+- Kits: AlertTriangle importado inline
 
 ## Decisões tomadas
 - localStorage mantido no MVP
-- Vídeos: limite 50MB com aviso fixo
-- Preview dentro do app via base64
-- Validação YouTube: includes("youtube.com") ou ("youtu.be")
+- Kits em chave separada "jtd:kits"
+- Custo do kit sincronizado via useEffect com totalCost
+- Produto deletado: aviso visual, sem quebrar o app
 
 ## Próxima etapa
-Etapa 7 — Módulo de Kits:
-criação com produtos existentes, herança de palavras-chave,
-todas as funções de anúncio, precificação composta
+Etapa 8 — Sidebar definitiva + Configurações completas:
+hover abre, pino fixa, logo/foto da empresa, nome editável,
+tema claro/escuro, backup nas configurações
