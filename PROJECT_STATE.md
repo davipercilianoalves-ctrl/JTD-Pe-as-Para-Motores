@@ -9,8 +9,8 @@ PROJECT_STATE.md — Estado atual:
 - [x] Etapa 3: Criação de títulos e descrição — CONCLUÍDA
 - [x] Etapa 4: Precificação refinada — CONCLUÍDA
 - [x] Etapa 5: Imagens — CONCLUÍDA
-- [ ] Etapa 6: Vídeo — PRÓXIMA
-- [ ] Etapa 7: Módulo de Kits
+- [x] Etapa 6: Vídeo — CONCLUÍDA
+- [ ] Etapa 7: Módulo de Kits — PRÓXIMA
 - [ ] Etapa 8: Sidebar definitiva + Configurações completas
 
 ## Ferramentas configuradas
@@ -24,16 +24,17 @@ PROJECT_STATE.md — Estado atual:
 - ProductWorkspace: múltiplas correções acumuladas
 - KeywordTools: drag, SSR window
 - TitlesSection: 7 correções
-- Precificação: 6 correções incluindo fórmula de margem
-- Imagens: 2 mutações diretas corrigidas (drag e exclusão de capa)
+- Precificação: 6 correções
+- Imagens: 2 mutações corrigidas
+- Vídeo: validação YouTube endurecida
 
 ## Decisões tomadas
 - localStorage mantido no MVP
-- Compressão obrigatória: max 800x800, qualidade 0.75
-- Drag-and-drop desktop + setas mobile
-- Confirmação obrigatória antes de excluir imagem
+- Vídeos: limite 50MB com aviso fixo
+- Preview dentro do app via base64
+- Validação YouTube: includes("youtube.com") ou ("youtu.be")
 
 ## Próxima etapa
-Etapa 6 — Vídeo:
-nome, roteiro com falas, upload com preview,
-link YouTube, visualização dentro do app
+Etapa 7 — Módulo de Kits:
+criação com produtos existentes, herança de palavras-chave,
+todas as funções de anúncio, precificação composta
