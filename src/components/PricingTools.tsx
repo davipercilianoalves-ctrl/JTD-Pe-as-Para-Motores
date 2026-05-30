@@ -73,7 +73,10 @@ export function PricingSection({
   const { updateProduct } = useStore();
   const p = externalPricing || (product?.pricing ?? emptyPricing());
 
-  const result = useMemo(() => computePricing(p), [p]);
+  // Use optional chaining for p to avoid crashes if it becomes null during render
+  const result = useMemo(() => p ? computePricing(p) : null, [p]);
+
+  if (!p || !result) return null;
 
   const setVal = (key: keyof PricingData, val: any) => {
     const num = (v: any) => parseFloat(v) || 0;
