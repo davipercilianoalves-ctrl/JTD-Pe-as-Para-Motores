@@ -538,7 +538,7 @@ function ProductRow({
   onFav: () => void;
 }) {
   const meta = STATUS_META[signal.status];
-  const mainImg = p.images.find((i) => i.isMain) ?? p.images[0];
+  const mainImg = p.images.find((i) => i.isCover) ?? p.images[0];
   return (
     <div
       onClick={onOpen}
@@ -658,7 +658,7 @@ function ProductCard({
   onFav: () => void;
 }) {
   const meta = STATUS_META[signal.status];
-  const mainImg = p.images.find((i) => i.isMain) ?? p.images[0];
+  const mainImg = p.images.find((i) => i.isCover) ?? p.images[0];
   return (
     <button
       onClick={onOpen}
