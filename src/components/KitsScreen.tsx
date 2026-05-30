@@ -669,7 +669,7 @@ function KitTitlesSection({ kit, market, inheritedKeywords }: { kit: Kit; market
   const { updateKit } = useStore();
   const [showKeywordBox, setShowKeywordBox] = useState(false);
   
-  const data = kit[market] || { titles: [""], titleLimit: DEFAULT_LIMITS[market] };
+  const data = (kit as any)[market] || { titles: [""], titleLimit: DEFAULT_LIMITS[market] };
   const limit = data.titleLimit || DEFAULT_LIMITS[market];
   const titles = (data.titles ?? []).length > 0 ? data.titles : [""];
 
@@ -677,8 +677,8 @@ function KitTitlesSection({ kit, market, inheritedKeywords }: { kit: Kit; market
     updateKit(kit.id, (k) => ({
       ...k,
       [market]: {
-        ...(k[market] || {}),
-        titles: (titles).map((t, i) => i === idx ? newValue.slice(0, limit) : t),
+        ...((k as any)[market] || {}),
+        titles: (titles).map((t: string, i: number) => i === idx ? newValue.slice(0, limit) : t),
       },
     }));
   };
@@ -687,7 +687,7 @@ function KitTitlesSection({ kit, market, inheritedKeywords }: { kit: Kit; market
     updateKit(kit.id, (k) => ({
       ...k,
       [market]: {
-        ...(k[market] || {}),
+        ...((k as any)[market] || {}),
         titleLimit: val,
       },
     }));
@@ -697,7 +697,7 @@ function KitTitlesSection({ kit, market, inheritedKeywords }: { kit: Kit; market
     updateKit(kit.id, (k) => ({
       ...k,
       [market]: {
-        ...(k[market] || {}),
+        ...((k as any)[market] || {}),
         titles: [...titles, ""],
       },
     }));
@@ -705,12 +705,12 @@ function KitTitlesSection({ kit, market, inheritedKeywords }: { kit: Kit; market
 
   const rm = (idx: number) => {
     updateKit(kit.id, (k) => {
-      let nextTitles = titles.filter((_, i) => i !== idx);
+      let nextTitles = titles.filter((_: any, i: number) => i !== idx);
       if (nextTitles.length === 0) nextTitles = [""];
       return {
         ...k,
         [market]: {
-          ...(k[market] || {}),
+          ...((k as any)[market] || {}),
           titles: nextTitles,
         },
       };
@@ -751,7 +751,7 @@ function KitTitlesSection({ kit, market, inheritedKeywords }: { kit: Kit; market
       </div>
 
       <div className="space-y-3">
-        {titles.map((text, i) => (
+        {titles.map((text: string, i: number) => (
           <TitleField
             key={i}
             value={text}
@@ -833,12 +833,12 @@ function TitleField({
 
 function KitDescriptionSection({ kit, market }: { kit: Kit; market: MK }) {
   const { updateKit } = useStore();
-  const data = kit[market] || { shortDescription: "", description: "" };
+  const data = (kit as any)[market] || { shortDescription: "", description: "" };
 
   const set = (patch: Partial<any>) => {
     updateKit(kit.id, (k) => ({
       ...k,
-      [market]: { ...(k[market] || {}), ...patch }
+      [market]: { ...((k as any)[market] || {}), ...patch }
     }));
   };
 
@@ -895,7 +895,7 @@ function KitDescriptionSection({ kit, market }: { kit: Kit; market: MK }) {
 function KitAITemplateModal({ kit, market, onClose }: { kit: Kit; market: MK; onClose: () => void }) {
   const { updateKit } = useStore();
   const [copied, setCopied] = useState(false);
-  const data = kit[market] || {};
+  const data = (kit as any)[market] || {};
 
   const generateDefault = () => `Kit: ${kit.name}\nComposição: ${kit.items.map(i => `${i.quantity}x ${i.productId}`).join(", ")}\nKeywords: ${kit.keywords.map(k => k.display).join(", ")}`;
   const [currentText, setCurrentText] = useState(data.aiTemplate || generateDefault());
@@ -904,7 +904,7 @@ function KitAITemplateModal({ kit, market, onClose }: { kit: Kit; market: MK; on
     updateKit(kit.id, (k) => ({
       ...k,
       [market]: {
-        ...(k[market] || {}),
+        ...((k as any)[market] || {}),
         aiTemplate: currentText,
       },
     }));
