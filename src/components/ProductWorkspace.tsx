@@ -1147,10 +1147,25 @@ function ImagesSection({ product }: { product: Product }) {
   const move = (fromIdx: number, toIdx: number) => {
     if (toIdx < 0 || toIdx >= images.length) return;
     updateProduct(product.id, (p) => {
-      const newImages = [...images];
-      const tempOrder = newImages[fromIdx].order;
-      newImages[fromIdx].order = newImages[toIdx].order;
-      newImages[toIdx].order = tempOrder;
+      const newImages = p.images.map(img => ({ ...img }));
+      // We need to find by array index since move() receives fromIdx and toIdx
+      // but p.images might be sorted differently.
+      // However, the 'images' variable in the outer scope is already sorted.
+      // Let's ensure we are consistent.
+      const sortedInState = [...p.images].sort((a, b) => a.order - b.order);
+      const fromImgState = sortedInState[fromIdx];
+      const toImgState = sortedInState[toIdx];
+
+      if (fromImgState && toImgState) {
+        // We find them in the newImages (which is the mutable-ish copy for state update)
+        const fromImg = newImages.find(img => img.id === fromImgState.id);
+        const toImg = newImages.find(img => img.id === toImgState.id);
+        if (fromImg && toImg) {
+          const tempOrder = fromImg.order;
+          fromImg.order = toImg.order;
+          toImg.order = tempOrder;
+        }
+      }
       return { ...p, images: newImages };
     });
   };
