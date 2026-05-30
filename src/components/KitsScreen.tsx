@@ -408,7 +408,7 @@ function KitEditor({ kit }: { kit: Kit }) {
               onUpdate={(patch) =>
                 updateKit(kit.id, (k) => ({
                   ...k,
-                  pricing: { ...k.pricing, ...patch }
+                  pricing: { ...(k.pricing || emptyPricing()), ...patch }
                 }))
               }
             />
