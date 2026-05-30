@@ -1325,11 +1325,247 @@ function ImagesSection({ product }: { product: Product }) {
 
 function VideosSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
+  const confirm = useConfirm();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const addVideo = () => {
+    const newVideo: ProductVideo = {
+      id: crypto.randomUUID(),
+      name: "",
+      script: "",
+      speech: "",
+      youtubeUrl: "",
+      notes: "",
+    };
+    updateProduct(product.id, (p) => ({
+      ...p,
+      videos: [...(p.videos || []), newVideo],
+    }));
+    setExpandedId(newVideo.id);
+  };
+
+  const removeVideo = async (id: string) => {
+    if (
+      await confirm({
+        title: "Excluir este vídeo?",
+        message: "Esta ação não pode ser desfeita.",
+        confirmLabel: "Excluir",
+        tone: "danger",
+      })
+    ) {
+      updateProduct(product.id, (p) => ({
+        ...p,
+        videos: p.videos.filter((v) => v.id !== id),
+      }));
+    }
+  };
+
+  const updateVideo = (id: string, data: Partial<ProductVideo>) => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      videos: p.videos.map((v) => (v.id === id ? { ...v, ...data } : v)),
+    }));
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>, videoId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const MAX_MB = 50;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      toast.error(`Vídeo muito grande. Limite: ${MAX_MB}MB`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      updateProduct(product.id, (p) => ({
+        ...p,
+        videos: p.videos.map((v) => (v.id === videoId ? { ...v, dataUrl } : v)),
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeVideoFile = async (videoId: string) => {
+    if (
+      await confirm({
+        title: "Remover arquivo de vídeo?",
+        message: "O arquivo será excluído, mas o roteiro e notas serão mantidos.",
+        confirmLabel: "Remover",
+        tone: "danger",
+      })
+    ) {
+      updateVideo(videoId, { dataUrl: undefined });
+    }
+  };
+
+  if (!product.videos?.length) {
+    return (
+      <section>
+        <SectionTitle hint="Roteiros e referências de vídeo.">Vídeos</SectionTitle>
+        <div className="p-12 text-center rounded-2xl border border-dashed border-border/60 bg-surface/30 text-muted-foreground flex flex-col items-center">
+          <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+            <Camera className="h-6 w-6 opacity-40" />
+          </div>
+          <p className="text-sm mb-6">Nenhum vídeo adicionado</p>
+          <Btn onClick={addVideo} variant="primary">
+            <Plus className="h-4 w-4 mr-2" /> Criar roteiro
+          </Btn>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section>
-      <SectionTitle hint="Roteiros e referências de vídeo.">Vídeos</SectionTitle>
-      <div className="p-8 text-center rounded-2xl border border-dashed border-border/60 text-muted-foreground">
-        <Btn variant="soft"><Plus className="h-4 w-4 mr-2" /> Criar roteiro</Btn>
+      <div className="flex items-center justify-between mb-4">
+        <SectionTitle hint="Roteiros e referências de vídeo.">Vídeos</SectionTitle>
+        <Btn onClick={addVideo} size="sm">
+          <Plus className="h-4 w-4 mr-2" /> Adicionar vídeo
+        </Btn>
+      </div>
+
+      <div className="space-y-4">
+        {product.videos.map((video) => {
+          const isExpanded = expandedId === video.id;
+          const fileSizeMB = video.dataUrl
+            ? ((Math.round(video.dataUrl.length * 0.75) / 1024) / 1024).toFixed(1)
+            : "0";
+          const isTooLarge = parseFloat(fileSizeMB) > 10;
+
+          return (
+            <div
+              key={video.id}
+              className={cn(
+                "rounded-xl border border-border/40 bg-surface overflow-hidden transition-all",
+                isExpanded && "ring-1 ring-primary/20 shadow-lg"
+              )}
+            >
+              {/* Card Header */}
+              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30" onClick={() => setExpandedId(isExpanded ? null : video.id)}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <Camera className="h-4 w-4" />
+                  </div>
+                  <span className="font-medium truncate">{video.name || "Vídeo sem nome"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeVideo(video.id);
+                    }}
+                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+                </div>
+              </div>
+
+              {/* Card Content */}
+              {isExpanded && (
+                <div className="p-6 border-t border-border/40 space-y-6">
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <Field label="Nome do vídeo">
+                      <TextInput
+                        value={video.name}
+                        onChange={(e) => updateVideo(video.id, { name: e.target.value })}
+                        placeholder="Ex: Unboxing Filtro de Óleo Honda CG 150"
+                      />
+                    </Field>
+                    <Field label="Link do YouTube">
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <ExternalLink className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <TextInput
+                            value={video.youtubeUrl}
+                            onChange={(e) => updateVideo(video.id, { youtubeUrl: e.target.value })}
+                            placeholder="https://youtube.com/watch?v=..."
+                            className="pl-9"
+                          />
+                        </div>
+                        {video.youtubeUrl?.startsWith("https://") && (
+                          <Btn variant="soft" onClick={() => window.open(video.youtubeUrl, "_blank")}>
+                            Abrir
+                          </Btn>
+                        )}
+                      </div>
+                    </Field>
+                  </div>
+
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <Field label="Roteiro (estrutura cena a cena)">
+                      <AutoTextArea
+                        value={video.script}
+                        onChange={(e) => updateVideo(video.id, { script: e.target.value })}
+                        placeholder="Estrutura do vídeo cena a cena...\nEx:\n0:00 - Abertura com produto na mão\n0:15 - Mostrar embalagem e código\n0:30 - Demonstração de encaixe"
+                        minRows={4}
+                      />
+                    </Field>
+                    <Field label="Falas (texto exato a ser falado)">
+                      <AutoTextArea
+                        value={video.speech}
+                        onChange={(e) => updateVideo(video.id, { speech: e.target.value })}
+                        placeholder="Texto exato a ser falado em cada cena..."
+                        minRows={4}
+                      />
+                    </Field>
+                  </div>
+
+                  <div>
+                    <SubLabel>Arquivo de Vídeo</SubLabel>
+                    <div className="mt-2 p-4 rounded-xl border border-dashed border-border/60 bg-muted/20">
+                      {!video.dataUrl ? (
+                        <div className="space-y-4">
+                          <label className="flex items-center justify-center gap-2 p-4 rounded-lg bg-surface border border-border/40 hover:bg-muted/50 cursor-pointer transition-colors text-sm font-medium">
+                            <Upload className="h-4 w-4" />
+                            📎 Anexar vídeo
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="video/mp4,video/webm,video/mov"
+                              onChange={(e) => handleVideoUpload(e, video.id)}
+                            />
+                          </label>
+                          <p className="text-[11px] text-muted-foreground text-center">
+                            Vídeos grandes podem afetar o desempenho do app. Recomendamos usar o link do YouTube para vídeos longos.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <video src={video.dataUrl} controls preload="metadata" className="w-full rounded-lg shadow-sm bg-black" style={{ maxHeight: "300px" }} />
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs">
+                              <span className={cn("font-medium", isTooLarge ? "text-destructive" : "text-muted-foreground")}>
+                                Arquivo: ~{fileSizeMB} MB
+                              </span>
+                              {isTooLarge && <span className="text-destructive ml-2">⚠ Arquivo grande — pode afetar o backup</span>}
+                            </div>
+                            <Btn size="sm" variant="soft" className="text-destructive hover:bg-destructive/10" onClick={() => removeVideoFile(video.id)}>
+                              <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover vídeo
+                            </Btn>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Field label="Notas internas">
+                    <AutoTextArea
+                      value={video.notes}
+                      onChange={(e) => updateVideo(video.id, { notes: e.target.value })}
+                      placeholder="Ganchos, observações, ideias de edição..."
+                      minRows={2}
+                    />
+                  </Field>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
