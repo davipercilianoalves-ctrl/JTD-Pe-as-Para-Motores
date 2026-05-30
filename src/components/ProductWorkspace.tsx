@@ -1117,11 +1117,21 @@ function ImagesSection({ product }: { product: Product }) {
       tone: "danger"
     })) {
       updateProduct(product.id, (p) => {
-        const remaining = p.images.filter(img => img.id !== id);
-        // If we deleted the cover, set the first one as cover
-        if (remaining.length > 0 && !remaining.some(img => img.isCover)) {
-          remaining[0].isCover = true;
-        }
+        const filtered = p.images
+          .filter(img => img.id !== id)
+          .map(img => ({ ...img }));
+          
+        const needsNewCover =
+          filtered.length > 0 &&
+          !filtered.some(img => img.isCover);
+          
+        const remaining = needsNewCover
+          ? filtered.map((img, idx) => ({
+              ...img,
+              isCover: idx === 0 ? true : img.isCover,
+            }))
+          : filtered;
+          
         return { ...p, images: remaining };
       });
     }
@@ -1137,10 +1147,25 @@ function ImagesSection({ product }: { product: Product }) {
   const move = (fromIdx: number, toIdx: number) => {
     if (toIdx < 0 || toIdx >= images.length) return;
     updateProduct(product.id, (p) => {
-      const newImages = [...images];
-      const tempOrder = newImages[fromIdx].order;
-      newImages[fromIdx].order = newImages[toIdx].order;
-      newImages[toIdx].order = tempOrder;
+      const newImages = p.images.map(img => ({ ...img }));
+      // We need to find by array index since move() receives fromIdx and toIdx
+      // but p.images might be sorted differently.
+      // However, the 'images' variable in the outer scope is already sorted.
+      // Let's ensure we are consistent.
+      const sortedInState = [...p.images].sort((a, b) => a.order - b.order);
+      const fromImgState = sortedInState[fromIdx];
+      const toImgState = sortedInState[toIdx];
+
+      if (fromImgState && toImgState) {
+        // We find them in the newImages (which is the mutable-ish copy for state update)
+        const fromImg = newImages.find(img => img.id === fromImgState.id);
+        const toImg = newImages.find(img => img.id === toImgState.id);
+        if (fromImg && toImg) {
+          const tempOrder = fromImg.order;
+          fromImg.order = toImg.order;
+          toImg.order = tempOrder;
+        }
+      }
       return { ...p, images: newImages };
     });
   };
@@ -1153,12 +1178,10 @@ function ImagesSection({ product }: { product: Product }) {
     }
     
     updateProduct(product.id, (p) => {
-      const newImages = [...images];
-      // Swap items but keep their logical slots or swap orders?
-      // "Arrastar uma imagem para outro slot troca as posições"
+      const newImages = p.images.map(img => ({ ...img }));
       const fromImg = newImages.find(img => img.order === dragIdx);
       const toImg = newImages.find(img => img.order === i);
-      
+
       if (fromImg && toImg) {
         const tempOrder = fromImg.order;
         fromImg.order = toImg.order;
