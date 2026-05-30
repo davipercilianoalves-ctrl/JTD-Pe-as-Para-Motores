@@ -21,21 +21,24 @@ PROJECT_STATE.md — Estado atual:
 ## Bugs corrigidos
 - backup.ts: 4 correções
 - HomeScreen: 5 correções
-- ProductWorkspace: múltiplas correções acumuladas
+- ProductWorkspace: múltiplas correções
 - KeywordTools: drag, SSR window
 - TitlesSection: 7 correções
 - Precificação: 6 correções
 - Imagens: 2 mutações corrigidas
 - Vídeo: validação YouTube
-- Kits: AlertTriangle importado inline
+- Kits v1: reformulação completa de design e funcionalidades
+- Kits v2: palavras-chave, precificação, títulos, descrição
 
 ## Decisões tomadas
 - localStorage mantido no MVP
 - Kits em chave separada "jtd:kits"
-- Custo do kit sincronizado via useEffect com totalCost
-- Produto deletado: aviso visual, sem quebrar o app
+- PricingSection exportada e reutilizada no kit
+- Fórmula de margem considera taxas percentuais do marketplace
+- Palavras herdadas: somente leitura, visual diferente
+- Palavras exclusivas: editáveis com deduplicação total
 
 ## Próxima etapa
 Etapa 8 — Sidebar definitiva + Configurações completas:
-hover abre, pino fixa, logo/foto da empresa, nome editável,
-tema claro/escuro, backup nas configurações
+hover abre, pino fixa, logo/foto da empresa,
+nome editável em Configurações, tema claro/escuro
