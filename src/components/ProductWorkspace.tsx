@@ -1487,7 +1487,7 @@ function VideosSection({ product }: { product: Product }) {
                             className="pl-9"
                           />
                         </div>
-                        {video.youtubeUrl?.startsWith("https://") && (
+                        {(video.youtubeUrl?.includes("youtube.com") || video.youtubeUrl?.includes("youtu.be")) && (
                           <Btn variant="soft" onClick={() => window.open(video.youtubeUrl, "_blank")}>
                             Abrir
                           </Btn>
