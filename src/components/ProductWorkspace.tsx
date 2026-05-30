@@ -1163,12 +1163,10 @@ function ImagesSection({ product }: { product: Product }) {
     }
     
     updateProduct(product.id, (p) => {
-      const newImages = [...images];
-      // Swap items but keep their logical slots or swap orders?
-      // "Arrastar uma imagem para outro slot troca as posições"
+      const newImages = p.images.map(img => ({ ...img }));
       const fromImg = newImages.find(img => img.order === dragIdx);
       const toImg = newImages.find(img => img.order === i);
-      
+
       if (fromImg && toImg) {
         const tempOrder = fromImg.order;
         fromImg.order = toImg.order;
