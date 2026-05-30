@@ -26,11 +26,13 @@ export type View = "home" | "product" | "viral" | "settings" | "kits";
 interface UIState {
   view: View;
   selectedId: string | null;
+  kitId: string | null;
 }
 
 interface StoreState {
   products: Product[];
   viralLibrary: ViralClip[];
+  kits: Kit[];
   ui: UIState;
 }
 
@@ -39,6 +41,8 @@ interface StoreContextValue extends StoreState {
   openProduct: (id: string) => void;
   openViral: () => void;
   openSettings: () => void;
+  openKits: () => void;
+  openKit: (id: string) => void;
 
   createProduct: () => string;
   updateProduct: (id: string, patch: Partial<Product> | ((p: Product) => Product)) => void;
@@ -54,27 +58,36 @@ interface StoreContextValue extends StoreState {
   addViral: (clip?: Partial<ViralClip>) => string;
   updateViral: (id: string, patch: Partial<ViralClip>) => void;
   deleteViral: (id: string) => void;
+
+  // Kits
+  createKit: () => string;
+  updateKit: (id: string, patch: Partial<Kit> | ((k: Kit) => Kit)) => void;
+  deleteKit: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
-const initialUI: UIState = { view: "home", selectedId: null };
+const initialUI: UIState = { view: "home", selectedId: null, kitId: null };
 
 function loadState(): StoreState {
   if (typeof window === "undefined")
-    return { products: [], viralLibrary: [], ui: initialUI };
+    return { products: [], viralLibrary: [], kits: [], ui: initialUI };
   try {
     const raw =
       localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY);
-    if (!raw) return { products: [], viralLibrary: [], ui: initialUI };
-    const parsed = JSON.parse(raw) as Partial<StoreState>;
+    const kitsRaw = localStorage.getItem(KITS_KEY);
+    
+    const parsed = raw ? (JSON.parse(raw) as Partial<StoreState>) : {};
+    const parsedKits = kitsRaw ? (JSON.parse(kitsRaw) as Kit[]) : [];
+    
     return {
       products: (parsed.products ?? []).map(migrateProduct),
       viralLibrary: parsed.viralLibrary ?? [],
+      kits: parsedKits,
       ui: { ...initialUI, ...(parsed.ui ?? {}) },
     };
   } catch {
-    return { products: [], viralLibrary: [], ui: initialUI };
+    return { products: [], viralLibrary: [], kits: [], ui: initialUI };
   }
 }
 
@@ -312,6 +325,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         openProduct,
         openViral,
         openSettings,
+        openKits,
+        openKit,
         createProduct,
         updateProduct,
         deleteProduct,
@@ -322,6 +337,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         addViral,
         updateViral,
         deleteViral,
+        createKit,
+        updateKit,
+        deleteKit,
       }}
     >
       {children}
