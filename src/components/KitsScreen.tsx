@@ -13,8 +13,7 @@ import {
   Cloud,
   Copy,
   Hash,
-  Star
-} from "lucide-react";
+  Star,
 import { useStore, useSelectedKit } from "@/lib/store";
 import { useConfirm } from "@/components/ConfirmProvider";
 import {
