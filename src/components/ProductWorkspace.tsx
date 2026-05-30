@@ -28,6 +28,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { FloatingKeywordInput, FloatingKeywordCloud } from "./KeywordTools";
+import { PricingSection, SubLabel } from "./PricingTools";
 import { useStore, useSelectedProduct } from "@/lib/store";
 import { useConfirm } from "@/components/ConfirmProvider";
 import {
