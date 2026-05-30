@@ -25,6 +25,7 @@ import {
   type Product,
   type Keyword,
   type MarketplaceId,
+  emptyPricing,
 } from "@/lib/types";
 import {
   Btn,
