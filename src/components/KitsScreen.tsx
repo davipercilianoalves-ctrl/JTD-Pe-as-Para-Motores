@@ -319,7 +319,61 @@ function KitEditor({ kit }: { kit: Kit }) {
             </div>
           </section>
 
-          {/* Seção 3: Keywords */}
+          {/* Seção 3: Precificação resumida do Kit */}
+          <section className="mb-16">
+            <SectionTitle>Precificação do Kit</SectionTitle>
+            <div className="p-6 rounded-2xl bg-surface border border-border/40">
+              <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/40">
+                <span className="text-muted-foreground">Custo total dos produtos</span>
+                <span className="text-xl font-bold">{brl(totalCost)}</span>
+              </div>
+              
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <Field label="Preço de Venda">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">R$</span>
+                    <input
+                      type="number"
+                      value={kit.pricing.salePrice}
+                      onChange={(e) => set({ pricing: { ...kit.pricing, salePrice: parseFloat(e.target.value) || 0 } })}
+                      className="w-full bg-input/40 rounded-xl pl-10 pr-4 py-2.5 outline-none font-bold"
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Taxa Marketplace (%)">
+                  <TextInput 
+                    type="number" 
+                    value={kit.pricing.marketplaceFee} 
+                    onChange={(e) => set({ pricing: { ...kit.pricing, marketplaceFee: parseFloat(e.target.value) || 0, marketplaceFeeType: "%" } })} 
+                  />
+                </Field>
+
+                <Field label="Imposto (%)">
+                  <TextInput 
+                    type="number" 
+                    value={kit.pricing.tax} 
+                    onChange={(e) => set({ pricing: { ...kit.pricing, tax: parseFloat(e.target.value) || 0, taxType: "%" } })} 
+                  />
+                </Field>
+
+                <div className="flex flex-col justify-end pb-1">
+                  <div className="text-[10px] uppercase text-muted-foreground mb-1">Lucro Estimado</div>
+                  <div className={cn(
+                    "text-xl font-bold",
+                    computePricing(kit.pricing).netProfit >= 0 ? "text-success" : "text-destructive"
+                  )}>
+                    {brl(computePricing(kit.pricing).netProfit)}
+                    <span className="text-xs ml-2 opacity-70">
+                      ({computePricing(kit.pricing).marginPct.toFixed(1)}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Seção 4: Keywords */}
           <section className="mb-16">
             <SectionTitle>Palavras-chave</SectionTitle>
             <div className="space-y-6">
@@ -342,7 +396,6 @@ function KitEditor({ kit }: { kit: Kit }) {
                 <AutoTextArea
                   value={kit.keywords.map(k => k.display).join(", ")}
                   onChange={(e) => {
-                    // Simplified for now, real version should use keyword tokens
                     const displays = e.target.value.split(",").map(s => s.trim()).filter(Boolean);
                     set({
                       keywords: displays.map(d => ({
@@ -361,7 +414,7 @@ function KitEditor({ kit }: { kit: Kit }) {
             </div>
           </section>
 
-          {/* Seção 4: Notas */}
+          {/* Seção 5: Notas */}
           <section className="mb-16">
             <SectionTitle>Notas Internas</SectionTitle>
             <AutoTextArea
