@@ -24,6 +24,8 @@ import {
   Hash,
   DollarSign,
   Percent,
+  Camera,
+  ArrowLeft,
 } from "lucide-react";
 import { FloatingKeywordInput, FloatingKeywordCloud } from "./KeywordTools";
 import { useStore, useSelectedProduct } from "@/lib/store";
@@ -1024,25 +1026,276 @@ function PricingField({
   );
 }
 
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 800;
+      let w = img.width;
+      let h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) {
+          h = (h / w) * MAX;
+          w = MAX;
+        } else {
+          w = (w / h) * MAX;
+          h = MAX;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.75));
+    };
+    img.src = url;
+  });
+}
+
 function ImagesSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
-  return (
-    <section>
-      <SectionTitle hint="Gerencie as imagens do produto.">Imagens</SectionTitle>
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
-        {product.images.map((img) => (
-          <div key={img.id} className="aspect-square rounded-xl bg-muted overflow-hidden relative border border-border/40 group">
-            <img src={img.dataUrl} className="w-full h-full object-cover" />
-            <button className="absolute top-1 right-1 p-1 bg-background/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-destructive">
-              <Trash2 className="h-3 w-3" />
+  const confirm = useConfirm();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [targetSlot, setTargetSlot] = useState<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+
+  const images = [...(product.images || [])].sort((a, b) => a.order - b.order);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || targetSlot === null) return;
+
+    if (images.length >= 12) {
+      toast.error("Limite de 12 imagens atingido");
+      return;
+    }
+
+    const dataUrl = await compressImage(file);
+    const newImage = {
+      id: crypto.randomUUID(),
+      dataUrl,
+      order: targetSlot,
+      isCover: images.length === 0,
+    };
+
+    updateProduct(product.id, (p) => {
+      const currentImages = p.images || [];
+      // If we are inserting into a slot that already exists or is "empty"
+      // the instruction says "insert in the correct position (not always at the end)"
+      // but if it's a grid of 12, we can just replace or push.
+      // Re-ordering logic:
+      const filtered = currentImages.filter(img => img.order !== targetSlot);
+      return {
+        ...p,
+        images: [...filtered, newImage].sort((a, b) => a.order - b.order)
+      };
+    });
+
+    setTargetSlot(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const setCover = (id: string) => {
+    updateProduct(product.id, (p) => ({
+      ...p,
+      images: p.images.map(img => ({
+        ...img,
+        isCover: img.id === id
+      }))
+    }));
+  };
+
+  const removeImage = async (id: string) => {
+    if (await confirm({
+      title: "Excluir esta imagem?",
+      message: "Esta ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      tone: "danger"
+    })) {
+      updateProduct(product.id, (p) => {
+        const remaining = p.images.filter(img => img.id !== id);
+        // If we deleted the cover, set the first one as cover
+        if (remaining.length > 0 && !remaining.some(img => img.isCover)) {
+          remaining[0].isCover = true;
+        }
+        return { ...p, images: remaining };
+      });
+    }
+  };
+
+  const downloadImage = (img: any, index: number) => {
+    const a = document.createElement("a");
+    a.href = img.dataUrl;
+    a.download = `${product.name || "produto"}-${index + 1}.jpg`;
+    a.click();
+  };
+
+  const move = (fromIdx: number, toIdx: number) => {
+    if (toIdx < 0 || toIdx >= images.length) return;
+    updateProduct(product.id, (p) => {
+      const newImages = [...images];
+      const tempOrder = newImages[fromIdx].order;
+      newImages[fromIdx].order = newImages[toIdx].order;
+      newImages[toIdx].order = tempOrder;
+      return { ...p, images: newImages };
+    });
+  };
+
+  const onDrop = (i: number) => {
+    if (dragIdx === null || dragIdx === i) {
+      setDragIdx(null);
+      setDragOver(null);
+      return;
+    }
+    
+    updateProduct(product.id, (p) => {
+      const newImages = [...images];
+      // Swap items but keep their logical slots or swap orders?
+      // "Arrastar uma imagem para outro slot troca as posições"
+      const fromImg = newImages.find(img => img.order === dragIdx);
+      const toImg = newImages.find(img => img.order === i);
+      
+      if (fromImg && toImg) {
+        const tempOrder = fromImg.order;
+        fromImg.order = toImg.order;
+        toImg.order = tempOrder;
+      } else if (fromImg && !toImg) {
+        fromImg.order = i;
+      }
+
+      return { ...p, images: newImages };
+    });
+    setDragIdx(null);
+    setDragOver(null);
+  };
+
+  const renderSlot = (i: number) => {
+    const img = images.find(img => img.order === i);
+    const isDragging = dragIdx === i;
+    const isDragOver = dragOver === i;
+
+    if (img) {
+      const idxInArray = images.indexOf(img);
+      return (
+        <div 
+          key={i}
+          draggable={true}
+          onDragStart={() => setDragIdx(i)}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+          onDrop={() => onDrop(i)}
+          onDragEnd={() => { setDragIdx(null); setDragOver(null); }}
+          className={cn(
+            "group relative aspect-square rounded-xl overflow-hidden border border-border/40 bg-surface shadow-sm transition-all",
+            isDragging && "opacity-40",
+            isDragOver && "ring-2 ring-primary border-transparent"
+          )}
+        >
+          <img src={img.dataUrl} className="h-full w-full object-cover" alt={`Imagem ${i + 1}`} />
+          
+          {img.isCover && (
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary text-[10px] font-bold text-white shadow-sm">
+              Capa
+            </div>
+          )}
+
+          {/* Hover Overlay */}
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {!img.isCover && (
+              <button 
+                onClick={() => setCover(img.id)}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                title="Definir como capa"
+              >
+                <Star className="h-4 w-4" />
+              </button>
+            )}
+            <button 
+              onClick={() => downloadImage(img, idxInArray)}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              title="Download"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+            <button 
+              onClick={() => removeImage(img.id)}
+              className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary transition-colors"
+              title="Excluir"
+            >
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
-        ))}
-        <button className="aspect-square rounded-xl border-2 border-dashed border-border/60 flex flex-col items-center justify-center text-muted-foreground hover:border-primary/40 hover:text-primary transition-all">
-          <Upload className="h-6 w-6 mb-1" />
-          <span className="text-[10px] font-medium">Upload</span>
-        </button>
+
+          {/* Mobile Move Buttons */}
+          <div className="absolute bottom-1 left-1 right-1 flex justify-between md:hidden">
+            <button 
+              onClick={(e) => { e.stopPropagation(); move(idxInArray, idxInArray - 1); }}
+              className="p-1 rounded bg-black/40 text-white disabled:opacity-30"
+              disabled={idxInArray === 0}
+            >
+              <ArrowLeft className="h-3 w-3" />
+            </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); move(idxInArray, idxInArray + 1); }}
+              className="p-1 rounded bg-black/40 text-white disabled:opacity-30"
+              disabled={idxInArray === images.length - 1}
+            >
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <button 
+        key={i}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+        onDrop={() => onDrop(i)}
+        onDragEnd={() => { setDragIdx(null); setDragOver(null); }}
+        onClick={() => {
+          setTargetSlot(i);
+          fileInputRef.current?.click();
+        }}
+        className={cn(
+          "aspect-square rounded-xl border-2 border-dashed border-border/60 flex flex-col items-center justify-center text-muted-foreground hover:border-primary/40 hover:text-primary transition-all bg-muted/30",
+          isDragOver && "ring-2 ring-primary border-transparent bg-primary/5"
+        )}
+      >
+        <Camera className="h-6 w-6 mb-1" />
+        <span className="text-[10px] font-medium uppercase tracking-wider">Adicionar</span>
+      </button>
+    );
+  };
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <SectionTitle hint="Gerencie até 12 imagens. A primeira é a capa.">
+          Imagens do Produto
+        </SectionTitle>
+        <div className={cn(
+          "text-xs font-bold",
+          images.length > 10 ? "text-orange-500" : "text-muted-foreground"
+        )}>
+          {images.length} de 12 imagens
+        </div>
       </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 12 }).map((_, i) => renderSlot(i))}
+      </div>
+
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleUpload}
+      />
     </section>
   );
 }
