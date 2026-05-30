@@ -162,10 +162,13 @@ export interface Kit {
   type: "identical" | "composed";
   items: KitItem[];
   keywords: Keyword[];
-  titles: string[];
-  shortDescription: string;
-  description: string;
-  aiTemplate: string;
+  
+  // Marketplaces
+  mercadoLivre: MarketplaceData;
+  shopee: MarketplaceData;
+  amazon: MarketplaceData;
+  tiktok: MarketplaceData;
+
   images: ProductImage[];
   pricing: PricingData;
   notes: string;
