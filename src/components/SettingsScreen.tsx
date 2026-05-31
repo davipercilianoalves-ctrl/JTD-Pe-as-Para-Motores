@@ -189,9 +189,10 @@ export function SettingsScreen() {
                   </label>
                   <TextInput
                     value={settings.companyName}
-                    onChange={(v) => update({ companyName: v })}
+                    onChange={(e) => update({ companyName: e.target.value })}
                     placeholder="Ex: JTD Motors"
                   />
+
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -202,9 +203,10 @@ export function SettingsScreen() {
                     </label>
                     <TextInput
                       value={settings.phone}
-                      onChange={(v) => update({ phone: v })}
+                      onChange={(e) => update({ phone: e.target.value })}
                       placeholder="(00) 00000-0000"
                     />
+
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
@@ -214,9 +216,10 @@ export function SettingsScreen() {
                     </label>
                     <TextInput
                       value={settings.email}
-                      onChange={(v) => update({ email: v })}
+                      onChange={(e) => update({ email: e.target.value })}
                       placeholder="contato@empresa.com"
                     />
+
                   </div>
                 </div>
               </div>
