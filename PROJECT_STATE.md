@@ -1,8 +1,8 @@
-PROJECT_STATE.md — ATUALIZADO
+PROJECT_STATE.md — VERSÃO FINAL
 
 # JTD MOTORS HUB | MVP CONCLUÍDO — 31/05/2026
 
-## Etapas MVP — TODAS CONCLUÍDAS
+## Etapas
 - [x] Etapa 0: Backup e Segurança de Dados
 - [x] Etapa 1: Dashboard com dados locais
 - [x] Etapa 2: Análise de concorrentes + janelas flutuantes
@@ -13,40 +13,30 @@ PROJECT_STATE.md — ATUALIZADO
 - [x] Etapa 7: Módulo de Kits
 - [x] Etapa 8: Sidebar definitiva + Configurações
 
-## Próximas fases — planejadas
-
-### Fase 2A — Infraestrutura (PRÉ-REQUISITO PARA TUDO)
-- [ ] Migração localStorage → Supabase (banco na nuvem)
-- [ ] Sistema de autenticação (login + criar conta)
-- [ ] Estrutura de usuários e permissões (base para funcionários)
-- [ ] Redesign completo do app
-
-### Fase 2B — Gestão de negócio
-- [ ] Módulo de Fornecedores
-      → Cadastro: nome, localização, tempo de garantia,
-        preço de compra por produto
-      → Integração automática na criação de produto
-      → Histórico de compras por fornecedor
-- [ ] Dashboard com dados reais via API Mercado Livre
-- [ ] Módulo de Vendas
-- [ ] Módulo de Mensagens com alertas (prazo 2h ML)
-- [ ] Módulo de Compras com calculadora de custo real
-- [ ] Módulo de Métricas por produto e conta
-- [ ] Integração API Mercado Livre (OAuth — iniciar processo
-      de parceiro ML quando Fase 2A estiver estável)
-
-### Fase 2C — Expansão
-- [ ] Multi-marketplace (Shopee, Amazon, TikTok Shop)
-- [ ] IA integrada para criação de descrição e título
-- [ ] Multi-usuário com níveis de acesso (funcionários)
-- [ ] App mobile nativo (iOS + Android)
-
-## Stack atual (MVP)
+## Stack final
 - React + TanStack Router + shadcn/ui + Tailwind
-- localStorage (migrar para Supabase na Fase 2A)
+- localStorage (persistência local)
 - Vercel/Lovable (hospedagem)
+- Sem backend, sem autenticação, sem API externa no MVP
 
-## Stack planejada (Fase 2A+)
-- React + TanStack Router + shadcn/ui + Tailwind
-- Supabase (banco de dados + autenticação + storage)
-- Vercel (hospedagem)
+## O que foi construído
+- Backup/restauração de dados com compressão
+- Dashboard com métricas reais do app
+- Análise de concorrentes com janelas flutuantes movíveis
+- Palavras-chave com deduplicação e cópia em lote
+- Análise de preços de concorrentes (mín/máx/médio)
+- Títulos com limite flexível por marketplace
+- Descrição com template de IA editável
+- Precificação com 3 modos, falso desconto e breakdown
+- Grade de 12 imagens com drag-and-drop e compressão
+- Módulo de vídeo com roteiro e preview
+- Módulo de kits completo com herança de palavras-chave
+- Sidebar com hover/pino/logo/tema
+
+## Fase 2 — planejada
+- Dashboard com dados reais via API Mercado Livre
+- Módulo de Vendas
+- Módulo de Mensagens com alertas
+- Módulo de Compras
+- Módulo de Métricas
+- Integração API Mercado Livre (OAuth)
