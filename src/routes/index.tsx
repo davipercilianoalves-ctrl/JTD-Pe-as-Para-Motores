@@ -27,8 +27,13 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   useEffect(() => {
-    const saved = localStorage.getItem("jtd:theme") ?? "dark";
-    document.documentElement.classList.toggle("dark", saved === "dark");
+    try {
+      const saved = localStorage.getItem("jtd:theme") ?? "dark";
+      document.documentElement.classList.toggle(
+        "dark",
+        saved === "dark"
+      );
+    } catch {}
   }, []);
 
   return (

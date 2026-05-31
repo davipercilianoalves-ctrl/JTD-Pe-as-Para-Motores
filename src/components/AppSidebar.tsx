@@ -111,20 +111,20 @@ export function AppSidebar() {
             )}
           </div>
 
-          {isActuallyExpanded && (
-            <button
-              onClick={togglePin}
-              className={cn(
-                "h-7 w-7 flex items-center justify-center rounded-md transition-colors animate-in fade-in zoom-in duration-300",
-                pinned 
-                  ? "text-primary bg-primary/10" 
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-              )}
-              title={pinned ? "Desafixar" : "Fixar"}
-            >
-              <Pin className={cn("h-3.5 w-3.5", pinned && "fill-current")} />
-            </button>
-          )}
+          <button
+            onClick={togglePin}
+            title={pinned ? "Soltar sidebar" : "Fixar sidebar"}
+            className={cn(
+              "p-1 rounded-md transition-all",
+              pinned
+                ? "opacity-100 text-primary"           // fixado: sempre visível e azul
+                : isActuallyExpanded
+                  ? "opacity-100 text-muted-foreground hover:text-foreground"  // expandido: visível
+                  : "opacity-0 pointer-events-none"    // fechado e não fixado: invisível
+            )}
+          >
+            <Pin className={cn("h-3.5 w-3.5", pinned && "fill-current")} />
+          </button>
         </div>
 
         {/* Nav Items */}
