@@ -1,5 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, Upload, HardDrive, Database, ArrowLeft } from "lucide-react";
+import { 
+  Download, 
+  Upload, 
+  HardDrive, 
+  Database, 
+  ArrowLeft, 
+  Building2, 
+  Palette, 
+  Sun, 
+  Moon, 
+  Trash2,
+  Camera,
+  Mail,
+  Phone
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   exportData,
@@ -9,18 +23,57 @@ import {
 } from "@/lib/backup";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, compressImage } from "@/lib/utils";
+import { useSettings } from "@/hooks/useSettings";
+import { TextInput } from "@/components/ui-kit";
 
 export function SettingsScreen() {
   const confirm = useConfirm();
   const { goHome } = useStore();
+  const { settings, update } = useSettings();
   const [usage, setUsage] = useState(() => getStorageUsage());
-  const fileInput = useRef<HTMLInputElement>(null);
+  const backupFileInput = useRef<HTMLInputElement>(null);
+  const logoFileInput = useRef<HTMLInputElement>(null);
+
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      return (localStorage.getItem("jtd:theme") as "light" | "dark") ?? "dark";
+    } catch {
+      return "dark";
+    }
+  });
 
   useEffect(() => {
     const id = window.setInterval(() => setUsage(getStorageUsage()), 1500);
     return () => window.clearInterval(id);
   }, []);
+
+  const toggleTheme = (newTheme: "light" | "dark") => {
+    setTheme(newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+    try {
+      localStorage.setItem("jtd:theme", newTheme);
+    } catch {}
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.match(/image\/(jpeg|png|webp)/)) {
+      toast.error("Formato de imagem inválido. Use JPEG, PNG ou WEBP.");
+      return;
+    }
+
+    try {
+      const dataUrl = await compressImage(file, 200, 0.8);
+      update({ logoUrl: dataUrl });
+      toast.success("Logo atualizada");
+    } catch (err) {
+      toast.error("Erro ao processar imagem");
+    }
+    e.target.value = "";
+  };
 
   const handleExport = () => {
     try {
@@ -40,7 +93,7 @@ export function SettingsScreen() {
       tone: "danger",
     });
     if (!ok) return;
-    fileInput.current?.click();
+    backupFileInput.current?.click();
   };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,10 +126,141 @@ export function SettingsScreen() {
         </button>
         <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Gerencie seus dados e o armazenamento local do app.
+          Personalize sua empresa e gerencie seus dados.
         </p>
 
+        {/* Seção Empresa */}
         <section className="mt-8 rounded-2xl border border-border bg-surface-elevated p-6">
+          <div className="flex items-center gap-2.5">
+            <Building2 className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold">Empresa</h2>
+          </div>
+          
+          <div className="mt-6 space-y-6">
+            <div className="flex flex-col sm:flex-row gap-6">
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative group">
+                  <div className={cn(
+                    "h-24 w-24 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-background/50 transition-colors group-hover:border-primary/50",
+                    settings.logoUrl && "border-solid border-primary/20"
+                  )}>
+                    {settings.logoUrl ? (
+                      <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-cover" />
+                    ) : (
+                      <Camera className="h-8 w-8 text-muted-foreground/40" />
+                    )}
+                  </div>
+                  <button
+                    onClick={() => logoFileInput.current?.click()}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"
+                  >
+                    <Upload className="h-6 w-6 text-white" />
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => logoFileInput.current?.click()}
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    Alterar logo
+                  </button>
+                  {settings.logoUrl && (
+                    <button
+                      onClick={() => update({ logoUrl: "" })}
+                      className="text-[11px] font-semibold text-destructive hover:underline"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={logoFileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                />
+              </div>
+
+              <div className="flex-1 space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                    Nome da Empresa
+                  </label>
+                  <TextInput
+                    value={settings.companyName}
+                    onChange={(v) => update({ companyName: v })}
+                    placeholder="Ex: JTD Motors"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3 w-3" /> Telefone
+                      </div>
+                    </label>
+                    <TextInput
+                      value={settings.phone}
+                      onChange={(v) => update({ phone: v })}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="h-3 w-3" /> Email
+                      </div>
+                    </label>
+                    <TextInput
+                      value={settings.email}
+                      onChange={(v) => update({ email: v })}
+                      placeholder="contato@empresa.com"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Seção Aparência */}
+        <section className="mt-6 rounded-2xl border border-border bg-surface-elevated p-6">
+          <div className="flex items-center gap-2.5">
+            <Palette className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold">Aparência</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Escolha o tema que melhor se adapta ao seu ambiente de trabalho.
+          </p>
+          
+          <div className="mt-5 flex p-1 bg-background/50 border border-border rounded-xl w-fit">
+            <button
+              onClick={() => toggleTheme("light")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                theme === "light" 
+                  ? "bg-primary/10 text-primary shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              )}
+            >
+              <Sun className="h-4 w-4" /> Claro
+            </button>
+            <button
+              onClick={() => toggleTheme("dark")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                theme === "dark" 
+                  ? "bg-primary/10 text-primary shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              )}
+            >
+              <Moon className="h-4 w-4" /> Escuro
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-border bg-surface-elevated p-6">
           <div className="flex items-center gap-2.5">
             <Database className="h-4 w-4 text-primary" />
             <h2 className="text-base font-semibold">Dados e Backup</h2>
@@ -100,7 +284,7 @@ export function SettingsScreen() {
               <Upload className="h-4 w-4" /> Importar backup
             </button>
             <input
-              ref={fileInput}
+              ref={backupFileInput}
               type="file"
               accept="application/json,.json"
               className="hidden"
