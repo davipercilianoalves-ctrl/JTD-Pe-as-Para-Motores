@@ -44,6 +44,13 @@ export function SettingsScreen() {
   });
 
   useEffect(() => {
+    document.documentElement.classList.toggle(
+      "dark",
+      theme === "dark"
+    );
+  }, [theme]);
+
+  useEffect(() => {
     const id = window.setInterval(() => setUsage(getStorageUsage()), 1500);
     return () => window.clearInterval(id);
   }, []);
