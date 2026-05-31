@@ -14,7 +14,219 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      kits: {
+        Row: {
+          amazon: Json | null
+          created_at: number | null
+          id: string
+          images: Json | null
+          items: Json | null
+          keywords: Json | null
+          mercado_livre: Json | null
+          name: string
+          notes: string | null
+          pricing: Json | null
+          shopee: Json | null
+          sku: string | null
+          tiktok: Json | null
+          type: string | null
+          updated_at: number | null
+          user_id: string
+        }
+        Insert: {
+          amazon?: Json | null
+          created_at?: number | null
+          id?: string
+          images?: Json | null
+          items?: Json | null
+          keywords?: Json | null
+          mercado_livre?: Json | null
+          name: string
+          notes?: string | null
+          pricing?: Json | null
+          shopee?: Json | null
+          sku?: string | null
+          tiktok?: Json | null
+          type?: string | null
+          updated_at?: number | null
+          user_id: string
+        }
+        Update: {
+          amazon?: Json | null
+          created_at?: number | null
+          id?: string
+          images?: Json | null
+          items?: Json | null
+          keywords?: Json | null
+          mercado_livre?: Json | null
+          name?: string
+          notes?: string | null
+          pricing?: Json | null
+          shopee?: Json | null
+          sku?: string | null
+          tiktok?: Json | null
+          type?: string | null
+          updated_at?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          amazon: Json | null
+          brand: string | null
+          category: string | null
+          competitors: Json | null
+          created_at: number | null
+          custom_fields: Json | null
+          favorite: boolean | null
+          id: string
+          images: Json | null
+          internal_notes: string | null
+          keywords: Json | null
+          mercado_livre: Json | null
+          name: string
+          niche_faqs: string | null
+          original_code: string | null
+          pricing: Json | null
+          shopee: Json | null
+          sku: string | null
+          supplier: string | null
+          tiktok: Json | null
+          updated_at: number | null
+          user_id: string
+          videos: Json | null
+        }
+        Insert: {
+          amazon?: Json | null
+          brand?: string | null
+          category?: string | null
+          competitors?: Json | null
+          created_at?: number | null
+          custom_fields?: Json | null
+          favorite?: boolean | null
+          id?: string
+          images?: Json | null
+          internal_notes?: string | null
+          keywords?: Json | null
+          mercado_livre?: Json | null
+          name: string
+          niche_faqs?: string | null
+          original_code?: string | null
+          pricing?: Json | null
+          shopee?: Json | null
+          sku?: string | null
+          supplier?: string | null
+          tiktok?: Json | null
+          updated_at?: number | null
+          user_id: string
+          videos?: Json | null
+        }
+        Update: {
+          amazon?: Json | null
+          brand?: string | null
+          category?: string | null
+          competitors?: Json | null
+          created_at?: number | null
+          custom_fields?: Json | null
+          favorite?: boolean | null
+          id?: string
+          images?: Json | null
+          internal_notes?: string | null
+          keywords?: Json | null
+          mercado_livre?: Json | null
+          name?: string
+          niche_faqs?: string | null
+          original_code?: string | null
+          pricing?: Json | null
+          shopee?: Json | null
+          sku?: string | null
+          supplier?: string | null
+          tiktok?: Json | null
+          updated_at?: number | null
+          user_id?: string
+          videos?: Json | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      viral_library: {
+        Row: {
+          audio: string | null
+          created_at: number | null
+          edit_type: string | null
+          hook: string | null
+          id: string
+          link: string | null
+          notes: string | null
+          platform: string | null
+          strategy: string | null
+          structure: string | null
+          user_id: string
+          views: string | null
+        }
+        Insert: {
+          audio?: string | null
+          created_at?: number | null
+          edit_type?: string | null
+          hook?: string | null
+          id?: string
+          link?: string | null
+          notes?: string | null
+          platform?: string | null
+          strategy?: string | null
+          structure?: string | null
+          user_id: string
+          views?: string | null
+        }
+        Update: {
+          audio?: string | null
+          created_at?: number | null
+          edit_type?: string | null
+          hook?: string | null
+          id?: string
+          link?: string | null
+          notes?: string | null
+          platform?: string | null
+          strategy?: string | null
+          structure?: string | null
+          user_id?: string
+          views?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
