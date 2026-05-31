@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { StoreProvider, useStore } from "@/lib/store";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProductWorkspace } from "@/components/ProductWorkspace";
@@ -25,11 +26,16 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  useEffect(() => {
+    const saved = localStorage.getItem("jtd:theme") ?? "dark";
+    document.documentElement.classList.toggle("dark", saved === "dark");
+  }, []);
+
   return (
     <StoreProvider>
       <ConfirmProvider>
         <CommandPaletteProvider>
-          <div className="dark flex h-screen w-full overflow-hidden bg-background text-foreground">
+          <div className="flex h-screen w-full overflow-hidden bg-background text-foreground transition-colors duration-300">
             <AppSidebar />
             <div className="flex flex-1 flex-col min-w-0">
               <StorageBanner />
@@ -41,6 +47,7 @@ function Index() {
     </StoreProvider>
   );
 }
+
 
 function Main() {
   const { ui } = useStore();
