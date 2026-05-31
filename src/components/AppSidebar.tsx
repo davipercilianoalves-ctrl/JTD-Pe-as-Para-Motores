@@ -1,325 +1,227 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Plus,
-  Search,
-  Home,
-  Film,
-  Pin,
-  PinOff,
+  LayoutDashboard,
   Package2,
+  Megaphone,
+  Layers,
+  BarChart2,
+  ShoppingCart,
+  DollarSign,
+  Plug,
   Settings as SettingsIcon,
+  Pin,
+  Plus
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { useCommandPalette } from "@/components/CommandPalette";
-import { evaluateProduct, STATUS_META } from "@/lib/product-signal";
-import logoUrl from "@/assets/jtd-logo.png";
+import { useSettings } from "@/hooks/useSettings";
+import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PIN_KEY = "jtd:sidebar-pinned";
 const COLLAPSED_WIDTH = 56;
-const EXPANDED_WIDTH = 248;
-const HOVER_CLOSE_DELAY = 240;
-const RECENT_LIMIT = 8;
+const EXPANDED_WIDTH = 216;
 
 export function AppSidebar() {
-  const { products, ui, openProduct, createProduct, goHome, openViral, openSettings, openKits, kits } =
-    useStore();
-  const openPalette = useCommandPalette();
-
-  const [pinned, setPinned] = useState(true);
-  const [hovered, setHovered] = useState(false);
-  const closeTimer = useRef<number | null>(null);
-
-  useEffect(() => {
+  const { ui, products, kits, goHome, openKits, openSettings, createProduct, openProduct } = useStore();
+  const { settings } = useSettings();
+  
+  const [expanded, setExpanded] = useState(false);
+  const [pinned, setPinned] = useState(() => {
     try {
-      const v = localStorage.getItem(PIN_KEY);
-      if (v !== null) setPinned(v === "1");
+      return localStorage.getItem(PIN_KEY) === "true";
     } catch {
-      /* ignore */
+      return false;
     }
-  }, []);
+  });
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(PIN_KEY, pinned ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
-  }, [pinned]);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
-        e.preventDefault();
-        setPinned((c) => !c);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  useEffect(
-    () => () => {
-      if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    },
-    [],
-  );
-
-  const handleEnter = () => {
-    if (closeTimer.current) {
-      window.clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-    setHovered(true);
+  const handleMouseEnter = () => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    if (!pinned) setExpanded(true);
   };
 
-  const handleLeave = () => {
-    if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    closeTimer.current = window.setTimeout(() => {
-      setHovered(false);
-      closeTimer.current = null;
-    }, HOVER_CLOSE_DELAY);
+  const handleMouseLeave = () => {
+    if (pinned) return;
+    leaveTimer.current = setTimeout(() => setExpanded(false), 180);
   };
 
-  const expanded = pinned || hovered;
-  const floating = !pinned && hovered;
+  const togglePin = () => {
+    const next = !pinned;
+    setPinned(next);
+    if (next) setExpanded(true);
+    try {
+      localStorage.setItem(PIN_KEY, String(next));
+    } catch {}
+  };
 
-  const recents = useMemo(
-    () =>
-      [...products]
-        .sort((a, b) => b.updatedAt - a.updatedAt)
-        .slice(0, RECENT_LIMIT)
-        .map((p) => ({ p, signal: evaluateProduct(p) })),
-    [products],
-  );
+  const isActuallyExpanded = expanded || pinned;
 
   const initials = (name: string) =>
-    (name || "??")
+    (name || "JT")
       .trim()
       .split(/\s+/)
       .slice(0, 2)
       .map((w) => w[0]?.toUpperCase() ?? "")
-      .join("") || "??";
+      .join("") || "JT";
+
+  const handleComingSoon = () => {
+    toast.info("Em breve — disponível na próxima versão");
+  };
 
   return (
     <div
-      className="relative h-screen shrink-0 transition-[width] duration-200 ease-out"
+      className="relative h-screen shrink-0 transition-[width] duration-200 ease-in-out"
       style={{ width: pinned ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
     >
       <aside
-        onMouseEnter={handleEnter}
-        onMouseLeave={handleLeave}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className={cn(
           "absolute inset-y-0 left-0 z-40 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-          "transition-[width,box-shadow] duration-180 ease-out will-change-[width]",
-          floating &&
-            "shadow-[12px_0_48px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/[0.03]",
+          "transition-[width] duration-200 ease-in-out will-change-[width]",
+          !pinned && isActuallyExpanded && "shadow-[12px_0_48px_-12px_rgba(0,0,0,0.5)]"
         )}
-        style={{ width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
+        style={{ width: isActuallyExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
       >
-        {/* Brand */}
-        <div className="relative flex items-center h-14 px-2.5">
-          <button
-            onClick={goHome}
-            className={cn(
-              "group flex items-center gap-2.5 rounded-lg transition-colors flex-1 min-w-0 h-10 px-1",
-              expanded ? "hover:bg-sidebar-accent/60 px-1.5" : "justify-center",
-            )}
-            title="JTD"
-          >
-            <div className="h-8 w-8 shrink-0 rounded-md overflow-hidden bg-black ring-1 ring-white/5">
-              <img src={logoUrl} alt="JTD" className="h-full w-full object-cover" />
-            </div>
-            {expanded && (
-              <div className="leading-tight text-left min-w-0">
-                <div className="text-[12px] font-semibold tracking-[0.16em] uppercase truncate">
-                  JTD
-                </div>
-                <div className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground truncate">
-                  Motors
-                </div>
-              </div>
-            )}
-          </button>
-          {expanded && (
-            <button
-              onClick={() => setPinned((v) => !v)}
-              className="ml-1 h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors"
-              title={
-                pinned
-                  ? "Desafixar (Ctrl+B)"
-                  : "Fixar (Ctrl+B)"
-              }
+        {/* Brand Area */}
+        <div className="relative flex items-center h-16 px-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div 
+              className="h-[30px] w-[30px] shrink-0 rounded-[8px] overflow-hidden bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary border border-primary/20"
+              title={settings.companyName || "JT"}
             >
-              {pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+              {settings.logoUrl ? (
+                <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                initials(settings.companyName)
+              )}
+            </div>
+            
+            {isActuallyExpanded && (
+              <span className="font-semibold text-sm truncate animate-in fade-in duration-300">
+                {settings.companyName || "JTD Motors"}
+              </span>
+            )}
+          </div>
+
+          {isActuallyExpanded && (
+            <button
+              onClick={togglePin}
+              className={cn(
+                "h-7 w-7 flex items-center justify-center rounded-md transition-colors animate-in fade-in zoom-in duration-300",
+                pinned 
+                  ? "text-primary bg-primary/10" 
+                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+              )}
+              title={pinned ? "Desafixar" : "Fixar"}
+            >
+              <Pin className={cn("h-3.5 w-3.5", pinned && "fill-current")} />
             </button>
           )}
         </div>
 
-        {/* Metal hairline */}
-        <div className="mx-2.5 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+        {/* Nav Items */}
+        <TooltipProvider delayDuration={0}>
+          <nav className="flex flex-col gap-1 px-2 pt-2">
+            <SidebarNavItem
+              icon={LayoutDashboard}
+              label="Dashboard"
+              active={ui.view === "home" && !ui.selectedId}
+              expanded={isActuallyExpanded}
+              onClick={goHome}
+            />
+            <SidebarNavItem
+              icon={Package2}
+              label="Produtos"
+              active={ui.view === "home" || ui.view === "product"}
+              expanded={isActuallyExpanded}
+              onClick={goHome}
+            />
+            <SidebarNavItem
+              icon={Megaphone}
+              label="Anúncios"
+              active={false}
+              expanded={isActuallyExpanded}
+              onClick={goHome}
+            />
+            <SidebarNavItem
+              icon={Layers}
+              label="Kits"
+              active={ui.view === "kits"}
+              expanded={isActuallyExpanded}
+              onClick={openKits}
+            />
 
-        {/* Search trigger */}
-        <div className={cn("pt-3", expanded ? "px-2.5" : "px-2")}>
-          <button
-            onClick={openPalette}
-            title="Buscar (Ctrl+K)"
-            className={cn(
-              "group flex w-full items-center gap-2.5 rounded-lg border border-sidebar-border bg-sidebar-accent/40 hover:bg-sidebar-accent/80 transition-colors",
-              expanded ? "h-9 px-3" : "h-9 justify-center",
-            )}
-          >
-            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            {expanded && (
-              <>
-                <span className="flex-1 text-left text-[13px] text-muted-foreground truncate">
-                  Buscar
-                </span>
-                <kbd className="text-[9px] uppercase tracking-wider text-muted-foreground border border-sidebar-border rounded px-1 py-0.5">
-                  ⌘K
-                </kbd>
-              </>
-            )}
-          </button>
-        </div>
+            <div className="my-2 mx-2 h-px bg-sidebar-border/50" />
 
-        {/* Nav */}
-        <nav className={cn("flex flex-col gap-0.5 pt-2", expanded ? "px-2.5" : "px-2")}>
-          <NavItem
-            icon={Home}
-            label="Início"
-            active={ui.view === "home"}
-            collapsed={!expanded}
-            onClick={goHome}
-          />
-          <NavItem
-            icon={Package2}
-            label="Produtos"
-            badge={products.length || undefined}
-            active={ui.view === "home" || ui.view === "product"}
-            collapsed={!expanded}
-            onClick={goHome}
-          />
-          <NavItem
-            icon={Search}
-            label="Kits"
-            badge={kits?.length || undefined}
-            active={ui.view === "kits"}
-            collapsed={!expanded}
-            onClick={openKits}
-          />
-          <NavItem
-            icon={Film}
-            label="Biblioteca Viral"
-            active={ui.view === "viral"}
-            collapsed={!expanded}
-            onClick={openViral}
-          />
-          <NavItem
-            icon={SettingsIcon}
-            label="Configurações"
-            active={ui.view === "settings"}
-            collapsed={!expanded}
-            onClick={openSettings}
-          />
-        </nav>
+            <SidebarNavItem
+              icon={BarChart2}
+              label="Métricas"
+              expanded={isActuallyExpanded}
+              onClick={handleComingSoon}
+              comingSoon
+            />
+            <SidebarNavItem
+              icon={ShoppingCart}
+              label="Compras"
+              expanded={isActuallyExpanded}
+              onClick={handleComingSoon}
+              comingSoon
+            />
+            <SidebarNavItem
+              icon={DollarSign}
+              label="Vendas"
+              expanded={isActuallyExpanded}
+              onClick={handleComingSoon}
+              comingSoon
+            />
 
-        {/* Primary CTA */}
-        <div className={cn("pt-3", expanded ? "px-2.5" : "px-2")}>
+            <div className="my-2 mx-2 h-px bg-sidebar-border/50" />
+
+            <SidebarNavItem
+              icon={Plug}
+              label="API"
+              expanded={isActuallyExpanded}
+              onClick={handleComingSoon}
+              comingSoon
+            />
+            <SidebarNavItem
+              icon={SettingsIcon}
+              label="Configurações"
+              active={ui.view === "settings"}
+              expanded={isActuallyExpanded}
+              onClick={openSettings}
+            />
+          </nav>
+        </TooltipProvider>
+
+        <div className="mt-auto p-2">
           <button
             onClick={() => createProduct()}
             className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground hover:opacity-90 transition-opacity shadow-[var(--shadow-red)]",
-              expanded ? "h-9" : "h-9",
+              "flex w-full items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all",
+              isActuallyExpanded ? "h-10 px-4 text-sm font-semibold" : "h-10"
             )}
             title="Novo produto"
           >
-            <Plus className="h-3.5 w-3.5" />
-            {expanded && "Novo produto"}
+            <Plus className="h-4 w-4" />
+            {isActuallyExpanded && <span>Novo produto</span>}
           </button>
         </div>
 
-        {/* Recent products */}
-        <div className="mt-5 flex-1 overflow-auto px-2">
-          {expanded && (
-            <div className="px-2 pb-2 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Recentes
-            </div>
-          )}
-          <div className="flex flex-col gap-0.5">
-            {recents.map(({ p, signal }) => {
-              const active = ui.selectedId === p.id && ui.view === "product";
-              const meta = STATUS_META[signal.status];
-              if (!expanded) {
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => openProduct(p.id)}
-                    title={`${p.name || "Sem nome"} · ${meta.label}`}
-                    className={cn(
-                      "relative flex h-9 items-center justify-center rounded-md text-[10px] font-semibold transition-colors",
-                      active
-                        ? "bg-sidebar-accent text-foreground"
-                        : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-                    )}
-                  >
-                    {active && (
-                      <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-primary" />
-                    )}
-                    <span className="relative">
-                      {initials(p.name)}
-                      <span
-                        className={cn(
-                          "absolute -right-1.5 -bottom-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-sidebar",
-                          meta.dot,
-                        )}
-                      />
-                    </span>
-                  </button>
-                );
-              }
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => openProduct(p.id)}
-                  className={cn(
-                    "group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors",
-                    active
-                      ? "bg-sidebar-accent text-foreground"
-                      : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-                  )}
-                >
-                  {active && (
-                    <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary" />
-                  )}
-                  <span
-                    className={cn("h-1.5 w-1.5 shrink-0 rounded-full", meta.dot)}
-                    title={meta.label}
-                  />
-                  <span className="truncate text-[13px] font-medium">
-                    {p.name || "Sem nome"}
-                  </span>
-                </button>
-              );
-            })}
-            {recents.length === 0 && expanded && (
-              <div className="px-2.5 py-4 text-[11px] text-muted-foreground">
-                Nenhum produto ainda.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer hairline */}
-        <div className="mx-2.5 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
-        <div className={cn("py-2.5", expanded ? "px-3" : "px-2")}>
-          <div
-            className={cn(
-              "text-[9px] uppercase tracking-[0.22em] text-muted-foreground/70",
-              !expanded && "text-center",
-            )}
-          >
-            {expanded ? "JTD · v1" : "v1"}
+        <div className="p-3 border-t border-sidebar-border/50">
+          <div className={cn(
+            "text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium transition-all",
+            !isActuallyExpanded && "text-center"
+          )}>
+            {isActuallyExpanded ? "JTD Motors Hub · v1.0" : "v1"}
           </div>
         </div>
       </aside>
@@ -327,47 +229,63 @@ export function AppSidebar() {
   );
 }
 
-function NavItem({
+function SidebarNavItem({
   icon: Icon,
   label,
   active,
-  collapsed,
-  badge,
+  expanded,
   onClick,
+  comingSoon
 }: {
-  icon: typeof Home;
+  icon: any;
   label: string;
   active?: boolean;
-  collapsed?: boolean;
-  badge?: number;
+  expanded: boolean;
   onClick: () => void;
+  comingSoon?: boolean;
 }) {
-  return (
+  const content = (
     <button
       onClick={onClick}
-      title={collapsed ? label : undefined}
       className={cn(
-        "relative flex items-center gap-2.5 rounded-md text-[13px] transition-colors",
-        collapsed ? "h-9 justify-center" : "h-9 px-2.5",
+        "group relative flex items-center w-full rounded-lg transition-all duration-200",
+        expanded ? "h-10 px-3 gap-3" : "h-10 justify-center",
         active
-          ? "bg-sidebar-accent text-foreground"
-          : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+          ? "bg-primary/10 text-primary font-semibold"
+          : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
       )}
     >
       {active && (
-        <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary" />
+        <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary" />
       )}
-      <Icon className="h-4 w-4 shrink-0" />
-      {!collapsed && (
+      
+      <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-primary")} />
+      
+      {expanded && (
         <>
-          <span className="flex-1 text-left truncate">{label}</span>
-          {typeof badge === "number" && (
-            <span className="text-[10px] tabular-nums text-muted-foreground">
-              {badge}
+          <span className="flex-1 text-left text-sm truncate animate-in fade-in slide-in-from-left-1 duration-200">
+            {label}
+          </span>
+          {comingSoon && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium animate-in fade-in duration-300 shrink-0">
+              Em breve
             </span>
           )}
         </>
       )}
     </button>
   );
+
+  if (!expanded) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side="right" sideOffset={10} className="font-medium text-xs">
+          {label} {comingSoon && "(Em breve)"}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
 }

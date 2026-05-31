@@ -68,7 +68,7 @@ import {
   AutoTextArea,
 } from "@/components/ui-kit";
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
-import { cn } from "@/lib/utils";
+import { cn, compressImage } from "@/lib/utils";
 import { toast } from "sonner";
 
 type MK = MarketplaceId;
@@ -748,34 +748,6 @@ function AITemplateModal({ product, market, onClose }: { product: Product; marke
 
 // PricingSection and PricingField moved to PricingTools.tsx
 
-async function compressImage(file: File): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 800;
-      let w = img.width;
-      let h = img.height;
-      if (w > MAX || h > MAX) {
-        if (w > h) {
-          h = (h / w) * MAX;
-          w = MAX;
-        } else {
-          w = (w / h) * MAX;
-          h = MAX;
-        }
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.75));
-    };
-    img.src = url;
-  });
-}
 
 function ImagesSection({ product }: { product: Product }) {
   const { updateProduct } = useStore();
