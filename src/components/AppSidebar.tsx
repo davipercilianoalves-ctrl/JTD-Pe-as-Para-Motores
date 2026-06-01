@@ -84,11 +84,12 @@ export function AppSidebar() {
   const handleLogout = async () => {
     const isConfirmed = await confirm({
       title: "Deseja sair da sua conta?",
-      description: "Você precisará fazer login novamente para acessar seus dados.",
+      message: "Você precisará fazer login novamente para acessar seus dados.",
       confirmLabel: "Sair",
       cancelLabel: "Cancelar",
-      variant: "destructive"
+      tone: "danger"
     });
+
 
     if (isConfirmed) {
       await supabase.auth.signOut();
