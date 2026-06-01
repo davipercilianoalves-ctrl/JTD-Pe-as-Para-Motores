@@ -420,38 +420,61 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    setState((s) => ({
-      ...s,
-      kits: [k, ...s.kits],
-      ui: { ...s.ui, view: "kits", kitId: k.id },
-    }));
+    if (user?.id) {
+      setKits(prev => [k, ...prev]);
+      setUI({ view: "kits", kitId: k.id });
+
+      supabase.from("kits").insert(mapKitToDb(k, user.id)).then(({ error }) => {
+        if (error) {
+          console.error("Erro ao criar kit:", error);
+          setKits(prev => prev.filter(x => x.id !== k.id));
+          toast.error("Erro ao salvar kit");
+        }
+      });
+    }
     return k.id;
-  }, []);
+  }, [user?.id, setKits, setUI, mapKitToDb]);
 
   const updateKit = useCallback(
     (id: string, patch: Partial<Kit> | ((k: Kit) => Kit)) => {
-      setState((s) => ({
-        ...s,
-        kits: s.kits.map((k) => {
+      setKits((prev) => {
+        const updatedList = prev.map((k) => {
           if (k.id !== id) return k;
           const updated = typeof patch === "function" ? patch(k) : { ...k, ...patch };
           return { ...updated, updatedAt: Date.now() };
-        }),
-      }));
+        });
+
+        const kit = updatedList.find(k => k.id === id);
+        if (kit && user?.id) {
+          supabase.from("kits")
+            .update(mapKitToDb(kit, user.id))
+            .eq("id", id)
+            .eq("user_id", user.id)
+            .then(({ error }) => {
+              if (error) console.error("Erro ao atualizar kit:", error);
+            });
+        }
+        return updatedList;
+      });
     },
-    [],
+    [user?.id, setKits, mapKitToDb],
   );
 
   const deleteKit = useCallback((id: string) => {
-    setState((s) => ({
-      ...s,
-      kits: s.kits.filter((k) => k.id !== id),
-      ui: {
-        ...s.ui,
-        kitId: s.ui.kitId === id ? null : s.ui.kitId,
-      },
-    }));
-  }, []);
+    setKits((prev) => prev.filter((k) => k.id !== id));
+    setUI({
+      kitId: state.ui.kitId === id ? null : state.ui.kitId,
+    });
+
+    if (user?.id) {
+      supabase.from("kits").delete()
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar kit:", error);
+        });
+    }
+  }, [user?.id, setKits, setUI, state.ui]);
 
   return (
     <StoreContext.Provider
