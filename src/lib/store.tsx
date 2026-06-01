@@ -205,39 +205,63 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const createProduct = useCallback(() => {
     const p = newProduct();
-    setState((s) => ({
-      ...s,
-      products: [p, ...s.products],
-      ui: { ...s.ui, view: "product", selectedId: p.id },
-    }));
+    if (user?.id) {
+      // Optimistic update
+      setProducts(prev => [p, ...prev]);
+      setUI({ view: "product", selectedId: p.id });
+
+      supabase.from("products").insert(mapProductToDb(p, user.id)).then(({ error }) => {
+        if (error) {
+          console.error("Erro ao criar produto:", error);
+          setProducts(prev => prev.filter(x => x.id !== p.id));
+          toast.error("Erro ao salvar produto");
+        }
+      });
+    }
     return p.id;
-  }, []);
+  }, [user?.id, setProducts, setUI, mapProductToDb]);
 
   const updateProduct = useCallback(
     (id: string, patch: Partial<Product> | ((p: Product) => Product)) => {
-      setState((s) => ({
-        ...s,
-        products: s.products.map((p) => {
+      setProducts((prev) => {
+        const updatedList = prev.map((p: Product) => {
           if (p.id !== id) return p;
           const updated = typeof patch === "function" ? patch(p) : { ...p, ...patch };
           return { ...updated, updatedAt: Date.now() };
-        }),
-      }));
+        });
+
+        const product = updatedList.find(p => p.id === id);
+        if (product && user?.id) {
+          supabase.from("products")
+            .update(mapProductToDb(product, user.id))
+            .eq("id", id)
+            .eq("user_id", user.id)
+            .then(({ error }) => {
+              if (error) console.error("Erro ao atualizar produto:", error);
+            });
+        }
+        return updatedList;
+      });
     },
-    [],
+    [user?.id, setProducts, mapProductToDb],
   );
 
   const deleteProduct = useCallback((id: string) => {
-    setState((s) => ({
-      ...s,
-      products: s.products.filter((p) => p.id !== id),
-      ui: {
-        ...s.ui,
-        selectedId: s.ui.selectedId === id ? null : s.ui.selectedId,
-        view: s.ui.selectedId === id ? "home" : s.ui.view,
-      },
-    }));
-  }, []);
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setUI({
+      selectedId: state.ui.selectedId === id ? null : state.ui.selectedId,
+      view: state.ui.selectedId === id ? "home" : state.ui.view,
+    });
+
+    if (user?.id) {
+      supabase.from("products").delete()
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar produto:", error);
+        });
+    }
+  }, [user?.id, setProducts, setUI, state.ui]);
 
   const toggleFavorite = useCallback((id: string) => {
     setState((s) => ({
