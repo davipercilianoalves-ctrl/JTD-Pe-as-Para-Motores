@@ -158,7 +158,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const localProducts = (data.products ?? []).map(migrateProduct);
           
           if (localProducts.length > 0) {
-            const dbProducts = localProducts.map(p => mapProductToDb(p, userId));
+            const dbProducts = localProducts.map((p: Product) => mapProductToDb(p, userId));
             const { error } = await supabase.from("products").insert(dbProducts);
             if (error) throw error;
           }
