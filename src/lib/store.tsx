@@ -98,6 +98,15 @@ function loadState(): StoreState {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const { 
+    products, setProducts, 
+    kits, setKits, 
+    loading: dataLoading,
+    mapProductToDb,
+    mapKitToDb
+  } = useSupabaseStore(user?.id);
+
   const [state, setState] = useState<StoreState>({
     products: [],
     viralLibrary: [],
@@ -106,20 +115,76 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   });
   const [hydrated, setHydrated] = useState(false);
 
+  // Sync state with hook data
   useEffect(() => {
-    setState(loadState());
+    setState(s => ({ ...s, products, kits }));
+  }, [products, kits]);
+
+  useEffect(() => {
+    setState(s => {
+      const loaded = loadState();
+      return {
+        ...s,
+        viralLibrary: loaded.viralLibrary,
+        ui: loaded.ui,
+      };
+    });
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, kits: undefined }));
-      localStorage.setItem(KITS_KEY, JSON.stringify(state.kits));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+        viralLibrary: state.viralLibrary,
+        ui: state.ui,
+      }));
     } catch {
       /* ignore */
     }
-  }, [state, hydrated]);
+  }, [state.viralLibrary, state.ui, hydrated]);
+
+  // Migration logic
+  useEffect(() => {
+    if (user?.id && hydrated) {
+      const migrateLocalStorageToSupabase = async (userId: string) => {
+        const migrationKey = `jtd:migrated:${userId}`;
+        if (localStorage.getItem(migrationKey)) return;
+
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          const localProducts = (data.products ?? []).map(migrateProduct);
+          
+          if (localProducts.length > 0) {
+            const dbProducts = localProducts.map(p => mapProductToDb(p, userId));
+            const { error } = await supabase.from("products").insert(dbProducts);
+            if (error) throw error;
+          }
+
+          const kitsRaw = localStorage.getItem(KITS_KEY);
+          const localKits = kitsRaw ? (JSON.parse(kitsRaw) as Kit[]) : [];
+          if (localKits.length > 0) {
+            const dbKits = localKits.map(k => mapKitToDb(k, userId));
+            const { error } = await supabase.from("kits").insert(dbKits);
+            if (error) throw error;
+          }
+
+          localStorage.setItem(migrationKey, "true");
+          if (localProducts.length > 0 || localKits.length > 0) {
+            toast.success(`${localProducts.length} produtos e ${localKits.length} kits migrados para a nuvem!`);
+            // Trigger a reload or just rely on the effect
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error("Erro na migração:", error);
+        }
+      };
+
+      migrateLocalStorageToSupabase(user.id);
+    }
+  }, [user?.id, hydrated, mapProductToDb, mapKitToDb]);
 
   const setUI = useCallback((patch: Partial<UIState>) => {
     setState((s) => ({ ...s, ui: { ...s.ui, ...patch } }));
