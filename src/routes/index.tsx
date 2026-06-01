@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StoreProvider, useStore } from "@/lib/store";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProductWorkspace } from "@/components/ProductWorkspace";
@@ -10,6 +10,9 @@ import { StorageBanner } from "@/components/StorageBanner";
 import { ConfirmProvider } from "@/components/ConfirmProvider";
 import { CommandPaletteProvider } from "@/components/CommandPalette";
 import { KitsScreen } from "@/components/KitsScreen";
+import { supabase } from "@/lib/supabase";
+import { AuthScreen } from "@/components/auth/AuthScreen";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,7 +28,26 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+
 function Index() {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("jtd:theme") ?? "dark";
@@ -35,6 +57,9 @@ function Index() {
       );
     } catch {}
   }, []);
+
+  if (loading) return <LoadingScreen />;
+  if (!session) return <AuthScreen />;
 
   return (
     <StoreProvider>
@@ -52,6 +77,7 @@ function Index() {
     </StoreProvider>
   );
 }
+
 
 
 function Main() {
