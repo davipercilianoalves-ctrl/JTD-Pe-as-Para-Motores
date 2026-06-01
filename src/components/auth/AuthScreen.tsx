@@ -85,8 +85,8 @@ export function AuthScreen() {
         const { error: profileError } = await supabase
           .from("profiles")
           .insert({
-            user_id: data.user.id,
-            email: email,
+            id: data.user.id,
+            email,
             company_name: companyName,
           });
           
