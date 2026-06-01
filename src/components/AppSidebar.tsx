@@ -26,7 +26,6 @@ import {
 import { useConfirm } from "@/components/ConfirmProvider";
 import { supabase } from "@/lib/supabase";
 
-
 const PIN_KEY = "jtd:sidebar-pinned";
 const COLLAPSED_WIDTH = 56;
 const EXPANDED_WIDTH = 216;
@@ -35,7 +34,6 @@ export function AppSidebar() {
   const { ui, products, kits, goHome, openKits, openSettings, createProduct, openProduct } = useStore();
   const { settings } = useSettings();
   const confirm = useConfirm();
-
   
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(() => {
@@ -90,12 +88,10 @@ export function AppSidebar() {
       tone: "danger"
     });
 
-
     if (isConfirmed) {
       await supabase.auth.signOut();
     }
   };
-
 
   return (
     <div
@@ -151,7 +147,7 @@ export function AppSidebar() {
 
         {/* Nav Items */}
         <TooltipProvider delayDuration={0}>
-          <nav className="flex flex-col gap-1 px-2 pt-2">
+          <nav className="flex flex-col gap-1 px-2 pt-2 overflow-y-auto overflow-x-hidden flex-1 scrollbar-none">
             <SidebarNavItem
               icon={LayoutDashboard}
               label="Dashboard"
@@ -221,18 +217,10 @@ export function AppSidebar() {
               expanded={isActuallyExpanded}
               onClick={openSettings}
             />
-            <SidebarNavItem
-              icon={LogOut}
-              label="Sair"
-              expanded={isActuallyExpanded}
-              onClick={handleLogout}
-              className="mt-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            />
           </nav>
         </TooltipProvider>
 
-
-        <div className="mt-auto p-2">
+        <div className="mt-auto flex flex-col gap-1 p-2 border-t border-sidebar-border/50 bg-sidebar/50">
           <button
             onClick={() => createProduct()}
             className={cn(
@@ -243,6 +231,18 @@ export function AppSidebar() {
           >
             <Plus className="h-4 w-4" />
             {isActuallyExpanded && <span>Novo produto</span>}
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className={cn(
+              "flex items-center gap-2 rounded-lg text-destructive hover:bg-destructive/10 transition-all",
+              isActuallyExpanded ? "h-10 px-4 text-sm font-semibold" : "h-10 justify-center"
+            )}
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+            {isActuallyExpanded && <span>Sair</span>}
           </button>
         </div>
 
@@ -276,7 +276,6 @@ function SidebarNavItem({
   comingSoon?: boolean;
   className?: string;
 }) {
-
   const content = (
     <button
       onClick={onClick}
@@ -289,7 +288,6 @@ function SidebarNavItem({
         className
       )}
     >
-
       {active && (
         <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary" />
       )}
