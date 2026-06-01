@@ -10,7 +10,8 @@ import {
   Plug,
   Settings as SettingsIcon,
   Pin,
-  Plus
+  Plus,
+  LogOut
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useConfirm } from "@/components/ConfirmProvider";
+import { supabase } from "@/lib/supabase";
+
 
 const PIN_KEY = "jtd:sidebar-pinned";
 const COLLAPSED_WIDTH = 56;
@@ -30,6 +34,8 @@ const EXPANDED_WIDTH = 216;
 export function AppSidebar() {
   const { ui, products, kits, goHome, openKits, openSettings, createProduct, openProduct } = useStore();
   const { settings } = useSettings();
+  const confirm = useConfirm();
+
   
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(() => {
@@ -74,6 +80,21 @@ export function AppSidebar() {
   const handleComingSoon = () => {
     toast.info("Em breve — disponível na próxima versão");
   };
+
+  const handleLogout = async () => {
+    const isConfirmed = await confirm({
+      title: "Deseja sair da sua conta?",
+      description: "Você precisará fazer login novamente para acessar seus dados.",
+      confirmLabel: "Sair",
+      cancelLabel: "Cancelar",
+      variant: "destructive"
+    });
+
+    if (isConfirmed) {
+      await supabase.auth.signOut();
+    }
+  };
+
 
   return (
     <div
@@ -199,8 +220,16 @@ export function AppSidebar() {
               expanded={isActuallyExpanded}
               onClick={openSettings}
             />
+            <SidebarNavItem
+              icon={LogOut}
+              label="Sair"
+              expanded={isActuallyExpanded}
+              onClick={handleLogout}
+              className="mt-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            />
           </nav>
         </TooltipProvider>
+
 
         <div className="mt-auto p-2">
           <button
@@ -235,7 +264,8 @@ function SidebarNavItem({
   active,
   expanded,
   onClick,
-  comingSoon
+  comingSoon,
+  className
 }: {
   icon: any;
   label: string;
@@ -243,7 +273,9 @@ function SidebarNavItem({
   expanded: boolean;
   onClick: () => void;
   comingSoon?: boolean;
+  className?: string;
 }) {
+
   const content = (
     <button
       onClick={onClick}
@@ -252,9 +284,11 @@ function SidebarNavItem({
         expanded ? "h-10 px-3 gap-3" : "h-10 justify-center",
         active
           ? "bg-primary/10 text-primary font-semibold"
-          : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+          : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+        className
       )}
     >
+
       {active && (
         <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary" />
       )}
