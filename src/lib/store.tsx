@@ -42,6 +42,7 @@ interface StoreState {
 }
 
 interface StoreContextValue extends StoreState {
+  dataLoading: boolean;
   goHome: () => void;
   openProduct: (id: string) => void;
   openViral: () => void;
