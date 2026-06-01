@@ -17,6 +17,10 @@ import {
   type ViralClip,
   type Kit,
 } from "./types";
+import { useAuth } from "./useAuth";
+import { useSupabaseStore } from "./useSupabaseStore";
+import { supabase } from "./supabase";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "jtd-motors-hub:v3";
 const KITS_KEY = "jtd:kits";
