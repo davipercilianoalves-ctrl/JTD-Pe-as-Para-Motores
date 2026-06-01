@@ -166,7 +166,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const kitsRaw = localStorage.getItem(KITS_KEY);
           const localKits = kitsRaw ? (JSON.parse(kitsRaw) as Kit[]) : [];
           if (localKits.length > 0) {
-            const dbKits = localKits.map(k => mapKitToDb(k, userId));
+            const dbKits = localKits.map((k: Kit) => mapKitToDb(k, userId));
             const { error } = await supabase.from("kits").insert(dbKits);
             if (error) throw error;
           }
