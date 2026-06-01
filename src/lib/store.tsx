@@ -264,19 +264,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [user?.id, setProducts, setUI, state.ui]);
 
   const toggleFavorite = useCallback((id: string) => {
-    setState((s) => ({
-      ...s,
-      products: s.products.map((p) =>
+    setProducts((prev) => {
+      const updated = prev.map((p) =>
         p.id === id ? { ...p, favorite: !p.favorite } : p,
-      ),
-    }));
-  }, []);
+      );
+      const product = updated.find(p => p.id === id);
+      if (product && user?.id) {
+        supabase.from("products")
+          .update({ favorite: product.favorite })
+          .eq("id", id)
+          .eq("user_id", user.id)
+          .then(({ error }) => {
+            if (error) console.error("Erro ao favoritar produto:", error);
+          });
+      }
+      return updated;
+    });
+  }, [user?.id, setProducts]);
 
   const addKeywordTokens = useCallback((productId: string, tokens: string[]) => {
     if (!tokens.length) return;
-    setState((s) => ({
-      ...s,
-      products: s.products.map((p) => {
+    setProducts((prev) => {
+      const updatedList = prev.map((p) => {
         if (p.id !== productId) return p;
         const next = [...p.keywords];
         for (const raw of tokens) {
@@ -294,26 +303,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             });
         }
         return { ...p, keywords: next, updatedAt: Date.now() };
-      }),
-    }));
-  }, []);
+      });
+
+      const product = updatedList.find(p => p.id === productId);
+      if (product && user?.id) {
+        supabase.from("products")
+          .update({ keywords: product.keywords as any, updated_at: product.updatedAt })
+          .eq("id", productId)
+          .eq("user_id", user.id)
+          .then(({ error }) => {
+            if (error) console.error("Erro ao atualizar palavras-chave:", error);
+          });
+      }
+      return updatedList;
+    });
+  }, [user?.id, setProducts]);
 
   const removeKeyword = useCallback((productId: string, keywordId: string) => {
-    setState((s) => ({
-      ...s,
-      products: s.products.map((p) =>
+    setProducts((prev) => {
+      const updatedList = prev.map((p) =>
         p.id === productId
           ? { ...p, keywords: p.keywords.filter((k) => k.id !== keywordId) }
           : p,
-      ),
-    }));
-  }, []);
+      );
+      const product = updatedList.find(p => p.id === productId);
+      if (product && user?.id) {
+        supabase.from("products")
+          .update({ keywords: product.keywords as any })
+          .eq("id", productId)
+          .eq("user_id", user.id)
+          .then(({ error }) => {
+            if (error) console.error("Erro ao remover palavra-chave:", error);
+          });
+      }
+      return updatedList;
+    });
+  }, [user?.id, setProducts]);
 
   const toggleKeywordFavorite = useCallback(
     (productId: string, keywordId: string) => {
-      setState((s) => ({
-        ...s,
-        products: s.products.map((p) =>
+      setProducts((prev) => {
+        const updatedList = prev.map((p) =>
           p.id === productId
             ? {
                 ...p,
@@ -322,10 +352,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 ),
               }
             : p,
-        ),
-      }));
+        );
+        const product = updatedList.find(p => p.id === productId);
+        if (product && user?.id) {
+          supabase.from("products")
+            .update({ keywords: product.keywords as any })
+            .eq("id", productId)
+            .eq("user_id", user.id)
+            .then(({ error }) => {
+              if (error) console.error("Erro ao favoritar palavra-chave:", error);
+            });
+        }
+        return updatedList;
+      });
     },
-    [],
+    [user?.id, setProducts],
   );
 
   const addViral = useCallback((clip?: Partial<ViralClip>) => {
