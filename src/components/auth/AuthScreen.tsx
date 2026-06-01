@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Mail, Lock, Building2, User } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ShaderBackground } from "@/components/ui/shader-background";
 
 type AuthTab = "login" | "signup";
 
@@ -120,27 +121,33 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-4 font-sans text-white">
-      <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 shadow-[0_0_20px_rgba(var(--primary),0.1)]">
-            <span className="text-2xl font-bold text-primary tracking-tighter">JTD</span>
+    <div className="flex min-h-screen items-center justify-center p-4 font-sans selection:bg-orange-500/30">
+      <ShaderBackground />
+      
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] -z-10" />
+
+      <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-700 relative z-10">
+        <div className="mb-10 text-center">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.4)] border border-orange-400/50">
+            <span className="text-3xl font-black text-white tracking-tighter italic">JTD</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">JTD Motors Hub</h1>
-          <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest">
+          <h1 className="text-4xl font-black tracking-tighter text-white mb-3 bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent italic uppercase">
+            JTD Motors Hub
+          </h1>
+          <p className="text-neutral-400 text-xs font-bold uppercase tracking-[0.3em] opacity-80">
             Gestão inteligente para vendedores
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#141414] shadow-2xl">
-          <div className="flex border-b border-white/5 bg-white/5">
+        <div className="overflow-hidden rounded-[2.5rem] border border-neutral-800/50 bg-neutral-900/40 backdrop-blur-3xl shadow-[0_0_80px_rgba(0,0,0,0.5)]">
+          <div className="flex border-b border-neutral-800/50 p-2">
             <button
               onClick={() => { setActiveTab("login"); setErrors({}); }}
               className={cn(
-                "flex-1 py-4 text-sm font-semibold transition-all",
+                "flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all rounded-[1.5rem]",
                 activeTab === "login" 
-                  ? "bg-[#141414] text-primary" 
-                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                  ? "bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.2)]" 
+                  : "text-neutral-500 hover:text-neutral-300"
               )}
             >
               Entrar
@@ -148,107 +155,119 @@ export function AuthScreen() {
             <button
               onClick={() => { setActiveTab("signup"); setErrors({}); }}
               className={cn(
-                "flex-1 py-4 text-sm font-semibold transition-all",
+                "flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all rounded-[1.5rem]",
                 activeTab === "signup" 
-                  ? "bg-[#141414] text-primary" 
-                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                  ? "bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.2)]" 
+                  : "text-neutral-500 hover:text-neutral-300"
               )}
             >
               Criar conta
             </button>
           </div>
 
-          <div className="p-8">
-            <form onSubmit={activeTab === "login" ? handleLogin : handleSignUp} className="space-y-5">
+          <div className="p-10">
+            <form onSubmit={activeTab === "login" ? handleLogin : handleSignUp} className="space-y-6">
               {activeTab === "signup" && (
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">Nome da empresa</Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
+                  <Label htmlFor="companyName" className="text-[10px] font-black uppercase tracking-widest text-neutral-400 ml-1">Nome da empresa</Label>
+                  <div className="relative group">
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-orange-500 transition-colors" />
+                    <input
                       id="companyName"
                       placeholder="Ex: JTD Motors"
-                      className={cn("pl-10 h-11 bg-white/5 border-white/10 focus:border-primary", errors.companyName && "border-destructive")}
+                      className={cn(
+                        "w-full h-14 bg-black/40 border border-neutral-700/60 rounded-[1.25rem] pl-12 pr-4 text-white placeholder:text-neutral-600 text-sm focus:outline-none focus:border-orange-500/60 focus:shadow-[0_0_20px_rgba(249,115,22,0.15)] transition-all",
+                        errors.companyName && "border-red-500/50 bg-red-500/5"
+                      )}
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                     />
                   </div>
-                  {errors.companyName && <p className="text-xs font-medium text-destructive">{errors.companyName}</p>}
+                  {errors.companyName && <p className="text-[10px] font-bold text-red-400 ml-1">{errors.companyName}</p>}
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
+                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-neutral-400 ml-1">Email</Label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-orange-500 transition-colors" />
+                  <input
                     id="email"
                     type="email"
                     placeholder="voce@exemplo.com"
-                    className={cn("pl-10 h-11 bg-white/5 border-white/10 focus:border-primary", errors.email && "border-destructive")}
+                    className={cn(
+                      "w-full h-14 bg-black/40 border border-neutral-700/60 rounded-[1.25rem] pl-12 pr-4 text-white placeholder:text-neutral-600 text-sm focus:outline-none focus:border-orange-500/60 focus:shadow-[0_0_20px_rgba(249,115,22,0.15)] transition-all",
+                      errors.email && "border-red-500/50 bg-red-500/5"
+                    )}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-                {errors.email && <p className="text-xs font-medium text-destructive">{errors.email}</p>}
+                {errors.email && <p className="text-[10px] font-bold text-red-400 ml-1">{errors.email}</p>}
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Senha</Label>
+                <div className="flex items-center justify-between ml-1">
+                  <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Senha</Label>
                   {activeTab === "login" && (
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-xs font-medium text-primary hover:underline"
+                      className="text-[10px] font-bold text-orange-500 hover:text-orange-400 transition-colors uppercase tracking-widest"
                     >
                       Esqueci minha senha
                     </button>
                   )}
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-orange-500 transition-colors" />
+                  <input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    className={cn("pl-10 pr-10 h-11 bg-white/5 border-white/10 focus:border-primary", errors.password && "border-destructive")}
+                    className={cn(
+                      "w-full h-14 bg-black/40 border border-neutral-700/60 rounded-[1.25rem] pl-12 pr-12 text-white placeholder:text-neutral-600 text-sm focus:outline-none focus:border-orange-500/60 focus:shadow-[0_0_20px_rgba(249,115,22,0.15)] transition-all",
+                      errors.password && "border-red-500/50 bg-red-500/5"
+                    )}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-white"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.password && <p className="text-xs font-medium text-destructive">{errors.password}</p>}
+                {errors.password && <p className="text-[10px] font-bold text-red-400 ml-1">{errors.password}</p>}
               </div>
 
               {activeTab === "signup" && (
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
+                  <Label htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-widest text-neutral-400 ml-1">Confirmar senha</Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-orange-500 transition-colors" />
+                    <input
                       id="confirmPassword"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      className={cn("pl-10 h-11 bg-white/5 border-white/10 focus:border-primary", errors.confirmPassword && "border-destructive")}
+                      className={cn(
+                        "w-full h-14 bg-black/40 border border-neutral-700/60 rounded-[1.25rem] pl-12 pr-4 text-white placeholder:text-neutral-600 text-sm focus:outline-none focus:border-orange-500/60 focus:shadow-[0_0_20px_rgba(249,115,22,0.15)] transition-all",
+                        errors.confirmPassword && "border-red-500/50 bg-red-500/5"
+                      )}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                   </div>
-                  {errors.confirmPassword && <p className="text-xs font-medium text-destructive">{errors.confirmPassword}</p>}
+                  {errors.confirmPassword && <p className="text-[10px] font-bold text-red-400 ml-1">{errors.confirmPassword}</p>}
                 </div>
               )}
 
-              <Button
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 text-base font-bold shadow-lg shadow-primary/20"
+                className="w-full h-16 bg-orange-500 hover:bg-orange-400 text-white font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-[0_0_30px_rgba(249,115,22,0.3)] hover:shadow-[0_0_40px_rgba(249,115,22,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.98]"
               >
                 {loading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -257,28 +276,28 @@ export function AuthScreen() {
                 ) : (
                   "Criar conta"
                 )}
-              </Button>
+              </button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-8 text-center">
               {activeTab === "login" ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
                   Não tem conta?{" "}
                   <button
                     onClick={() => { setActiveTab("signup"); setErrors({}); }}
-                    className="font-semibold text-primary hover:underline"
+                    className="text-orange-500 hover:text-orange-400 transition-colors"
                   >
-                    Criar conta
+                    Criar agora
                   </button>
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
                   Já tem conta?{" "}
                   <button
                     onClick={() => { setActiveTab("login"); setErrors({}); }}
-                    className="font-semibold text-primary hover:underline"
+                    className="text-orange-500 hover:text-orange-400 transition-colors"
                   >
-                    Entrar
+                    Fazer login
                   </button>
                 </p>
               )}
