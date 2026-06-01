@@ -2,14 +2,11 @@ import { useMemo, useState, useEffect } from "react";
 import {
   Plus,
   Search,
-  Star,
   Package2,
   Rows3,
   LayoutGrid,
   List,
-  AlertTriangle,
   TrendingUp,
-  Sparkles,
   Film,
   Box,
   Megaphone,
@@ -18,17 +15,18 @@ import {
   Target,
   ArrowRight,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 
 import { useStore } from "@/lib/store";
-import { brl } from "@/lib/pricing";
 import { evaluateProduct, STATUS_META, type ProductSignal } from "@/lib/product-signal";
 import logoUrl from "@/assets/jtd-logo.png";
 import { cn } from "@/lib/utils";
-import type { Product } from "@/lib/types";
+import { ProductCard } from "@/components/ProductCard";
+import { ProductRow } from "@/components/ProductRow";
+import { EmptyState } from "@/components/EmptyState";
 
 type ViewMode = "comfortable" | "compact" | "cards";
-
 
 const VIEW_KEY = "jtd:home-view";
 
@@ -78,213 +76,169 @@ export function HomeScreen() {
           p.name.toLowerCase().includes(q) ||
           p.sku.toLowerCase().includes(q) ||
           p.brand.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.keywords.some((k) => k.text.includes(q)) ||
-          p.competitors.some(
-            (c) =>
-              c.title.toLowerCase().includes(q) ||
-              c.notes.toLowerCase().includes(q),
-          ),
+          p.category.toLowerCase().includes(q)
       );
     }
     return list;
   }, [decorated, statusFilter, query]);
 
   return (
-    <div className="flex-1 overflow-auto bg-[#fafafa] dark:bg-[#050505]">
-      <div className="mx-auto max-w-[1280px] px-10 py-12">
-        {/* Brand strip */}
-        <header className="flex items-end justify-between gap-8 border-b border-border/60 pb-8 mb-8">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-3">
-              <span className="h-px w-8 bg-primary" />
-              JTD · Centro de Operações
-            </div>
-            <h1 className="text-[44px] font-semibold tracking-tight leading-[1.02]">
-              Dashboard <span className="text-primary">E-commerce</span>
-            </h1>
+    <div className="flex-1 overflow-auto bg-black selection:bg-orange-500/30">
+      <div className="mx-auto max-w-[1280px] px-8 py-10">
+        
+        {/* Header Redesenhado */}
+        <header className="mb-12">
+          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.4em] text-orange-500/80 mb-4 animate-in fade-in slide-in-from-left-4 duration-700">
+            <span className="h-[2px] w-10 bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
+            JTD · Centro de Operações
           </div>
-          <div className="hidden md:block shrink-0 h-20 w-20 rounded-xl overflow-hidden bg-black ring-1 ring-white/5">
-            <img src={logoUrl} alt="JTD" className="h-full w-full object-cover" />
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+              <h1 className="text-6xl font-black tracking-tighter leading-none italic uppercase">
+                Painel de{" "}
+                <span className="bg-gradient-to-r from-orange-500 to-amber-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(249,115,22,0.3)]">
+                  Controle
+                </span>
+              </h1>
+              <p className="text-neutral-500 text-sm font-bold mt-4 max-w-md uppercase tracking-widest">
+                Gerencie seus produtos, anúncios e kits em um só lugar
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
+              <button
+                onClick={() => createProduct()}
+                className="h-14 px-8 inline-flex items-center gap-3 rounded-2xl bg-orange-500 text-white text-xs font-black uppercase tracking-widest hover:bg-orange-400 transition-all shadow-[0_0_40px_rgba(249,115,22,0.3)] hover:shadow-[0_0_50px_rgba(249,115,22,0.5)] active:scale-[0.98]"
+              >
+                <Plus className="h-5 w-5" /> Novo produto
+              </button>
+            </div>
           </div>
         </header>
 
+        {/* Bento Grid Stats */}
+        <DashboardStats />
 
-        {/* Quick Actions */}
-        <div className="flex flex-wrap items-center gap-3 mb-8">
-          <button
-            onClick={() => createProduct()}
-            className="h-11 px-5 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition shadow-[var(--shadow-red)]"
-          >
-            <Plus className="h-4 w-4" /> Novo produto
-          </button>
-          
-          <div className="h-11 px-1 flex items-center gap-1 rounded-xl bg-surface border border-border">
-            <button
-              onClick={() => {
-                // To show all products, we just need to ensure filters are cleared
-                setQuery("");
-                setStatusFilter("all");
-                // The list is already visible below
-                const listEl = document.getElementById("product-list-container");
-                if (listEl) listEl.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-surface-elevated rounded-lg transition"
-            >
-              Ver todos os produtos
-            </button>
-            <div className="w-px h-4 bg-border" />
-            <button
-              onClick={openViral}
-              className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-surface-elevated rounded-lg transition flex items-center gap-2"
-            >
-              <Film className="h-3.5 w-3.5" /> Biblioteca Viral
-            </button>
+        {/* Middle Section: Bento Grid */}
+        <div className="grid lg:grid-cols-12 gap-6 mb-12">
+          {/* Daily Goal - Bento Card */}
+          <div className="lg:col-span-7">
+            <DailyGoal />
           </div>
+          
+          {/* Recent Access - Bento Card */}
+          <div className="lg:col-span-5">
+            <RecentProducts />
+          </div>
+        </div>
 
-          <div className="flex-1 min-w-[240px] relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Search & Filters */}
+        <div className="flex flex-col md:flex-row items-center gap-4 mb-8 bg-neutral-900/40 backdrop-blur-xl border border-neutral-800/50 p-3 rounded-[2rem]">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Pesquisar produtos..."
-              className="w-full h-11 rounded-xl bg-surface border border-border pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition"
+              placeholder="Pesquisar no inventário..."
+              className="w-full h-12 rounded-2xl bg-black/40 border border-neutral-800/60 pl-12 pr-4 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-orange-500/40 focus:ring-4 focus:ring-orange-500/5 transition-all"
             />
           </div>
-        </div>
-
-        <DashboardStats />
-
-
-        {/* Middle Section: Daily Goal + Recent Products */}
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          <DailyGoal />
-          <RecentProducts />
-        </div>
-
-        {/* Separator / Header for product list */}
-        <div id="product-list-container" className="flex items-center gap-4 mb-6">
-          <div className="h-px flex-1 bg-border" />
-          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60 whitespace-nowrap">
-            Inventário operacional
-          </h2>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-
-
-        {/* Filter chips + view mode */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { key: "all", label: "Todos" },
-              { key: "favorites", label: "Favoritos" },
-              { key: "healthy", label: "Saudáveis" },
-              { key: "attention", label: "Atenção" },
-              { key: "risk", label: "Risco" },
-              { key: "incomplete", label: "Incompletos" },
-            ].map((t) => (
+          
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+            {["all", "favorites", "healthy", "attention", "risk"].map((t) => (
               <button
-                key={t.key}
-                onClick={() => setStatusFilter(t.key as typeof statusFilter)}
+                key={t}
+                onClick={() => setStatusFilter(t as any)}
                 className={cn(
-                  "h-8 px-3 rounded-lg text-xs font-medium border transition",
-                  statusFilter === t.key
-                    ? "bg-foreground text-background border-foreground"
-                    : "bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/30",
+                  "h-10 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap",
+                  statusFilter === t
+                    ? "bg-orange-500 text-white border-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.2)]"
+                    : "bg-black/20 text-neutral-500 border-neutral-800 hover:text-neutral-300 hover:border-neutral-700"
                 )}
               >
-                {t.label}
+                {t === "all" ? "Todos" : t === "favorites" ? "Favoritos" : t}
               </button>
             ))}
           </div>
 
-          <div className="flex items-center gap-1 rounded-lg bg-surface border border-border p-1">
+          <div className="h-10 w-px bg-neutral-800 hidden md:block" />
+
+          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-neutral-800/60">
             {[
-              { key: "comfortable" as const, icon: Rows3, title: "Confortável" },
-              { key: "compact" as const, icon: List, title: "Compacto" },
-              { key: "cards" as const, icon: LayoutGrid, title: "Cards" },
+              { key: "comfortable" as const, icon: Rows3 },
+              { key: "compact" as const, icon: List },
+              { key: "cards" as const, icon: LayoutGrid },
             ].map((v) => {
               const Icon = v.icon;
               return (
                 <button
                   key={v.key}
                   onClick={() => setViewMode(v.key)}
-                  title={v.title}
                   className={cn(
-                    "h-7 w-7 inline-flex items-center justify-center rounded-md transition",
+                    "h-8 w-8 inline-flex items-center justify-center rounded-lg transition-all",
                     viewMode === v.key
-                      ? "bg-foreground/10 text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.2)]"
+                      : "text-neutral-600 hover:text-neutral-400"
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className="h-4 w-4" />
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Product list — the centerpiece */}
-        {filtered.length === 0 ? (
-          <EmptyState
-            hasProducts={products.length > 0}
-            onCreate={() => createProduct()}
-          />
-        ) : viewMode === "cards" ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(({ p, signal }) => (
-              <ProductCard
-                key={p.id}
-                p={p}
-                signal={signal}
-                onOpen={() => openProduct(p.id)}
-                onFav={() => toggleFavorite(p.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div
-            className={cn(
-              "rounded-xl border border-border bg-surface divide-y divide-border overflow-hidden",
-            )}
-          >
-            {filtered.map(({ p, signal }) => (
-              <ProductRow
-                key={p.id}
-                p={p}
-                signal={signal}
-                compact={viewMode === "compact"}
-                onOpen={() => openProduct(p.id)}
-                onFav={() => toggleFavorite(p.id)}
-              />
-            ))}
-          </div>
-        )}
+        {/* Product list */}
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+          {filtered.length === 0 ? (
+            <EmptyState
+              hasProducts={products.length > 0}
+              onCreate={() => createProduct()}
+            />
+          ) : viewMode === "cards" ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map(({ p, signal }) => (
+                <ProductCard
+                  key={p.id}
+                  p={p}
+                  signal={signal}
+                  onOpen={() => openProduct(p.id)}
+                  onFav={() => toggleFavorite(p.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[2rem] border border-neutral-800/60 bg-neutral-900/40 backdrop-blur-xl divide-y divide-neutral-800/50 overflow-hidden shadow-2xl">
+              {filtered.map(({ p, signal }) => (
+                <ProductRow
+                  key={p.id}
+                  p={p}
+                  signal={signal}
+                  compact={viewMode === "compact"}
+                  onOpen={() => openProduct(p.id)}
+                  onFav={() => toggleFavorite(p.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 function DashboardStats() {
   const { products } = useStore();
   
   const stats = useMemo(() => {
     const totalProducts = products.length;
-    
     let totalAnnouncements = 0;
     let totalKits = 0;
     
     products.forEach(p => {
-      // Check for announcements in any marketplace or global custom fields
-      // Assuming announcements/kits might be in marketplace extras or specific fields
-      // Request says "product.announcements?.length" or equivalent
-      // We'll check common names in custom fields as well
       const announcements = (p as any).announcements;
       if (Array.isArray(announcements)) totalAnnouncements += announcements.length;
-      
       const kits = (p as any).kits;
       if (Array.isArray(kits)) totalKits += kits.length;
     });
@@ -298,43 +252,39 @@ function DashboardStats() {
   }, [products]);
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-      <StatCard 
-        label="Produtos cadastrados" 
-        value={stats.totalProducts} 
-        icon={<Box className="h-5 w-5" />} 
-      />
-      <StatCard 
-        label="Anúncios criados" 
-        value={stats.totalAnnouncements} 
-        icon={<Megaphone className="h-5 w-5" />} 
-      />
-      <StatCard 
-        label="Kits criados" 
-        value={stats.totalKits} 
-        icon={<Briefcase className="h-5 w-5" />} 
-      />
-      <StatCard 
-        label="Criados hoje" 
-        value={stats.createdToday} 
-        icon={<TrendingUp className="h-5 w-5" />} 
-      />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      <StatCard label="Produtos" value={stats.totalProducts} icon={<Box />} color="orange" />
+      <StatCard label="Anúncios" value={stats.totalAnnouncements} icon={<Megaphone />} color="amber" />
+      <StatCard label="Kits" value={stats.totalKits} icon={<Briefcase />} color="orange" />
+      <StatCard label="Criados hoje" value={stats.createdToday} icon={<TrendingUp />} color="amber" />
     </div>
   );
 }
 
-function StatCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode, color: "orange" | "amber" }) {
   return (
-    <div className="bg-surface border border-border rounded-xl p-5 flex items-center gap-4">
-      <div className="h-12 w-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-        {icon}
-      </div>
-      <div>
-        <div className="text-2xl font-bold tabular-nums leading-none mb-1">
-          {value}
+    <div className="group bg-neutral-900/40 backdrop-blur-xl border border-neutral-800/60 rounded-[2rem] p-8 hover:border-orange-500/30 transition-all duration-500 hover:shadow-[0_0_40px_rgba(249,115,22,0.05)] relative overflow-hidden">
+      <div className={cn(
+        "absolute -right-4 -top-4 h-24 w-24 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-700",
+        color === "orange" ? "bg-orange-500" : "bg-amber-400"
+      )} />
+      
+      <div className="flex items-center gap-6">
+        <div className={cn(
+          "h-16 w-16 rounded-[1.25rem] flex items-center justify-center shrink-0 border transition-all duration-500 group-hover:scale-110",
+          color === "orange" 
+            ? "bg-orange-500/10 text-orange-500 border-orange-500/20" 
+            : "bg-amber-400/10 text-amber-400 border-amber-400/20"
+        )}>
+          {icon}
         </div>
-        <div className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-          {label}
+        <div>
+          <div className="text-11px font-black uppercase tracking-[0.2em] text-neutral-500 mb-2 group-hover:text-neutral-400 transition-colors">
+            {label}
+          </div>
+          <div className="text-4xl font-black tabular-nums tracking-tighter text-white italic">
+            {value}
+          </div>
         </div>
       </div>
     </div>
@@ -352,9 +302,7 @@ function DailyGoal() {
         const parsed = parseInt(saved, 10);
         if (Number.isFinite(parsed) && parsed >= 0) setGoal(parsed);
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }, []);
 
   const todayCount = useMemo(() => {
@@ -366,59 +314,67 @@ function DailyGoal() {
     const parsed = parseInt(val, 10);
     const n = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
     setGoal(n);
-    try {
-      localStorage.setItem("jtd:daily-goal", n.toString());
-    } catch {
-      // ignora erros de storage
-    }
+    try { localStorage.setItem("jtd:daily-goal", n.toString()); } catch { }
   };
 
   const percent = goal > 0 ? Math.min(100, (todayCount / goal) * 100) : 0;
   const reached = goal > 0 && todayCount >= goal;
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-semibold text-lg flex items-center gap-2">
-          <Target className="h-5 w-5 text-primary" /> Meta diária
+    <div className="bg-neutral-900/40 backdrop-blur-xl border border-neutral-800/60 rounded-[2.5rem] p-10 h-full flex flex-col relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-opacity">
+        <Target className="h-32 w-32 text-orange-500 -rotate-12" />
+      </div>
+
+      <div className="flex items-center justify-between mb-10 relative z-10">
+        <h3 className="text-xl font-black uppercase tracking-widest italic flex items-center gap-3">
+          <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+          Meta Diária
         </h3>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Meta:</span>
+        <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-xl border border-neutral-800/60">
+          <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Definir:</span>
           <input
             type="number"
             value={goal || ""}
             onChange={(e) => updateGoal(e.target.value)}
-            placeholder="Ex: 5"
-            className="w-16 h-8 px-2 rounded-lg bg-surface-elevated border border-border text-sm outline-none focus:border-primary/50 transition"
+            className="w-12 bg-transparent text-sm font-black text-orange-500 outline-none text-center"
           />
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="flex items-end justify-between mb-2">
-          <div className="text-3xl font-bold tabular-nums">
-            {todayCount} <span className="text-sm font-normal text-muted-foreground uppercase tracking-wider">de {goal || "—"} produtos</span>
+      <div className="flex-1 flex flex-col justify-center relative z-10">
+        <div className="flex items-end justify-between mb-6">
+          <div className="animate-in zoom-in-95 duration-700">
+            <div className="text-7xl font-black tabular-nums tracking-tighter italic text-white flex items-baseline gap-2">
+              {todayCount}
+              <span className="text-lg font-black text-neutral-600 uppercase tracking-widest not-italic">/ {goal || "—"}</span>
+            </div>
+            <div className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.3em] mt-2">
+              Produtos criados hoje
+            </div>
           </div>
+          
           {reached && (
-            <div className="flex items-center gap-1.5 text-success text-sm font-semibold animate-in fade-in slide-in-from-right-2">
-              <CheckCircle2 className="h-4 w-4" /> Meta atingida!
+            <div className="flex items-center gap-2 bg-green-500/10 text-green-500 px-4 py-2 rounded-xl border border-green-500/20 text-[10px] font-black uppercase tracking-widest animate-bounce">
+              <CheckCircle2 className="h-4 w-4" /> Excelente!
             </div>
           )}
         </div>
         
-        <div className="h-2 w-full bg-border rounded-full overflow-hidden">
+        <div className="h-4 w-full bg-black/40 rounded-full overflow-hidden border border-neutral-800/60 p-1">
           <div 
             className={cn(
-              "h-full transition-all duration-500",
-              reached ? "bg-success" : "bg-primary"
+              "h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(249,115,22,0.4)]",
+              reached ? "bg-gradient-to-r from-green-500 to-emerald-400" : "bg-gradient-to-r from-orange-600 to-orange-400"
             )}
             style={{ width: `${percent}%` }}
           />
         </div>
         
         {!goal && (
-          <p className="mt-4 text-sm text-muted-foreground italic">
-            Defina uma meta diária para acompanhar seu progresso.
+          <p className="mt-8 text-[10px] font-bold text-neutral-600 uppercase tracking-widest italic flex items-center gap-2">
+            <Sparkles className="h-3 w-3 text-orange-500" />
+            Estabeleça uma meta para acelerar o motor
           </p>
         )}
       </div>
@@ -427,339 +383,58 @@ function DailyGoal() {
 }
 
 function RecentProducts() {
-  const { products, openProduct, createProduct, ui } = useStore();
+  const { products, openProduct } = useStore();
   
   const recent = useMemo(() => {
     return [...products]
-      .sort((a, b) => {
-        const dateA = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
-        const dateB = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
-        return dateB - dateA;
-      })
-      .slice(0, 5);
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      .slice(0, 4);
   }, [products]);
 
-  if (products.length === 0) {
-    return (
-      <div className="bg-surface border border-border rounded-xl p-8 text-center flex flex-col items-center justify-center h-full">
-        <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center mb-4">
-          <Package2 className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <p className="text-muted-foreground mb-4">Nenhum produto criado ainda. Comece criando seu primeiro produto.</p>
-        <button
-          onClick={() => createProduct()}
-          className="h-10 px-4 inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition shadow-[var(--shadow-red)]"
-        >
-          <Plus className="h-4 w-4" /> Criar produto
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-surface border border-border rounded-xl flex flex-col h-full overflow-hidden">
-      <div className="px-6 py-5 border-b border-border flex items-center justify-between">
-        <h3 className="font-semibold text-lg flex items-center gap-2">
-          <History className="h-5 w-5 text-primary" /> Acesso rápido
+    <div className="bg-neutral-900/40 backdrop-blur-xl border border-neutral-800/60 rounded-[2.5rem] flex flex-col h-full overflow-hidden shadow-2xl group">
+      <div className="px-10 py-8 border-b border-neutral-800/50 flex items-center justify-between">
+        <h3 className="text-xl font-black uppercase tracking-widest italic flex items-center gap-3">
+          <History className="h-5 w-5 text-orange-500" /> 
+          Histórico
         </h3>
-        <button 
-          onClick={() => {}} // This should ideally trigger view switch to home but with a specific filter or just scrolling to list
-          className="text-xs text-muted-foreground hover:text-foreground transition flex items-center gap-1 uppercase tracking-wider font-semibold"
-        >
-          Ver todos <ArrowRight className="h-3 w-3" />
-        </button>
+        <ArrowRight className="h-4 w-4 text-neutral-600 group-hover:translate-x-1 transition-transform" />
       </div>
-      <div className="divide-y divide-border">
-        {recent.map(p => (
-          <div 
-            key={p.id}
-            onClick={() => openProduct(p.id)}
-            className="px-6 py-4 hover:bg-surface-elevated cursor-pointer transition flex items-center justify-between group"
-          >
-            <div className="min-w-0">
-              <div className="font-medium truncate group-hover:text-primary transition">{p.name || "Sem nome"}</div>
-              <div className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-2">
-                {p.sku && <span>SKU: {p.sku}</span>}
-                {p.sku && <span className="h-0.5 w-0.5 rounded-full bg-muted-foreground/40" />}
-                <span>{p.createdAt > 0 ? new Date(p.createdAt).toLocaleDateString() : "agora"}</span>
+      
+      <div className="flex-1 divide-y divide-neutral-800/50">
+        {recent.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-40">
+            <Box className="h-12 w-12 mb-4" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Nenhum registro</span>
+          </div>
+        ) : (
+          recent.map(p => (
+            <div 
+              key={p.id}
+              onClick={() => openProduct(p.id)}
+              className="px-10 py-5 hover:bg-orange-500/5 cursor-pointer transition-all flex items-center justify-between group/item"
+            >
+              <div className="min-w-0">
+                <div className="text-sm font-black text-white uppercase tracking-wider truncate group-hover/item:text-orange-500 transition-colors italic">
+                  {p.name || "Produto sem nome"}
+                </div>
+                <div className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mt-1">
+                  SKU: {p.sku || "N/D"}
+                </div>
+              </div>
+              <div className="h-8 w-8 rounded-lg bg-neutral-800/50 flex items-center justify-center text-neutral-600 opacity-0 group-hover/item:opacity-100 group-hover/item:bg-orange-500 group-hover/item:text-white transition-all">
+                <ArrowRight className="h-4 w-4" />
               </div>
             </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PulseCell({
-  label,
-  value,
-  tone,
-  icon,
-}: {
-  label: string;
-  value: number;
-  tone: "metal" | "success" | "warning" | "primary" | "muted";
-  icon?: React.ReactNode;
-}) {
-  const toneClass = {
-    metal: "text-foreground",
-    success: "text-success",
-    warning: "text-warning",
-    primary: "text-primary",
-    muted: "text-muted-foreground",
-  }[tone];
-  return (
-    <div className="bg-surface px-5 py-4">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1.5">
-        {icon}
-        {label}
-      </div>
-      <div className={cn("text-2xl font-semibold tabular-nums", toneClass)}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-
-function ProductRow({
-  p,
-  signal,
-  compact,
-  onOpen,
-  onFav,
-}: {
-  p: Product;
-  signal: ProductSignal;
-  compact: boolean;
-  onOpen: () => void;
-  onFav: () => void;
-}) {
-  const meta = STATUS_META[signal.status];
-  const mainImg = p.images.find((i) => i.isCover) ?? p.images[0];
-  return (
-    <div
-      onClick={onOpen}
-      className={cn(
-        "group flex items-center gap-4 px-5 cursor-pointer transition-colors hover:bg-surface-elevated",
-        compact ? "py-2.5" : "py-4",
-      )}
-    >
-      {/* Status rail */}
-      <div className={cn("h-10 w-0.5 rounded-full", meta.dot)} />
-
-      {/* Thumb */}
-      <div
-        className={cn(
-          "shrink-0 rounded-lg overflow-hidden bg-accent flex items-center justify-center",
-          compact ? "h-9 w-9" : "h-12 w-12",
-        )}
-      >
-        {mainImg ? (
-          <img
-            src={mainImg.dataUrl}
-            alt=""
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <Package2 className="h-4 w-4 text-muted-foreground" />
+          ))
         )}
       </div>
-
-      {/* Title + meta */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <div
-            className={cn(
-              "truncate font-medium",
-              compact ? "text-sm" : "text-[15px]",
-            )}
-          >
-            {p.name || "Sem nome"}
-          </div>
-          {p.favorite && (
-            <Star className="h-3.5 w-3.5 fill-warning text-warning shrink-0" />
-          )}
-        </div>
-        {!compact && (
-          <div className="text-xs text-muted-foreground mt-0.5 truncate">
-            {[p.sku, p.brand, p.category].filter(Boolean).join(" · ") ||
-              "Sem identificação"}
-          </div>
-        )}
-      </div>
-
-      {/* Status pill */}
-      <div
-        className={cn(
-          "hidden md:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1",
-          meta.ring,
-          meta.text,
-        )}
-      >
-        <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
-        {meta.label}
-      </div>
-
-      {/* Price + margin */}
-      <div className="hidden lg:block text-right tabular-nums">
-        <div className="text-sm font-semibold">
-          {signal.finalPrice > 0 ? brl(signal.finalPrice) : "—"}
-        </div>
-        <div
-          className={cn(
-            "text-[11px]",
-            signal.margin >= 25
-              ? "text-success"
-              : signal.margin >= 10
-                ? "text-warning"
-                : signal.margin > 0
-                  ? "text-primary"
-                  : "text-muted-foreground",
-          )}
-        >
-          {signal.finalPrice > 0
-            ? `${signal.margin.toFixed(1)}% margem`
-            : "—"}
+      
+      <div className="p-6 bg-black/20 text-center">
+        <div className="text-[9px] font-black text-neutral-700 uppercase tracking-[0.4em]">
+          Últimas atualizações automáticas
         </div>
       </div>
-
-      {/* Fav */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onFav();
-        }}
-        className="opacity-40 group-hover:opacity-100 transition-opacity"
-        title="Favoritar"
-      >
-        <Star
-          className={cn(
-            "h-4 w-4",
-            p.favorite && "fill-warning text-warning opacity-100",
-          )}
-        />
-      </button>
-    </div>
-  );
-}
-
-function ProductCard({
-  p,
-  signal,
-  onOpen,
-  onFav,
-}: {
-  p: Product;
-  signal: ProductSignal;
-  onOpen: () => void;
-  onFav: () => void;
-}) {
-  const meta = STATUS_META[signal.status];
-  const mainImg = p.images.find((i) => i.isCover) ?? p.images[0];
-  return (
-    <button
-      onClick={onOpen}
-      className="group text-left rounded-xl border border-border bg-surface hover:border-foreground/20 hover:bg-surface-elevated transition-all overflow-hidden"
-    >
-      <div className="relative aspect-[16/10] bg-accent overflow-hidden">
-        {mainImg ? (
-          <img
-            src={mainImg.dataUrl}
-            alt=""
-            className="h-full w-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <Package2 className="h-8 w-8 text-muted-foreground/40" />
-          </div>
-        )}
-        {/* Status corner */}
-        <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white ring-1 ring-white/10">
-          <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
-          {meta.label}
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFav();
-          }}
-          className="absolute top-3 right-3 h-7 w-7 inline-flex items-center justify-center rounded-full bg-black/60 backdrop-blur ring-1 ring-white/10 text-white/80 hover:text-white"
-        >
-          <Star
-            className={cn(
-              "h-3.5 w-3.5",
-              p.favorite && "fill-warning text-warning",
-            )}
-          />
-        </button>
-      </div>
-      <div className="p-4">
-        <div className="font-medium truncate">{p.name || "Sem nome"}</div>
-        <div className="text-xs text-muted-foreground mt-0.5 truncate">
-          {[p.sku, p.brand].filter(Boolean).join(" · ") || "Sem identificação"}
-        </div>
-        <div className="mt-3 flex items-end justify-between">
-          <div className="tabular-nums">
-            <div className="text-base font-semibold">
-              {signal.finalPrice > 0 ? brl(signal.finalPrice) : "—"}
-            </div>
-            <div
-              className={cn(
-                "text-[11px]",
-                signal.margin >= 25
-                  ? "text-success"
-                  : signal.margin >= 10
-                    ? "text-warning"
-                    : signal.margin > 0
-                      ? "text-primary"
-                      : "text-muted-foreground",
-              )}
-            >
-              {signal.finalPrice > 0
-                ? `${signal.margin.toFixed(1)}% margem`
-                : "sem preço"}
-            </div>
-          </div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            {Math.round(signal.completeness * 100)}% pronto
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function EmptyState({
-  hasProducts,
-  onCreate,
-}: {
-  hasProducts: boolean;
-  onCreate: () => void;
-}) {
-  return (
-    <div className="rounded-2xl border border-dashed border-border px-8 py-16 text-center">
-      <div className="mx-auto h-12 w-12 rounded-xl bg-surface border border-border flex items-center justify-center mb-4">
-        <Package2 className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <div className="text-base font-medium">
-        {hasProducts ? "Nenhum produto bate com este filtro" : "Nenhum produto ainda"}
-      </div>
-      <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-        {hasProducts
-          ? "Ajuste os filtros ou limpe a busca para ver tudo."
-          : "Crie seu primeiro produto e comece a operar."}
-      </p>
-      {!hasProducts && (
-        <button
-          onClick={onCreate}
-          className="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" /> Criar produto
-        </button>
-      )}
     </div>
   );
 }
