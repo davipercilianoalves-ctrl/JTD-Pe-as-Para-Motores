@@ -82,12 +82,16 @@ function Index() {
 
 function Main() {
   const { ui, dataLoading } = useStore();
-  
+
   if (dataLoading) return <LoadingScreen />;
-  
+
   if (ui.view === "home") return <HomeScreen />;
+
   if (ui.view === "viral") return <ViralLibraryScreen />;
+
   if (ui.view === "settings") return <SettingsScreen />;
+
   if (ui.view === "kits") return <KitsScreen />;
+
   return <ProductWorkspace />;
 }
