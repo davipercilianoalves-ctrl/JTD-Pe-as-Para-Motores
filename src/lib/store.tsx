@@ -480,6 +480,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     <StoreContext.Provider
       value={{
         ...state,
+        dataLoading,
         goHome,
         openProduct,
         openViral,
