@@ -86,6 +86,7 @@ export function AuthScreen() {
           .from("profiles")
           .insert({
             id: data.user.id,
+            user_id: data.user.id,
             email,
             company_name: companyName,
           });
