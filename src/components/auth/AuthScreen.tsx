@@ -29,6 +29,8 @@ export function AuthScreen() {
     if (error.includes("Email not confirmed")) return "Confirme seu email antes de entrar";
     if (error.includes("User already registered")) return "Este email já está cadastrado";
     if (error.includes("Password should be at least")) return "A senha deve ter pelo menos 8 caracteres";
+    if (error.includes("weak_password")) return "Senha muito fraca. Escolha uma senha mais complexa.";
+    if (error.includes("too many requests")) return "Muitas tentativas. Tente novamente mais tarde.";
     return "Erro ao processar. Tente novamente.";
   };
 
