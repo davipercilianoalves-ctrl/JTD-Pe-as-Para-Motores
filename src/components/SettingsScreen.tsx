@@ -9,6 +9,7 @@ import {
   Palette, 
   Sun, 
   Moon, 
+  Trash2,
   Camera,
   Mail,
   Phone
@@ -119,240 +120,225 @@ export function SettingsScreen() {
 
   const pct = Math.min(100, usage.percent);
   const barTone =
-    pct > 90 ? "bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.4)]" : pct > 70 ? "bg-amber-500" : "bg-white/40";
+    pct > 90 ? "bg-primary" : pct > 70 ? "bg-warning" : "bg-foreground/70";
 
   return (
-    <div className="flex-1 overflow-auto bg-black selection:bg-orange-500/30">
-      <div className="mx-auto max-w-3xl px-8 py-12">
+    <div className="flex-1 overflow-auto">
+      <div className="mx-auto max-w-3xl px-8 py-10">
         <button
           onClick={goHome}
-          className="mb-10 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-all group"
+          className="mb-6 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-1 transition-transform" /> 
-          Voltar para Home
+          <ArrowLeft className="h-3.5 w-3.5" /> Voltar
         </button>
+        <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Personalize sua empresa e gerencie seus dados.
+        </p>
 
-        <header className="mb-12">
-          <h1 className="text-4xl font-black tracking-tighter italic uppercase bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">
-            Configurações
-          </h1>
-          <p className="mt-2 text-xs font-bold text-neutral-500 uppercase tracking-widest">
-            Personalize sua empresa e gerencie seus dados operacionais.
-          </p>
-        </header>
-
-        <div className="space-y-8">
-          {/* Seção Empresa */}
-          <section className="rounded-[2.5rem] border border-neutral-800/60 bg-neutral-900/40 backdrop-blur-xl p-10 shadow-2xl">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="h-8 w-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500">
-                <Building2 className="h-4 w-4" />
-              </div>
-              <h2 className="text-lg font-black uppercase tracking-widest italic text-white">Sua Empresa</h2>
-            </div>
-            
-            <div className="space-y-8">
-              <div className="flex flex-col sm:flex-row gap-10 items-center sm:items-start">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="relative group">
-                    <div className={cn(
-                      "h-32 w-32 rounded-[2rem] border-2 border-dashed border-neutral-800 flex items-center justify-center overflow-hidden bg-black/40 transition-all group-hover:border-orange-500/50",
-                      settings.logoUrl && "border-solid border-orange-500/20 shadow-[0_0_30px_rgba(249,115,22,0.1)]"
-                    )}>
-                      {settings.logoUrl ? (
-                        <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-cover" />
-                      ) : (
-                        <Camera className="h-10 w-10 text-neutral-700" />
-                      )}
-                    </div>
-                    <button
-                      onClick={() => logoFileInput.current?.click()}
-                      className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem]"
-                    >
-                      <Upload className="h-8 w-8 text-white" />
-                    </button>
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <button
-                      onClick={() => logoFileInput.current?.click()}
-                      className="text-[10px] font-black uppercase tracking-widest text-orange-500 hover:text-orange-400"
-                    >
-                      Alterar logo
-                    </button>
-                    {settings.logoUrl && (
-                      <button
-                        onClick={() => update({ logoUrl: "" })}
-                        className="text-[10px] font-black uppercase tracking-widest text-red-500/70 hover:text-red-500"
-                      >
-                        Remover
-                      </button>
+        {/* Seção Empresa */}
+        <section className="mt-8 rounded-2xl border border-border bg-surface-elevated p-6">
+          <div className="flex items-center gap-2.5">
+            <Building2 className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold">Empresa</h2>
+          </div>
+          
+          <div className="mt-6 space-y-6">
+            <div className="flex flex-col sm:flex-row gap-6">
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative group">
+                  <div className={cn(
+                    "h-24 w-24 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-background/50 transition-colors group-hover:border-primary/50",
+                    settings.logoUrl && "border-solid border-primary/20"
+                  )}>
+                    {settings.logoUrl ? (
+                      <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-cover" />
+                    ) : (
+                      <Camera className="h-8 w-8 text-muted-foreground/40" />
                     )}
                   </div>
-                  <input
-                    ref={logoFileInput}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={handleLogoUpload}
-                  />
+                  <button
+                    onClick={() => logoFileInput.current?.click()}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"
+                  >
+                    <Upload className="h-6 w-6 text-white" />
+                  </button>
                 </div>
-
-                <div className="flex-1 w-full space-y-6">
-                  <div>
-                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-3 block ml-1">
-                      Nome Comercial
-                    </label>
-                    <input
-                      value={settings.companyName}
-                      onChange={(e) => update({ companyName: e.target.value })}
-                      placeholder="Ex: JTD Motors"
-                      className="w-full h-14 bg-black/40 border border-neutral-700/60 rounded-2xl px-5 text-white placeholder:text-neutral-700 text-sm focus:outline-none focus:border-orange-500/60 focus:shadow-[0_0_20px_rgba(249,115,22,0.1)] transition-all"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-3 block ml-1 flex items-center gap-2">
-                        <Phone className="h-3 w-3" /> Telefone
-                      </label>
-                      <input
-                        value={settings.phone}
-                        onChange={(e) => update({ phone: e.target.value })}
-                        placeholder="(00) 00000-0000"
-                        className="w-full h-14 bg-black/40 border border-neutral-700/60 rounded-2xl px-5 text-white placeholder:text-neutral-700 text-sm focus:outline-none focus:border-orange-500/60 focus:shadow-[0_0_20px_rgba(249,115,22,0.1)] transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-3 block ml-1 flex items-center gap-2">
-                        <Mail className="h-3 w-3" /> Email
-                      </label>
-                      <input
-                        value={settings.email}
-                        onChange={(e) => update({ email: e.target.value })}
-                        placeholder="contato@empresa.com"
-                        className="w-full h-14 bg-black/40 border border-neutral-700/60 rounded-2xl px-5 text-white placeholder:text-neutral-700 text-sm focus:outline-none focus:border-orange-500/60 focus:shadow-[0_0_20px_rgba(249,115,22,0.1)] transition-all"
-                      />
-                    </div>
-                  </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => logoFileInput.current?.click()}
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    Alterar logo
+                  </button>
+                  {settings.logoUrl && (
+                    <button
+                      onClick={() => update({ logoUrl: "" })}
+                      className="text-[11px] font-semibold text-destructive hover:underline"
+                    >
+                      Remover
+                    </button>
+                  )}
                 </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Seção Aparência */}
-          <section className="rounded-[2.5rem] border border-neutral-800/60 bg-neutral-900/40 backdrop-blur-xl p-10 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
-                <Palette className="h-4 w-4" />
-              </div>
-              <h2 className="text-lg font-black uppercase tracking-widest italic text-white">Interface</h2>
-            </div>
-            <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-8 ml-1">
-              Personalize o ambiente visual do seu Hub.
-            </p>
-            
-            <div className="flex p-1.5 bg-black/60 border border-neutral-800/60 rounded-[1.5rem] w-fit shadow-inner">
-              <button
-                onClick={() => toggleTheme("light")}
-                className={cn(
-                  "flex items-center gap-3 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                  theme === "light" 
-                    ? "bg-white text-black shadow-lg" 
-                    : "text-neutral-500 hover:text-neutral-300"
-                )}
-              >
-                <Sun className="h-4 w-4" /> Claro
-              </button>
-              <button
-                onClick={() => toggleTheme("dark")}
-                className={cn(
-                  "flex items-center gap-3 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                  theme === "dark" 
-                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20" 
-                    : "text-neutral-500 hover:text-neutral-300"
-                )}
-              >
-                <Moon className="h-4 w-4" /> Escuro
-              </button>
-            </div>
-          </section>
-
-          {/* Backup e Dados */}
-          <section className="rounded-[2.5rem] border border-neutral-800/60 bg-neutral-900/40 backdrop-blur-xl p-10 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-neutral-500/10 border border-neutral-500/20 flex items-center justify-center text-neutral-400">
-                <Database className="h-4 w-4" />
-              </div>
-              <h2 className="text-lg font-black uppercase tracking-widest italic text-white">Segurança de Dados</h2>
-            </div>
-            <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-10 ml-1">
-              Exporte seus dados regularmente para garantir a integridade da sua operação.
-            </p>
-
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={handleExport}
-                className="h-14 px-10 rounded-2xl bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-neutral-200 transition-all flex items-center gap-3 shadow-xl active:scale-[0.98]"
-              >
-                <Download className="h-4 w-4" /> Exportar Tudo
-              </button>
-              <button
-                onClick={handleImportClick}
-                className="h-14 px-10 rounded-2xl border border-neutral-700 bg-transparent text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-3 active:scale-[0.98]"
-              >
-                <Upload className="h-4 w-4" /> Restaurar Backup
-              </button>
-              <input
-                ref={backupFileInput}
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={handleFile}
-              />
-            </div>
-
-            <div className="mt-12 pt-10 border-t border-neutral-800/50">
-              <div className="flex items-center gap-3 mb-6">
-                <HardDrive className="h-4 w-4 text-neutral-600" />
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500 italic">Armazenamento Local</h3>
-              </div>
-              
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">
-                  Capacidade:{" "}
-                  <span className="text-white font-black italic">
-                    {usage.usedMB.toFixed(2)} MB
-                  </span>{" "}
-                  / {STORAGE_LIMIT} MB
-                </div>
-                <div className="text-xl font-black tabular-nums text-white italic">
-                  {pct.toFixed(0)}%
-                </div>
-              </div>
-              
-              <div className="h-3 w-full rounded-full bg-black/60 border border-neutral-800/60 overflow-hidden p-[2px]">
-                <div
-                  className={cn("h-full rounded-full transition-all duration-1000", barTone)}
-                  style={{ width: `${pct}%` }}
+                <input
+                  ref={logoFileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleLogoUpload}
                 />
               </div>
-              
-              {pct > 70 && (
-                <div className={cn(
-                  "mt-6 flex items-center gap-2 p-4 rounded-xl border text-[10px] font-black uppercase tracking-widest",
-                  pct > 90 
-                    ? "bg-red-500/10 border-red-500/20 text-red-500" 
-                    : "bg-orange-500/10 border-orange-500/20 text-orange-500"
-                )}>
-                  <Database className="h-3 w-3" />
-                  {pct > 90
-                    ? "Atenção: Espaço crítico. Realize um backup imediatamente!"
-                    : "Aviso: Armazenamento acima de 70%. Considere exportar dados."}
+
+              <div className="flex-1 space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                    Nome da Empresa
+                  </label>
+                  <TextInput
+                    value={settings.companyName}
+                    onChange={(e) => update({ companyName: e.target.value })}
+                    placeholder="Ex: JTD Motors"
+                  />
+
                 </div>
-              )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3 w-3" /> Telefone
+                      </div>
+                    </label>
+                    <TextInput
+                      value={settings.phone}
+                      onChange={(e) => update({ phone: e.target.value })}
+                      placeholder="(00) 00000-0000"
+                    />
+
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="h-3 w-3" /> Email
+                      </div>
+                    </label>
+                    <TextInput
+                      value={settings.email}
+                      onChange={(e) => update({ email: e.target.value })}
+                      placeholder="contato@empresa.com"
+                    />
+
+                  </div>
+                </div>
+              </div>
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
+
+        {/* Seção Aparência */}
+        <section className="mt-6 rounded-2xl border border-border bg-surface-elevated p-6">
+          <div className="flex items-center gap-2.5">
+            <Palette className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold">Aparência</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Escolha o tema que melhor se adapta ao seu ambiente de trabalho.
+          </p>
+          
+          <div className="mt-5 flex p-1 bg-background/50 border border-border rounded-xl w-fit">
+            <button
+              onClick={() => toggleTheme("light")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                theme === "light" 
+                  ? "bg-primary/10 text-primary shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              )}
+            >
+              <Sun className="h-4 w-4" /> Claro
+            </button>
+            <button
+              onClick={() => toggleTheme("dark")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                theme === "dark" 
+                  ? "bg-primary/10 text-primary shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              )}
+            >
+              <Moon className="h-4 w-4" /> Escuro
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-border bg-surface-elevated p-6">
+          <div className="flex items-center gap-2.5">
+            <Database className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold">Dados e Backup</h2>
+          </div>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Exporte seus dados regularmente para não perder produtos, anúncios e
+            configurações.
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 shadow-[var(--shadow-red)] transition-opacity"
+            >
+              <Download className="h-4 w-4" /> Exportar dados
+            </button>
+            <button
+              onClick={handleImportClick}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-background text-sm font-medium hover:bg-accent transition-colors"
+            >
+              <Upload className="h-4 w-4" /> Importar backup
+            </button>
+            <input
+              ref={backupFileInput}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={handleFile}
+            />
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-border bg-surface-elevated p-6">
+          <div className="flex items-center gap-2.5">
+            <HardDrive className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-base font-semibold">Armazenamento</h2>
+          </div>
+          <div className="mt-4 flex items-baseline justify-between">
+            <div className="text-sm text-muted-foreground">
+              Armazenamento usado:{" "}
+              <span className="text-foreground font-medium">
+                {usage.usedMB.toFixed(2)} MB
+              </span>{" "}
+              de {STORAGE_LIMIT} MB
+            </div>
+            <div className="text-sm font-semibold tabular-nums">
+              {pct.toFixed(0)}%
+            </div>
+          </div>
+          <div className="mt-3 h-2 w-full rounded-full bg-accent overflow-hidden">
+            <div
+              className={cn("h-full rounded-full transition-all", barTone)}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          {pct > 70 && (
+            <p
+              className={cn(
+                "mt-3 text-xs",
+                pct > 90 ? "text-primary" : "text-warning",
+              )}
+            >
+              {pct > 90
+                ? "Armazenamento crítico. Exporte seus dados agora."
+                : "Armazenamento em 70%. Faça um backup dos seus dados."}
+            </p>
+          )}
+        </section>
       </div>
     </div>
   );

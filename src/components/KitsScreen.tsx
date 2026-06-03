@@ -64,91 +64,61 @@ export function KitsScreen() {
   }
 
   return (
-    <div className="flex h-screen flex-1 flex-col overflow-hidden bg-black">
-      <div className="flex-1 overflow-auto selection:bg-orange-500/30">
+    <div className="flex h-screen flex-1 flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-[1100px] px-12 pt-12 pb-32">
-          <header className="mb-12">
-            <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.4em] text-orange-500/80 mb-4 animate-in fade-in slide-in-from-left-4 duration-700">
-              <span className="h-[2px] w-10 bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
-              Workspace
-            </div>
-            
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                <h1 className="text-6xl font-black tracking-tighter leading-none italic uppercase bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                  Kits e <span className="text-orange-500 drop-shadow-[0_0_30px_rgba(249,115,22,0.3)]">Composições</span>
-                </h1>
-                <p className="text-neutral-500 text-sm font-bold mt-4 max-w-md uppercase tracking-widest">
-                  Gerencie seus conjuntos de produtos e kits promocionais
-                </p>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
+                Workspace
               </div>
-              
-              <div className="animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
-                <button
-                  onClick={() => createKit()}
-                  className="h-14 px-8 inline-flex items-center gap-3 rounded-2xl bg-orange-500 text-white text-xs font-black uppercase tracking-widest hover:bg-orange-400 transition-all shadow-[0_0_40px_rgba(249,115,22,0.3)] hover:shadow-[0_0_50px_rgba(249,115,22,0.5)] active:scale-[0.98]"
-                >
-                  <Plus className="h-5 w-5" /> Novo kit
-                </button>
-              </div>
+              <h1 className="text-4xl font-bold tracking-tight">Kits e Composições</h1>
             </div>
-          </header>
+            <Btn onClick={() => createKit()} variant="primary">
+              <Plus className="h-4 w-4 mr-2" /> Novo kit
+            </Btn>
+          </div>
 
           {kits.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-32 text-center rounded-[2.5rem] border border-dashed border-neutral-800/60 bg-neutral-900/20 backdrop-blur-sm animate-in fade-in duration-700">
-              <div className="mx-auto h-20 w-20 rounded-[1.5rem] bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(249,115,22,0.05)]">
-                <Package2 className="h-10 w-10 text-orange-500 opacity-60" />
-              </div>
-              <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic mb-3">Nenhum kit cadastrado</h3>
-              <p className="text-sm font-bold text-neutral-500 uppercase tracking-widest mt-1 max-w-sm mx-auto mb-10">
+            <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-border/40 rounded-3xl">
+              <Package2 className="h-12 w-12 text-muted-foreground/40 mb-4" />
+              <h3 className="text-xl font-semibold">Nenhum kit cadastrado</h3>
+              <p className="text-muted-foreground mt-2 max-w-sm">
                 Crie kits combinando produtos existentes para facilitar a criação de anúncios de conjuntos.
               </p>
-              <button
-                onClick={() => createKit()}
-                className="h-14 px-10 rounded-2xl bg-orange-500 text-white text-xs font-black uppercase tracking-widest hover:bg-orange-400 shadow-[0_0_30px_rgba(249,115,22,0.3)] hover:shadow-[0_0_50px_rgba(249,115,22,0.5)] transition-all active:scale-[0.98]"
-              >
+              <Btn onClick={() => createKit()} variant="soft" className="mt-6">
                 Criar meu primeiro kit
-              </button>
+              </Btn>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {kits.map((k) => (
                 <button
                   key={k.id}
                   onClick={() => openKit(k.id)}
-                  className="group flex flex-col text-left p-8 rounded-[2rem] bg-neutral-900/40 backdrop-blur-xl border border-neutral-800/60 hover:border-orange-500/30 hover:bg-neutral-900/60 transition-all duration-500 shadow-2xl relative overflow-hidden"
+                  className="flex flex-col text-left p-5 rounded-2xl bg-surface border border-border/40 hover:border-primary/40 transition-colors group"
                 >
-                  <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-orange-500 rounded-full blur-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-700" />
-                  
-                  <div className="flex items-start justify-between mb-8">
+                  <div className="flex items-start justify-between mb-3">
                     <span className={cn(
-                      "text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border italic shadow-inner",
-                      k.type === "identical" 
-                        ? "bg-blue-500/10 text-blue-400 border-blue-500/20" 
-                        : "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                      "text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md font-bold",
+                      k.type === "identical" ? "bg-blue-500/10 text-blue-500" : "bg-purple-500/10 text-purple-500"
                     )}>
-                      {k.type === "identical" ? "IDÊNTICOS" : "COMPOSIÇÃO"}
+                      {k.type === "identical" ? "Idênticos" : "Composição"}
                     </span>
-                    <span className="text-[9px] font-black text-neutral-600 uppercase tracking-widest italic">
+                    <span className="text-[10px] text-muted-foreground">
                       {new Date(k.createdAt).toLocaleDateString("pt-BR")}
                     </span>
                   </div>
-                  
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight italic group-hover:text-orange-500 transition-colors truncate w-full mb-1">
+                  <h3 className="text-lg font-bold group-hover:text-primary transition-colors truncate w-full mb-1">
                     {k.name || "Sem nome"}
                   </h3>
-                  <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-8">SKU: {k.sku || "---"}</p>
+                  <p className="text-xs text-muted-foreground mb-4">SKU: {k.sku || "---"}</p>
                   
-                  <div className="mt-auto pt-6 border-t border-neutral-800/50 w-full flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-lg bg-black/40 border border-neutral-800/60 flex items-center justify-center text-[10px] font-black text-white italic">
-                        {k.items.length}
-                      </div>
-                      <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">
-                        Itens
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] italic group-hover:translate-x-1 transition-transform">
+                  <div className="mt-auto pt-4 border-t border-border/40 w-full flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {k.items.length} {k.items.length === 1 ? "produto" : "produtos"}
+                    </span>
+                    <span className="font-semibold text-foreground">
                       Ver detalhes
                     </span>
                   </div>
@@ -159,7 +129,6 @@ export function KitsScreen() {
         </div>
       </div>
     </div>
-
   );
 }
 

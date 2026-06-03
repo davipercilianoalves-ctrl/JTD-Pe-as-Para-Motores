@@ -31,7 +31,7 @@ const COLLAPSED_WIDTH = 56;
 const EXPANDED_WIDTH = 216;
 
 export function AppSidebar() {
-  const { ui, goHome, openKits, openSettings, createProduct } = useStore();
+  const { ui, products, kits, goHome, openKits, openSettings, createProduct, openProduct } = useStore();
   const { settings } = useSettings();
   const confirm = useConfirm();
   
@@ -102,17 +102,17 @@ export function AppSidebar() {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
-          "absolute inset-y-0 left-0 z-40 flex flex-col bg-black text-white border-r border-white/5",
+          "absolute inset-y-0 left-0 z-40 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
           "transition-[width] duration-200 ease-in-out will-change-[width]",
-          !pinned && isActuallyExpanded && "shadow-[20px_0_50px_rgba(0,0,0,0.8)]"
+          !pinned && isActuallyExpanded && "shadow-[12px_0_48px_-12px_rgba(0,0,0,0.5)]"
         )}
         style={{ width: isActuallyExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
       >
         {/* Brand Area */}
-        <div className="relative flex items-center h-20 px-3">
+        <div className="relative flex items-center h-16 px-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div 
-              className="h-8 w-8 shrink-0 rounded-[10px] overflow-hidden bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)] flex items-center justify-center text-[11px] font-black text-white italic border border-orange-400/30"
+              className="h-[30px] w-[30px] shrink-0 rounded-[8px] overflow-hidden bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary border border-primary/20"
               title={settings.companyName || "JT"}
             >
               {settings.logoUrl ? (
@@ -123,7 +123,7 @@ export function AppSidebar() {
             </div>
             
             {isActuallyExpanded && (
-              <span className="font-black text-xs uppercase tracking-widest truncate animate-in fade-in duration-500 italic bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              <span className="font-semibold text-sm truncate animate-in fade-in duration-300">
                 {settings.companyName || "JTD Motors"}
               </span>
             )}
@@ -133,12 +133,12 @@ export function AppSidebar() {
             onClick={togglePin}
             title={pinned ? "Soltar sidebar" : "Fixar sidebar"}
             className={cn(
-              "p-1.5 rounded-lg transition-all",
+              "p-1 rounded-md transition-all",
               pinned
-                ? "opacity-100 text-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.2)]"
+                ? "opacity-100 text-primary"           // fixado: sempre visível e azul
                 : isActuallyExpanded
-                  ? "opacity-60 text-neutral-500 hover:text-white hover:opacity-100"
-                  : "opacity-0 pointer-events-none"
+                  ? "opacity-100 text-muted-foreground hover:text-foreground"  // expandido: visível
+                  : "opacity-0 pointer-events-none"    // fechado e não fixado: invisível
             )}
           >
             <Pin className={cn("h-3.5 w-3.5", pinned && "fill-current")} />
@@ -151,14 +151,14 @@ export function AppSidebar() {
             <SidebarNavItem
               icon={LayoutDashboard}
               label="Dashboard"
-              active={ui.view === "home"}
+              active={ui.view === "home" && !ui.selectedId}
               expanded={isActuallyExpanded}
               onClick={goHome}
             />
             <SidebarNavItem
               icon={Package2}
               label="Produtos"
-              active={ui.view === "product"}
+              active={ui.view === "home" || ui.view === "product"}
               expanded={isActuallyExpanded}
               onClick={goHome}
             />
@@ -167,7 +167,7 @@ export function AppSidebar() {
               label="Anúncios"
               active={false}
               expanded={isActuallyExpanded}
-              onClick={() => {}}
+              onClick={goHome}
             />
             <SidebarNavItem
               icon={Layers}
@@ -177,7 +177,7 @@ export function AppSidebar() {
               onClick={openKits}
             />
 
-            <div className="my-4 mx-3 h-px bg-white/5" />
+            <div className="my-2 mx-2 h-px bg-sidebar-border/50" />
 
             <SidebarNavItem
               icon={BarChart2}
@@ -201,7 +201,7 @@ export function AppSidebar() {
               comingSoon
             />
 
-            <div className="my-4 mx-3 h-px bg-white/5" />
+            <div className="my-2 mx-2 h-px bg-sidebar-border/50" />
 
             <SidebarNavItem
               icon={Plug}
@@ -220,12 +220,12 @@ export function AppSidebar() {
           </nav>
         </TooltipProvider>
 
-        <div className="mt-auto flex flex-col gap-1 p-3 border-t border-white/5 bg-neutral-900/10">
+        <div className="mt-auto flex flex-col gap-1 p-2 border-t border-sidebar-border/50 bg-sidebar/50">
           <button
             onClick={() => createProduct()}
             className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.2)] hover:bg-orange-400 transition-all active:scale-[0.97]",
-              isActuallyExpanded ? "h-11 px-4 text-xs font-black uppercase tracking-widest" : "h-11"
+              "flex w-full items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all",
+              isActuallyExpanded ? "h-10 px-4 text-sm font-semibold" : "h-10"
             )}
             title="Novo produto"
           >
@@ -236,8 +236,8 @@ export function AppSidebar() {
           <button
             onClick={handleLogout}
             className={cn(
-              "mt-1 flex items-center gap-2 rounded-xl text-red-500/80 hover:bg-red-500/10 transition-all",
-              isActuallyExpanded ? "h-11 px-4 text-xs font-black uppercase tracking-widest" : "h-11 justify-center"
+              "flex items-center gap-2 rounded-lg text-destructive hover:bg-destructive/10 transition-all",
+              isActuallyExpanded ? "h-10 px-4 text-sm font-semibold" : "h-10 justify-center"
             )}
             title="Sair"
           >
@@ -246,12 +246,12 @@ export function AppSidebar() {
           </button>
         </div>
 
-        <div className="p-4 border-t border-white/5">
+        <div className="p-3 border-t border-sidebar-border/50">
           <div className={cn(
-            "text-[9px] uppercase tracking-[0.3em] text-neutral-600 font-bold transition-all italic",
-            !isActuallyExpanded && "text-center opacity-40"
+            "text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium transition-all",
+            !isActuallyExpanded && "text-center"
           )}>
-            {isActuallyExpanded ? "JTD Motors Hub · v1.0" : "v1.0"}
+            {isActuallyExpanded ? "JTD Motors Hub · v1.0" : "v1"}
           </div>
         </div>
       </aside>
@@ -280,28 +280,28 @@ function SidebarNavItem({
     <button
       onClick={onClick}
       className={cn(
-        "group relative flex items-center w-full rounded-xl transition-all duration-300",
-        expanded ? "h-11 px-4 gap-3" : "h-11 justify-center",
+        "group relative flex items-center w-full rounded-lg transition-all duration-200",
+        expanded ? "h-10 px-3 gap-3" : "h-10 justify-center",
         active
-          ? "bg-orange-500/10 text-orange-500 font-black shadow-[inset_0_0_20px_rgba(249,115,22,0.05)]"
-          : "text-neutral-500 hover:bg-white/5 hover:text-white",
+          ? "bg-primary/10 text-primary font-semibold"
+          : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
         className
       )}
     >
       {active && (
-        <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
+        <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary" />
       )}
       
-      <Icon className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", active && "text-orange-500")} />
+      <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-primary")} />
       
       {expanded && (
         <>
-          <span className="flex-1 text-left text-[11px] font-bold uppercase tracking-widest truncate animate-in fade-in slide-in-from-left-1 duration-300">
+          <span className="flex-1 text-left text-sm truncate animate-in fade-in slide-in-from-left-1 duration-200">
             {label}
           </span>
           {comingSoon && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-lg bg-orange-500/10 text-orange-500/60 font-black uppercase tracking-tighter border border-orange-500/20 animate-in fade-in duration-500 shrink-0">
-              EM BREVE
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium animate-in fade-in duration-300 shrink-0">
+              Em breve
             </span>
           )}
         </>
@@ -313,7 +313,7 @@ function SidebarNavItem({
     return (
       <Tooltip>
         <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right" sideOffset={10} className="font-bold text-[10px] uppercase tracking-widest bg-neutral-900 border-neutral-800 text-white">
+        <TooltipContent side="right" sideOffset={10} className="font-medium text-xs">
           {label} {comingSoon && "(Em breve)"}
         </TooltipContent>
       </Tooltip>
