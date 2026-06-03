@@ -242,7 +242,12 @@ export function AuthScreen() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.password && <p className="text-[10px] font-bold text-red-400 ml-1">{errors.password}</p>}
+                {activeTab === "signup" && (
+                  <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest mt-1 ml-1">
+                    A senha deve ter 8+ caracteres e ser complexa
+                  </p>
+                )}
+                {errors.password && <p className="text-[10px] font-bold text-red-400 ml-1 mt-1">{errors.password}</p>}
               </div>
 
               {activeTab === "signup" && (
