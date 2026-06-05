@@ -219,7 +219,17 @@ export function AuthScreen() {
           </div>
 
           <div className="p-8">
-            <form onSubmit={activeTab === "login" ? handleLogin : handleSignUp} className="space-y-5">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (activeTab === "login") {
+                  handleLogin(e);
+                } else {
+                  handleSignUp(e);
+                }
+              }} 
+              className="space-y-5"
+            >
               {activeTab === "signup" && (
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Nome da empresa</Label>
