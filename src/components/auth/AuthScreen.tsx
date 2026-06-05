@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Mail, Lock, Building2, User } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock, Building2, User, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AuthTab = "login" | "signup";
@@ -22,6 +22,18 @@ export function AuthScreen() {
   
   // Error states
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const getPasswordStrength = (pwd: string) => {
+    const checks = {
+      length: pwd.length >= 8,
+      uppercase: /[A-Z]/.test(pwd),
+      lowercase: /[a-z]/.test(pwd),
+      number: /[0-9]/.test(pwd),
+      symbol: /[^A-Za-z0-9]/.test(pwd),
+    };
+    const score = Object.values(checks).filter(Boolean).length;
+    return { checks, score };
+  };
 
   const translateError = (error: string) => {
     if (error.includes("Invalid login credentials")) return "Email ou senha incorretos";
@@ -44,6 +56,11 @@ export function AuthScreen() {
       if (!companyName) newErrors.companyName = "Campo obrigatório";
       if (!confirmPassword) newErrors.confirmPassword = "Campo obrigatório";
       else if (confirmPassword !== password) newErrors.confirmPassword = "As senhas não coincidem";
+      
+      const { score } = getPasswordStrength(password);
+      if (score < 5) {
+        newErrors.password = "Complete todos os requisitos de senha acima";
+      }
     }
     
     setErrors(newErrors);
@@ -225,6 +242,84 @@ export function AuthScreen() {
                   </button>
                 </div>
                 {errors.password && <p className="text-xs font-medium text-destructive">{errors.password}</p>}
+                
+                {activeTab === "signup" && password.length > 0 && (
+                  <div className="mt-4 space-y-3 rounded-lg bg-white/5 p-4 border border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-xs font-bold text-white/70 uppercase tracking-wider">
+                        Requisitos da senha:
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        { key: "length", label: "Mínimo 8 caracteres" },
+                        { key: "uppercase", label: "Uma letra maiúscula" },
+                        { key: "lowercase", label: "Uma letra minúscula" },
+                        { key: "number", label: "Um número" },
+                        { key: "symbol", label: "Um símbolo (!@#$%...)" },
+                      ].map(({ key, label }) => {
+                        const ok = getPasswordStrength(password).checks[key as keyof ReturnType<typeof getPasswordStrength>["checks"]];
+                        return (
+                          <div key={key} className="flex items-center gap-2">
+                            <div className={cn(
+                              "flex h-4 w-4 items-center justify-center rounded-full border transition-colors",
+                              ok ? "bg-green-500/20 border-green-500/50" : "bg-white/5 border-white/10"
+                            )}>
+                              {ok ? (
+                                <Check className="h-2.5 w-2.5 text-green-500" />
+                              ) : (
+                                <div className="h-1 w-1 rounded-full bg-white/20" />
+                              )}
+                            </div>
+                            <span className={cn(
+                              "text-xs transition-colors",
+                              ok ? "text-green-400" : "text-muted-foreground"
+                            )}>
+                              {label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 mt-2">
+                      <div className="flex gap-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((level) => {
+                          const score = getPasswordStrength(password).score;
+                          const color =
+                            score <= 2 ? "bg-red-500" :
+                            score === 3 ? "bg-yellow-500" :
+                            score === 4 ? "bg-blue-500" :
+                            "bg-green-500";
+                          return (
+                            <div
+                              key={level}
+                              className={cn(
+                                "h-1 flex-1 rounded-full transition-all duration-500",
+                                level <= score ? color : "bg-white/10"
+                              )}
+                            />
+                          );
+                        })}
+                      </div>
+                      <p className={cn(
+                        "text-[10px] font-bold uppercase tracking-widest text-right",
+                        getPasswordStrength(password).score <= 2 ? "text-red-400" :
+                        getPasswordStrength(password).score === 3 ? "text-yellow-400" :
+                        getPasswordStrength(password).score === 4 ? "text-blue-400" :
+                        "text-green-400"
+                      )}>
+                        {getPasswordStrength(password).score <= 2
+                          ? "Senha fraca"
+                          : getPasswordStrength(password).score === 3
+                            ? "Senha razoável"
+                            : getPasswordStrength(password).score === 4
+                              ? "Senha boa"
+                              : "Senha forte ✓"}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {activeTab === "signup" && (
