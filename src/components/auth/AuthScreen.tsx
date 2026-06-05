@@ -23,6 +23,8 @@ export function AuthScreen() {
   // Error states
   const [errors, setErrors] = useState<Record<string, string>>({});
   
+  console.log("AuthScreen montado, supabase:", !!supabase);
+  
   const getPasswordStrength = (pwd: string) => {
     const checks = {
       length: pwd.length >= 8,
@@ -69,6 +71,7 @@ export function AuthScreen() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("handleLogin chamado", { email, password });
     if (!validate()) return;
     
     setLoading(true);
@@ -79,6 +82,9 @@ export function AuthScreen() {
       });
       if (error) throw error;
     } catch (error: any) {
+      console.error("Erro completo:", error);
+      console.error("Mensagem:", error?.message);
+      console.error("Status:", error?.status);
       toast.error(translateError(error.message));
     } finally {
       setLoading(false);
@@ -87,6 +93,7 @@ export function AuthScreen() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("handleSignUp chamado", { email, password, companyName });
     if (!validate()) return;
     
     setLoading(true);
@@ -112,6 +119,9 @@ export function AuthScreen() {
         toast.success("Conta criada! Verifique seu email para confirmar.");
       }
     } catch (error: any) {
+      console.error("Erro completo:", error);
+      console.error("Mensagem:", error?.message);
+      console.error("Status:", error?.status);
       toast.error(translateError(error.message));
     } finally {
       setLoading(false);
