@@ -48,81 +48,114 @@ export function AuthScreen() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!email) newErrors.email = "Campo obrigatório";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Email inválido";
+    if (!email.trim()) newErrors.email = "Campo obrigatório";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      newErrors.email = "Email inválido";
     
     if (!password) newErrors.password = "Campo obrigatório";
-    else if (password.length < 8) newErrors.password = "Mínimo 8 caracteres";
+    else if (password.length < 8)
+      newErrors.password = "Mínimo 8 caracteres";
     
     if (activeTab === "signup") {
-      if (!companyName) newErrors.companyName = "Campo obrigatório";
-      if (!confirmPassword) newErrors.confirmPassword = "Campo obrigatório";
-      else if (confirmPassword !== password) newErrors.confirmPassword = "As senhas não coincidem";
+      if (!companyName.trim())
+        newErrors.companyName = "Campo obrigatório";
+      if (!confirmPassword)
+        newErrors.confirmPassword = "Campo obrigatório";
+      else if (confirmPassword !== password)
+        newErrors.confirmPassword = "As senhas não coincidem";
       
       const { score } = getPasswordStrength(password);
-      if (score < 5) {
-        newErrors.password = "Complete todos os requisitos de senha acima";
-      }
+      if (score < 5)
+        newErrors.password = "Complete todos os requisitos de senha";
     }
     
+    console.log("validate resultado:", { newErrors, temErros: Object.keys(newErrors).length > 0 });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("handleLogin chamado", { email, password });
-    if (!validate()) return;
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    console.log("handleLogin iniciado");
+    
+    if (!validate()) {
+      console.log("validação falhou");
+      return;
+    }
     
     setLoading(true);
+    console.log("chamando supabase.auth.signInWithPassword");
+    
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
-      if (error) throw error;
-    } catch (error: any) {
-      console.error("Erro completo:", error);
-      console.error("Mensagem:", error?.message);
-      console.error("Status:", error?.status);
-      toast.error(translateError(error.message));
+      
+      console.log("resposta supabase:", { data, error });
+      
+      if (error) {
+        toast.error(translateError(error.message));
+        return;
+      }
+      
+      console.log("login bem sucedido", data);
+      
+    } catch (err: any) {
+      console.error("erro catch:", err);
+      toast.error("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("handleSignUp chamado", { email, password, companyName });
-    if (!validate()) return;
+  const handleSignUp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    console.log("handleSignUp iniciado");
+    
+    if (!validate()) {
+      console.log("validação falhou", errors);
+      return;
+    }
     
     setLoading(true);
+    
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
+        options: {
+          data: { company_name: companyName }
+        }
       });
       
-      if (signUpError) throw signUpError;
+      console.log("resposta signup:", { data, error });
+      
+      if (error) {
+        toast.error(translateError(error.message));
+        return;
+      }
       
       if (data.user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert({
-            id: data.user.id,
-            user_id: data.user.id,
-            email,
-            company_name: companyName,
-          });
-          
-        if (profileError) console.error("Error creating profile:", profileError);
-        toast.success("Conta criada! Verifique seu email para confirmar.");
+        try {
+          await supabase
+            .from("profiles")
+            .upsert({
+              id: data.user.id,
+              user_id: data.user.id,
+              email: email.trim(),
+              company_name: companyName,
+            });
+        } catch (profileErr) {
+          console.error("erro ao criar perfil:", profileErr);
+        }
+        
+        toast.success("Conta criada com sucesso!");
       }
-    } catch (error: any) {
-      console.error("Erro completo:", error);
-      console.error("Mensagem:", error?.message);
-      console.error("Status:", error?.status);
-      toast.error(translateError(error.message));
+      
+    } catch (err: any) {
+      console.error("erro catch:", err);
+      toast.error("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -186,7 +219,17 @@ export function AuthScreen() {
           </div>
 
           <div className="p-8">
-            <form onSubmit={activeTab === "login" ? handleLogin : handleSignUp} className="space-y-5">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (activeTab === "login") {
+                  handleLogin(e);
+                } else {
+                  handleSignUp(e);
+                }
+              }} 
+              className="space-y-5"
+            >
               {activeTab === "signup" && (
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Nome da empresa</Label>
@@ -352,6 +395,14 @@ export function AuthScreen() {
 
               <Button
                 type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (activeTab === "login") {
+                    handleLogin(e as any);
+                  } else {
+                    handleSignUp(e as any);
+                  }
+                }}
                 disabled={loading}
                 className="w-full h-12 text-base font-bold shadow-lg shadow-primary/20"
               >
