@@ -395,6 +395,14 @@ export function AuthScreen() {
 
               <Button
                 type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (activeTab === "login") {
+                    handleLogin(e as any);
+                  } else {
+                    handleSignUp(e as any);
+                  }
+                }}
                 disabled={loading}
                 className="w-full h-12 text-base font-bold shadow-lg shadow-primary/20"
               >
