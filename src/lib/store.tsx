@@ -178,7 +178,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             window.location.reload();
           }
         } catch (error) {
-          console.error("Erro na migração:", error);
+          console.error("Erro na migração:", error.message || error);
         }
       };
 
@@ -212,7 +212,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       supabase.from("products").insert(mapProductToDb(p, user.id)).then(({ error }) => {
         if (error) {
-          console.error("Erro ao criar produto:", error);
+          console.error("Erro ao criar produto:", error.message);
           setProducts(prev => prev.filter(x => x.id !== p.id));
           toast.error("Erro ao salvar produto");
         }
@@ -237,7 +237,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             .eq("id", id)
             .eq("user_id", user.id)
             .then(({ error }) => {
-              if (error) console.error("Erro ao atualizar produto:", error);
+              if (error) console.error("Erro ao atualizar produto:", error.message);
             });
         }
         return updatedList;
@@ -258,7 +258,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .eq("id", id)
         .eq("user_id", user.id)
         .then(({ error }) => {
-          if (error) console.error("Erro ao deletar produto:", error);
+          if (error) console.error("Erro ao deletar produto:", error.message);
         });
     }
   }, [user?.id, setProducts, setUI, state.ui]);
@@ -275,7 +275,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .eq("id", id)
           .eq("user_id", user.id)
           .then(({ error }) => {
-            if (error) console.error("Erro ao favoritar produto:", error);
+            if (error) console.error("Erro ao favoritar produto:", error.message);
           });
       }
       return updated;
@@ -312,7 +312,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .eq("id", productId)
           .eq("user_id", user.id)
           .then(({ error }) => {
-            if (error) console.error("Erro ao atualizar palavras-chave:", error);
+            if (error) console.error("Erro ao atualizar palavras-chave:", error.message);
           });
       }
       return updatedList;
@@ -333,7 +333,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .eq("id", productId)
           .eq("user_id", user.id)
           .then(({ error }) => {
-            if (error) console.error("Erro ao remover palavra-chave:", error);
+            if (error) console.error("Erro ao remover palavra-chave:", error.message);
           });
       }
       return updatedList;
@@ -360,7 +360,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             .eq("id", productId)
             .eq("user_id", user.id)
             .then(({ error }) => {
-              if (error) console.error("Erro ao favoritar palavra-chave:", error);
+              if (error) console.error("Erro ao favoritar palavra-chave:", error.message);
             });
         }
         return updatedList;
@@ -426,7 +426,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       supabase.from("kits").insert(mapKitToDb(k, user.id)).then(({ error }) => {
         if (error) {
-          console.error("Erro ao criar kit:", error);
+          console.error("Erro ao criar kit:", error.message);
           setKits(prev => prev.filter(x => x.id !== k.id));
           toast.error("Erro ao salvar kit");
         }
@@ -451,7 +451,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             .eq("id", id)
             .eq("user_id", user.id)
             .then(({ error }) => {
-              if (error) console.error("Erro ao atualizar kit:", error);
+              if (error) console.error("Erro ao atualizar kit:", error.message);
             });
         }
         return updatedList;
@@ -471,7 +471,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .eq("id", id)
         .eq("user_id", user.id)
         .then(({ error }) => {
-          if (error) console.error("Erro ao deletar kit:", error);
+          if (error) console.error("Erro ao deletar kit:", error.message);
         });
     }
   }, [user?.id, setKits, setUI, state.ui]);

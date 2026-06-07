@@ -76,15 +76,15 @@ export function AuthScreen() {
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    console.log("handleLogin iniciado");
+    
     
     if (!validate()) {
-      console.log("validação falhou");
+      
       return;
     }
     
     setLoading(true);
-    console.log("chamando supabase.auth.signInWithPassword");
+    
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -92,17 +92,17 @@ export function AuthScreen() {
         password,
       });
       
-      console.log("resposta supabase recebida");
+      
       
       if (error) {
         toast.error(translateError(error.message));
         return;
       }
       
-      console.log("login bem sucedido");
+      
       
     } catch (err: any) {
-      console.error("erro catch:", err);
+      console.error("Erro no login:", err.message || "Erro desconhecido");
       toast.error("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
@@ -111,10 +111,10 @@ export function AuthScreen() {
 
   const handleSignUp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    console.log("handleSignUp iniciado");
+    
     
     if (!validate()) {
-      console.log("validação falhou", errors);
+      
       return;
     }
     
@@ -129,7 +129,7 @@ export function AuthScreen() {
         }
       });
       
-      console.log("resposta signup recebida");
+      
       
       if (error) {
         toast.error(translateError(error.message));
