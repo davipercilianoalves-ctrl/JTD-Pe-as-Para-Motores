@@ -13,6 +13,7 @@ import { KitsScreen } from "@/components/KitsScreen";
 import { supabase } from "@/lib/supabase";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -62,19 +63,22 @@ function Index() {
   if (!session) return <AuthScreen />;
 
   return (
-    <StoreProvider>
-      <ConfirmProvider>
-        <CommandPaletteProvider>
-          <div className="flex h-screen w-full overflow-hidden bg-background text-foreground transition-colors duration-300">
-            <AppSidebar />
-            <div className="flex flex-1 flex-col min-w-0">
-              <StorageBanner />
-              <Main />
+    <>
+      <StoreProvider>
+        <ConfirmProvider>
+          <CommandPaletteProvider>
+            <div className="flex h-screen w-full overflow-hidden bg-background text-foreground transition-colors duration-300">
+              <AppSidebar />
+              <div className="flex flex-1 flex-col min-w-0">
+                <StorageBanner />
+                <Main />
+              </div>
             </div>
-          </div>
-        </CommandPaletteProvider>
-      </ConfirmProvider>
-    </StoreProvider>
+          </CommandPaletteProvider>
+        </ConfirmProvider>
+      </StoreProvider>
+      <Toaster />
+    </>
   );
 }
 
