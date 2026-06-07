@@ -146,8 +146,8 @@ export function AuthScreen() {
               email: email.trim(),
               company_name: companyName,
             });
-        } catch (profileErr) {
-          console.error("Erro ao criar perfil:", profileErr.message);
+        } catch (profileErr: any) {
+          console.error("Erro ao criar perfil:", profileErr.message || profileErr);
         }
         
         toast.success("Conta criada com sucesso!");
