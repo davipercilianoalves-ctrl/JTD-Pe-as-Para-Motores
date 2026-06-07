@@ -92,14 +92,14 @@ export function AuthScreen() {
         password,
       });
       
-      console.log("resposta supabase:", { data, error });
+      console.log("resposta supabase recebida");
       
       if (error) {
         toast.error(translateError(error.message));
         return;
       }
       
-      console.log("login bem sucedido", data);
+      console.log("login bem sucedido");
       
     } catch (err: any) {
       console.error("erro catch:", err);
@@ -129,7 +129,7 @@ export function AuthScreen() {
         }
       });
       
-      console.log("resposta signup:", { data, error });
+      console.log("resposta signup recebida");
       
       if (error) {
         toast.error(translateError(error.message));
