@@ -23,7 +23,7 @@ export function AuthScreen() {
   // Error states
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  console.log("AuthScreen montado, supabase:", !!supabase);
+  
   
   const getPasswordStrength = (pwd: string) => {
     const checks = {
@@ -69,7 +69,7 @@ export function AuthScreen() {
         newErrors.password = "Complete todos os requisitos de senha";
     }
     
-    console.log("validate resultado:", { newErrors, temErros: Object.keys(newErrors).length > 0 });
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -147,14 +147,14 @@ export function AuthScreen() {
               company_name: companyName,
             });
         } catch (profileErr) {
-          console.error("erro ao criar perfil:", profileErr);
+          console.error("Erro ao criar perfil:", profileErr.message);
         }
         
         toast.success("Conta criada com sucesso!");
       }
       
     } catch (err: any) {
-      console.error("erro catch:", err);
+      console.error("Erro catch signup:", err.message || "Erro desconhecido");
       toast.error("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
