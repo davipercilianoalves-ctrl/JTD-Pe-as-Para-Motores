@@ -178,7 +178,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             window.location.reload();
           }
         } catch (error) {
-          console.error("Erro na migração:", error.message || error);
+          console.error("Erro na migração:", (error as any).message || error);
         }
       };
 
