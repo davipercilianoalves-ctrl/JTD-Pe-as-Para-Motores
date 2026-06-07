@@ -23,7 +23,7 @@ export function AuthScreen() {
   // Error states
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  console.log("AuthScreen montado, supabase:", !!supabase);
+  
   
   const getPasswordStrength = (pwd: string) => {
     const checks = {
@@ -69,22 +69,22 @@ export function AuthScreen() {
         newErrors.password = "Complete todos os requisitos de senha";
     }
     
-    console.log("validate resultado:", { newErrors, temErros: Object.keys(newErrors).length > 0 });
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    console.log("handleLogin iniciado");
+    
     
     if (!validate()) {
-      console.log("validação falhou");
+      
       return;
     }
     
     setLoading(true);
-    console.log("chamando supabase.auth.signInWithPassword");
+    
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -92,17 +92,17 @@ export function AuthScreen() {
         password,
       });
       
-      console.log("resposta supabase recebida");
+      
       
       if (error) {
         toast.error(translateError(error.message));
         return;
       }
       
-      console.log("login bem sucedido");
+      
       
     } catch (err: any) {
-      console.error("erro catch:", err);
+      console.error("Erro no login:", err.message || "Erro desconhecido");
       toast.error("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);
@@ -111,10 +111,10 @@ export function AuthScreen() {
 
   const handleSignUp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    console.log("handleSignUp iniciado");
+    
     
     if (!validate()) {
-      console.log("validação falhou", errors);
+      
       return;
     }
     
@@ -129,7 +129,7 @@ export function AuthScreen() {
         }
       });
       
-      console.log("resposta signup recebida");
+      
       
       if (error) {
         toast.error(translateError(error.message));
@@ -146,15 +146,15 @@ export function AuthScreen() {
               email: email.trim(),
               company_name: companyName,
             });
-        } catch (profileErr) {
-          console.error("erro ao criar perfil:", profileErr);
+        } catch (profileErr: any) {
+          console.error("Erro ao criar perfil:", profileErr.message || profileErr);
         }
         
         toast.success("Conta criada com sucesso!");
       }
       
     } catch (err: any) {
-      console.error("erro catch:", err);
+      console.error("Erro catch signup:", err.message || "Erro desconhecido");
       toast.error("Erro de conexão. Tente novamente.");
     } finally {
       setLoading(false);

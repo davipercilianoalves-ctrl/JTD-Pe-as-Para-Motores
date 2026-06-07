@@ -112,7 +112,7 @@ export function useSupabaseStore(userId: string | undefined) {
           setKits(kitsRes.data.map(mapDbToKit));
         }
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error("Erro ao carregar dados:", (error as any).message || error);
         toast.error("Erro ao carregar dados do servidor");
       } finally {
         setLoading(false);
