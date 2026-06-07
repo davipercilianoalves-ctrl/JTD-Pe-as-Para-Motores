@@ -24,6 +24,9 @@ function readAppKeys(): Record<string, string> {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key) continue;
+    // Only export app-owned keys. Never include third-party tokens
+    // (e.g. Supabase auth session) in backups.
+    if (!key.startsWith(APP_PREFIX)) continue;
     const value = localStorage.getItem(key);
     if (value !== null) out[key] = value;
   }
@@ -96,6 +99,9 @@ export async function importData(file: File): Promise<void> {
   }
   keysToRemove.forEach((k) => localStorage.removeItem(k));
   for (const [k, v] of Object.entries(parsed.data)) {
+    // Restore only app-owned keys. Reject any attempt to overwrite
+    // third-party storage (e.g. sb-*-auth-token) via a crafted backup.
+    if (!k.startsWith(APP_PREFIX)) continue;
     try {
       localStorage.setItem(k, v);
     } catch {
