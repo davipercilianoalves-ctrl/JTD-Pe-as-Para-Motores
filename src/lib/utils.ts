@@ -36,3 +36,21 @@ export async function compressImage(
     img.src = url;
   });
 }
+
+export function sanitizeUrl(url: string | undefined): string {
+  if (!url) return "#";
+  const trimmed = url.trim();
+  const protocolPattern = /^(https?|ftp|mailto|tel):/i;
+  if (protocolPattern.test(trimmed) || trimmed.startsWith("/") || trimmed.startsWith("#")) {
+    return trimmed;
+  }
+  // If it doesn't have a protocol, it might be a domain like www.google.com
+  // but for href it would be relative. To be safe, if it looks like a domain, we could prepends https://
+  // but for the sake of URI injection fix, we just block javascript: etc.
+  if (trimmed.toLowerCase().startsWith("javascript:") || 
+      trimmed.toLowerCase().startsWith("data:") || 
+      trimmed.toLowerCase().startsWith("vbscript:")) {
+    return "#";
+  }
+  return trimmed;
+}
