@@ -289,9 +289,12 @@ function DashboardStats() {
       if (Array.isArray(kits)) totalKits += kits.length;
     });
 
-    const today = new Date().toISOString().slice(0, 10);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayMs = startOfToday.getTime();
+
     const createdToday = products.filter(
-      p => (p.createdAt as any)?.startsWith?.(today)
+      p => p.createdAt >= todayMs
     ).length;
 
     return { totalProducts, totalAnnouncements, totalKits, createdToday };
@@ -358,8 +361,11 @@ function DailyGoal() {
   }, []);
 
   const todayCount = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return products.filter(p => (p.createdAt as any)?.startsWith?.(today)).length;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayMs = startOfToday.getTime();
+
+    return products.filter(p => p.createdAt >= todayMs).length;
   }, [products]);
 
   const updateGoal = (val: string) => {
