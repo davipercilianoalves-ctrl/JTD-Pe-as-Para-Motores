@@ -73,7 +73,7 @@ export function ViralLibraryScreen() {
                       />
                       {c.link && (
                         <a
-                          href={c.link}
+                          href={sanitizeUrl(c.link)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center justify-center rounded-lg border border-border px-3 hover:bg-accent"
