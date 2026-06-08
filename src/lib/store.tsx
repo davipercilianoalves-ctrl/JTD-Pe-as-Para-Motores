@@ -173,7 +173,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
           localStorage.setItem(migrationKey, "true");
           if (localProducts.length > 0 || localKits.length > 0) {
-            toast.success(`${localProducts.length} produtos e ${localKits.length} kits migrados para a nuvem!`);
+            toast.success(`${localProducts.length} produtos e ${localKits.length} kits sincronizados com a nuvem!`);
             // Trigger a reload or just rely on the effect
             window.location.reload();
           }

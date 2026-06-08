@@ -89,6 +89,25 @@ export function AppSidebar() {
     });
 
     if (isConfirmed) {
+      // Clear sensitive app data from local storage on logout to prevent
+      // data leakage on shared computers/browsers.
+      const keysToClear = [
+        "jtd-motors-hub:v3",
+        "jtd:kits",
+        "jtd-motors-hub:v2",
+        "jtd:settings",
+        "jtd:daily-goal",
+        "jtd-motors-hub:v1"
+      ];
+      
+      keysToClear.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          // ignore storage errors
+        }
+      });
+
       await supabase.auth.signOut();
     }
   };
