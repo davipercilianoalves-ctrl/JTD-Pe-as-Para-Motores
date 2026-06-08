@@ -68,7 +68,7 @@ import {
   AutoTextArea,
 } from "@/components/ui-kit";
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
-import { cn, compressImage } from "@/lib/utils";
+import { cn, compressImage, sanitizeUrl } from "@/lib/utils";
 import { toast } from "sonner";
 
 type MK = MarketplaceId;
