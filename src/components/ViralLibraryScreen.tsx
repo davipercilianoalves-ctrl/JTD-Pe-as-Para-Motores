@@ -2,6 +2,7 @@ import { Plus, Trash2, ExternalLink } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { Field, TextInput, TextArea, Btn } from "@/components/ui-kit";
+import { sanitizeUrl } from "@/lib/utils";
 
 export function ViralLibraryScreen() {
   const { viralLibrary, addViral, updateViral, deleteViral } = useStore();
@@ -72,7 +73,7 @@ export function ViralLibraryScreen() {
                       />
                       {c.link && (
                         <a
-                          href={c.link}
+                          href={sanitizeUrl(c.link)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center justify-center rounded-lg border border-border px-3 hover:bg-accent"

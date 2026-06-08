@@ -147,7 +147,7 @@ export function AuthScreen() {
               company_name: companyName,
             });
         } catch (profileErr: any) {
-          console.error("Erro ao criar perfil:", profileErr.message || profileErr);
+          console.error("Erro ao criar perfil:", profileErr.message || "Erro desconhecido");
         }
         
         toast.success("Conta criada com sucesso!");

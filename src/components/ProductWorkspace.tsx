@@ -68,7 +68,7 @@ import {
   AutoTextArea,
 } from "@/components/ui-kit";
 import { CustomFieldsPanel } from "@/components/CustomFieldsPanel";
-import { cn, compressImage } from "@/lib/utils";
+import { cn, compressImage, sanitizeUrl } from "@/lib/utils";
 import { toast } from "sonner";
 
 type MK = MarketplaceId;
@@ -446,7 +446,7 @@ function CompetitorsSection({ product }: { product: Product }) {
                 placeholder="Link do anúncio"
                 className="flex-1 bg-input/40 rounded-lg px-2 py-1 text-xs outline-none"
               />
-              {c.link && <a href={c.link} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><ExternalLink className="h-3.5 w-3.5" /></a>}
+              {c.link && <a href={sanitizeUrl(c.link)} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><ExternalLink className="h-3.5 w-3.5" /></a>}
             </div>
             <AutoTextArea
               value={c.notes}
