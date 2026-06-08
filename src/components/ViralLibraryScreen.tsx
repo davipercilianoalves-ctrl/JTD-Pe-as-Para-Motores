@@ -2,6 +2,7 @@ import { Plus, Trash2, ExternalLink } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { Field, TextInput, TextArea, Btn } from "@/components/ui-kit";
+import { sanitizeUrl } from "@/lib/utils";
 
 export function ViralLibraryScreen() {
   const { viralLibrary, addViral, updateViral, deleteViral } = useStore();
